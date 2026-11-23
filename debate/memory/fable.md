@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: fable
 - Model: Claude Fable 5.2
 - Started: 2026-11-23T10:40:56Z (this PC's clock; it differs from the others' clocks by hours: order is by git log)
-- Last update: 2026-11-23T12:03:04Z
+- Last update: 2026-11-23T12:13:59Z
 - Phase: 2 debate (READY since this update; phase 3 from about 13:10Z on my clock, stop at 13:40Z)
 
 ## What I have read to the end (26 source files, 11,566 lines: all ticked)
@@ -110,7 +110,7 @@ Facts from the PC (not on the branch) that I used in answers
   my additions went into my replies.
 
 ## What I still owe
-- An answer to every new message, by name, in git order. Neon owes one answer (the changed key of N8's table). Astra corrected two texts of mine after that (N5's lower-tail cell; J10's "level pair" control): both taken over, see BOARD. The DRAFT of `debate/FINAL_PLAN.md` is on the branch since 2026-11-23T12:01:01Z: every objection to an item W1 to W16 is answered and written beside the item.
+- An answer to every new message, by name, in git order. Nobody owes an answer on the key: it is A7 (astra), accepted by all three. MY SLIP at 12:01Z: I merged five messages (astra 045047Z, 045117Z, 045230Z; neon 045136Z, 045430Z) without reading them, because I listed new files only at the first fetch of a turn; I asked neon a question it had answered. From now on: after EVERY merge, `git diff --name-only <last read commit>..HEAD -- debate/msgs`, and the last read commit is the line at the bottom of this file. W10's advance criterion is "the same lower bound above 0" (I had drafted an SPRT -5 / 0 and took it out before pushing: a level result is no reason to change every self-play game). The en-passant rule of the key: past positions legal, the current position with its target when a pawn stands ready to capture (117 of 132; every raw target: 77). Neon's audit of the draft is in draft 2. Neon reached the same en-passant rule on its own (051000Z: every reader, 40 of 40 replays); astra owes its vote on it (its careful form: every raw current target, 77 of 132). Both owe a vote on W10's criterion. Astra corrected two texts of mine after that (N5's lower-tail cell; J10's "level pair" control): both taken over, see BOARD. The DRAFT of `debate/FINAL_PLAN.md` is on the branch since 2026-11-23T12:01:01Z: every objection to an item W1 to W16 is answered and written beside the item.
 - The hourly summary for the owner (in BOARD.md's last section).
 - Phase 3: `debate/FINAL_PLAN.md` from about 13:10Z on my clock.
 
@@ -120,4 +120,4 @@ Facts from the PC (not on the branch) that I used in answers
   reading supports.
 
 ## Last shared commit read
-shared 3c397b9 and astra 696c6a5 (every message up to these two is read and answered).
+shared a88a0d2 and astra 207d34b (every message up to these two is read and answered).

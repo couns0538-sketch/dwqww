@@ -145,7 +145,8 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
   openings and 400 game positions, node counts per position. Five settings changed none of the 600 and are
   NOT tuned (EvalSwingMax, AspFailHighMaxReduce, CaptureFutilityMultiplier, CaptureFutilityDepth, QsSeeMargin);
   the 40 tuned ones are the others.
-- To do before the deciding matches (N1, Neon; accepted): the same table again AT THE FINAL VALUES. Three
+- To do before the deciding matches (N1, Neon; accepted): the same table again AT THE FINAL VALUES, for all 45 settings (the 40 tuned ones and the five left out as
+  dead, so that a partner that came alive cannot escape the table; Astra). Three
   tuned settings start at the value that switches a rule off (EvalSwingMult 0, CaptureFutilityBase 0,
   DrawJitter 0); if one ends above 0, its partner settings come alive at values nobody tuned, and the
   repetition code's fixed draw score 0 (`source/src/search.cpp` 2549, 2561) no longer agrees with
@@ -299,8 +300,8 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
   then measured: `debate/evidence/fable_n8_opening_key_and_soft_fixture.md`): of the 29 pairs, the 16 with the
   same whole FEN (position and both move counters) are the same game in all five fields of every row, and the
   13 whose halfmove clock differs are other games; 130 of 130 pairs of two different move orders into one whole
-  FEN replayed to the same game; and of 100 copies about 99 come from another move order, 1 from the same
-  eight moves (the opening rule drawn 300,000 times). So: (1) credit is decided at the receiver, over the whole
+  FEN replayed to the same game; and of the 132 copies in 300,000 draws of the opening rule 129 come from another move order, 3 from the
+  same eight moves (2.3 %; the model's own ratio is 0.64 %). So: (1) credit is decided at the receiver, over the whole
   day, by logical game IDs, exactly-once piece receipts and row hashes over all five fields; (2) to avoid paying
   for a search twice, inside ONE frozen producer only (same program, net, options, limits; never across
   manifests, whose games are new labels), one allocator process hands the workers their openings in batches
@@ -312,10 +313,18 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
   game (reproduced on the PC; today's driver does send such an opening: it tests the draw rules before each
   random ply, not after the last). The engine reads its game history in three functions
   (`source/src/board.cpp` 1463 to 1487 and 1770 to 1808), each only back to the last pawn move or capture, so
-  this key is sufficient. In 300,000 draws of the opening rule it keeps 113 of 132 copies (86 %); the eight
-  moves in order keep 3 (2 %). Safeguard (Astra, Neon): refused pairs are sampled and replayed, and one replay
-  with other rows makes the table fall back to the eight moves in order; the rehearsal must hand out BOTH of
-  Astra's openings; (3) each game's eight opening moves are logged (today
+  this key is sufficient (it is proposal A7 of Astra, accepted by all three, each from its own reading of those
+  lines). Of the 132 copies in the 300,000 draws it keeps 117 (88.6 %; Astra's and Neon's count with the
+  engine's own position key; Fable's count with a finer form of the positions: 113); the eight moves in order
+  keep 3 (2.3 %). The en-passant field (Astra, Neon; counted on the 132 copies:
+  `debate/evidence/fable_n8_epcount.txt`): past positions are written as the engine's own key has them (a target
+  only when a capture is legal); the current position keeps its target whenever a pawn stands ready to capture
+  it, legal or not (Astra's pinned-pawn position: such a target changes scores although the key is the same).
+  With this rule the count stays 117 of 132; with every raw target kept it is 77. Neon reached the
+  same rule from the source on its own and replayed the 40 pairs in between: 40 of 40 identical games. Safeguard (Astra, Neon): refused pairs are sampled and replayed, and one replay
+  with other rows makes the table fall back to the eight moves in order; the rehearsal must hand out BOTH
+  openings of each of Astra's two pairs (0 rows against 127 rows; and 81 rows against 67 rows, where neither
+  opening is drawn at the start; both pairs reproduced by Neon and on the PC); (3) each game's eight opening moves are logged (today
   they are in no row); (4) controls (Astra): the identical request under one manifest is credited once; two
   histories or two manifests with the same position both stay eligible; a planted duplicate payload under a
   fresh delivery ID is recognised; (Neon) with 2 random plies, the table off and 200 games the receiver must
@@ -377,7 +386,9 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
   tests its limit before it writes that row), every earlier row of the game is relabelled with the
   counterfactual result, the production filter runs again, the baseline corpus stays untouched. If that net is
   not weaker, ending self-play games at 1000 (today 2000) becomes a candidate of its own: how many more games
-  it gives is TIMED, not computed from row shares, and it needs the 2,000-node check.
+  it gives is TIMED, not computed from row shares, and it needs the 2,000-node check. The advance criterion for
+  that step (Astra's question on the draft): the same lower bound above 0 in the same match. A rule that changes
+  every self-play game needs a shown gain; a level result leaves the games ending at 2000.
 
 ### P4. Width: the 1024-wide net. STOPPED until P3 (3a)
 - Known: 1024 against 768, same recipe and rounds, node odds for the slower net: 4,400 games,
@@ -585,7 +596,9 @@ beside; card costs the one card of 20 GB. P10 goes with P1, P11 with P3, P12 wit
 - WHAT WOULD CHANGE OUR MIND: a 2-billion 768 net level with today's: then volume at this label depth is not
   the lever, and the next lever is label quality (deeper self-play searches per position). (A6: that
   conclusion needs the 1024 net on the same rows to be level too; a level 768 alone says only that 768 units
-  take no more from this data.)
+  take no more from this data. Astra, on the draft: "level" needs a margin declared before: the direct matches
+  of both nets against round 67's net with 95 % intervals wholly between -5 and +5; failing to be promoted is
+  not that.)
 
 ### P12 (Opus): Keep the loop's one decision rule sound, and test search ideas only as bundles.
 - WHY: two faults found on 23 November: round 112's gate printed its verdict and then did not exit for
@@ -632,4 +645,8 @@ beside; card costs the one card of 20 GB. P10 goes with P1, P11 with P3, P12 wit
   the 768 net to win (P11 step 4, P4). After the second hour: J11's stage 3 closed at a lower bound above -3
   (all three); the opening key changed again after Astra's counterexample (the whole FEN plus the positions
   since the last pawn move or capture; P3b); Neon's note on J10 (the stop's statistic comes from the pairs). Astra: the lower-tail cell of P2's test is "a
-  +5 gain is ruled out", not "level"; J10's controls (the same engine against itself is a wiring test).
+  +5 gain is ruled out", not "level"; J10's controls (the same engine against itself is a wiring test). A7 (Astra; accepted by all three) is the
+  opening key of P3b. From Astra's objections to the draft final plan: the final-values table covers all 45
+  settings (P1); the margin for "level" (P11); the advance criterion for "cut at 1000" (P3c). From Neon's audit of the draft: what it found missing is in
+  the final plan (the net's pin, the count of endings, the disk floor, `MaxHidden`, the TD twin, W13 where the
+  draft said W8). The en-passant rule of the opening key (Astra, Neon; P3b).

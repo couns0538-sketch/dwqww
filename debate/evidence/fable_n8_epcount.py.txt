@@ -1,0 +1,45 @@
+"""Fable 2026-11-23, debate RE A7 (Astra's current-EP witness): on the 129 published cross-order pairs, how many
+keep one key under each way of writing the en-passant field? No engine, no draws: 258 openings replayed in
+python-chess (under a second).
+
+    n8_epcount.py <fable_n8_seqsim_pairs_300k.txt>
+
+current = the FEN of the position after the eight plies; past = the positions since the last pawn move or
+capture, in order. Modes of python-chess: "legal" = target only if a legal capture exists (the engine's key and
+its FEN: board.cpp 434, 1298); "xfen" = target if a pawn stands ready to capture, legal or not; "fen" = target
+after every double push.
+Known answers written before the run (Astra's and Neon's counts): legal/legal 114, legal current + fen past 110,
+fen current + legal past 73 - 3 = 70.
+"""
+import sys
+
+sys.path.insert(0, "C:/nnue-lab/tools/venv_tb/Lib/site-packages")
+import chess  # noqa: E402
+
+
+def key(moves, cur_mode, past_mode):
+    b = chess.Board()
+    pos = [b.epd(en_passant=past_mode)]
+    for u in moves.split():
+        m = chess.Move.from_uci(u)
+        assert b.is_legal(m), (moves, u)
+        b.push(m)
+        pos.append(b.epd(en_passant=past_mode))
+    c = b.halfmove_clock
+    return b.fen(en_passant=cur_mode), tuple(pos[len(pos) - 1 - c:len(pos) - 1])
+
+
+pairs = [ln.split("|") for ln in open(sys.argv[1], encoding="utf-8") if "|" in ln]
+print(f"pairs {len(pairs)}")
+KNOWN = {("legal", "legal"): 114, ("legal", "fen"): 110, ("fen", "legal"): 70}
+ok = True
+for cur in ("legal", "xfen", "fen"):
+    for past in ("legal", "fen"):
+        n = sum(key(a.strip(), cur, past) == key(b.strip(), cur, past) for a, b in pairs)
+        note = ""
+        if (cur, past) in KNOWN:
+            good = n == KNOWN[(cur, past)]
+            ok &= good
+            note = f"   known answer {KNOWN[(cur, past)]}: {'MET' if good else 'NOT MET'}"
+        print(f"current {cur:5s} past {past:5s}: {n:3d} of {len(pairs)} (+3 same-order pairs = {n + 3} of {len(pairs) + 3}){note}")
+print("KNOWN ANSWERS MET" if ok else "KNOWN ANSWERS NOT MET")

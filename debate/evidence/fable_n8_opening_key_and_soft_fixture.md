@@ -210,3 +210,53 @@ by halfmove clock of the opening (pairs with the same whole FEN / of them kept b
   errs on the safe side.
 - What would overturn it: a pair with equal whole FEN and equal window that replays to different rows under
   one manifest, or a reader of the history that looks behind the last pawn move or capture.
+
+**Added 04:04 PC clock.** Astra's second pair (`debate/msgs/20261123T045117Z_astra_re_a7_nonterminal_witness.md`;
+neither opening is drawn at the start) on the PC's program, raw `fable_n8_astra_witness_replay.txt`:
+
+```text
+DIFFER pair 0: rows 81 / 67, first different row 1
+   end A: sgend result 0 reason drawadj plies 88 run 8 searches 81 nodes 307107
+   end B: sgend result 0 reason rule plies 75 run 0 searches 67 nodes 227258
+   order A: b1c3 g8f6 c3d5 b8a6 g1h3 a6b8 h3g1 f6e4
+   order B: b1c3 g8f6 c3e4 f6g8 e4c3 g8f6 c3d5 f6e4
+   whole FEN: rnbqkb1r/pppppppp/8/3N4/4n3/8/PPPPPPPP/R1BQKBNR w KQkq - 8 5
+```
+
+The same row counts, end lines and node sums as Astra's and Neon's Linux runs.
+
+The number to quote for the key is Astra's and Neon's: 114 of my 129 cross-order pairs, so 117 of the 132
+copies (88.6 %), counted with the engine's own `sgstate` positions. My 113 above is the same count with the
+en-passant square written after every double push; theirs is the engine's own key.
+
+**The en-passant field of the key (added 04:09 PC clock; tool `fable_n8_epcount.py.txt`, raw
+`fable_n8_epcount.txt`).** Astra showed a position in which the current en-passant target changes scores
+although no capture is legal, because the capturing pawn is pinned
+(`debate/msgs/20261123T050755Z_astra_re_a7_current_ep_witness.md`; not replayed on the PC). Every reader of the
+raw target in `source/src/board.cpp` that can change a result first looks for a pawn that stands ready to
+capture: move generation 582 to 586, 715 to 718, 871 to 875; the legality test 1188 to 1197; the hash-move
+test 1060; move parsing 1416. The one reader that does not (`key_after`, 1204 to 1207) only decides when a
+memory prefetch is sent (`source/src/search.cpp` 1861 to 1873, 2377 to 2391). Not checked: `source/src/book.cpp`
+51 (the book's key). So the key writes past positions as the engine's key has them (legal captures only) and
+the current position with its target whenever a pawn stands ready to capture, legal or not ("xfen" in
+python-chess).
+
+```text
+pairs 129
+current legal past legal: 114 of 129 (+3 same-order pairs = 117 of 132)   known answer 114: MET
+current legal past fen  : 110 of 129 (+3 same-order pairs = 113 of 132)   known answer 110: MET
+current xfen  past legal: 114 of 129 (+3 same-order pairs = 117 of 132)
+current xfen  past fen  : 110 of 129 (+3 same-order pairs = 113 of 132)
+current fen   past legal:  74 of 129 (+3 same-order pairs = 77 of 132)   known answer 70: NOT MET
+current fen   past fen  :  70 of 129 (+3 same-order pairs = 73 of 132)
+KNOWN ANSWERS NOT MET
+```
+
+"KNOWN ANSWERS NOT MET" is the third one: 70 came from Astra's first figure "73 of 132" for raw current with
+legal past. Astra corrected it to 77 itself (`debate/msgs/20261123T050823Z_astra_re_a7_ep_matrix.md`: 73 is raw
+current WITH raw past). All four combinations above equal Astra's table. Neon
+(`debate/msgs/20261123T051000Z_neon_re_astra_current_ep_proof.md`) read the same readers, adds `to_fen` (395, not
+used by self-play) and the book (`OwnBook` is false in `loop/LOOP_OPTIONS.txt`, line 3), and replayed the 40
+pairs below on Linux: 40 of 40 identical. The 40 pairs between 77 and
+117 differ only in a target that no pawn can capture, and all 40 are among the 129 pairs that replayed to the
+same game in section 8.
