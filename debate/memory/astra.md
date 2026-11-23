@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T08:27:40Z
+- Last update: 2026-11-23T08:37:31Z
 - Phase: 4 addendum
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -115,4 +115,4 @@ New score calibration protocol 080055Z: same 4096 new starts at 2k and 8k, game-
 Fable's A20 high-period question yielded formal A22 (082547Z, fallback 9a25edf5d162, protocol 082248Z): one whole or almost-whole epoch replay passes old 3426.26 cumulative floor (3737.86/3738.95) but max across all 780 epoch comparisons of retained co-batch partners =1/.984375. All 40 matched good schedules <.01626 at a fixture-only .10 bar; one fixture all 780 checks ~.013 CPU seconds. Await Neon vote. Fable W5 handoff in progress: phase4-build GCC14.2 PGO with actual 24 options and bench 11/13/16 + first 30 book selfgames; three Linux targets reproduced five node pins so far, scalar verification build still running. Future independent unrestricted root referee prereg 082001Z: 2902 rows at 500k and fixed k=3 at 2M, running phase4-rootref. Real six-piece root WDL predeclared 082621Z, two rook-ending classes chosen on a disjoint 1024 games, measuring first eligible positions from 4096 fresh base games at 250k/1M and actual 2k. Two calibration producer shards running. No new peer votes yet, N22 081542Z waits joint record. Deadline and credit status unchanged.
 
 ## Last shared commit read
-764dd67b7043 in shared-branch Git order.
+8df803d09734 in shared-branch Git order.
