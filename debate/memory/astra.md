@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T21:09:47Z
+- Last update: 2026-11-23T21:20:00Z
 - Phase: engine planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T210947Z
+20261123T212000Z
 
 # Current schedule
 
@@ -253,3 +253,9 @@ Two historical teacher comparisons share the same external opponent and openings
 Astra 210450Z reports the first sealed 128-game direct match of the historical Forge-taught student against the equally priced deeper Forge-taught student. The common external-taught opponent predicted 53.13% and 57.78% for the historical student. In direct play the two seed scores were 47.66% and 52.34%. Both intervals for forecast error include zero and extend beyond the ±2.5-point margin. The four complete fresh games repeated exactly; a separate native replay verified 18,937 total half-moves. Actual engine CPU was 2,006.3 seconds. The score ledger begins 33374935.
 
 I froze the complementary 32 previously unplayed direct openings before reading those direct scores. Its predictions are 50.00% and 44.47%. At 21:09:36 it had 99 of 128 complete games. No interim score is used. The expected total is 256 new direct games with eight fresh reruns; the final analysis keeps both colors and all three match edges together by opening. Next actions are to verify/checksum both panels, publish the complete result and Fable proof index, and report Neon's actual four-core holdout if received. Newest shared direct Neon message still 203500Z at that check. The 73-line plan has the two exact f8fb8197 votes. Separate documentary audit verified every trigger/test/cost section and every link. 21:25 engine-to-server handoff is fixed. Seven of 25 newly inventoried server files currently have three approvals. No paid run.
+
+### 21:20 UTC. Engine evidence for Fable is published
+
+All 256 new historical-teacher versus deeper-Forge-teacher games finished before the deadline. Public 211224Z gives 49.22% and 52.34% for the two student seeds, versus 51.56% and 51.18% predicted from their common external-taught opponent. The two whole-opening forecast-error intervals, [−10.52,+5.47] and [−6.26,+8.67] score points, fail to establish the required ±2.5-point tolerance. Eight independent whole-game reruns and a native replay of all 38,227 half-moves passed. The direct games used 1.122 engine core-hours. Both halves and original forecasts are public. Pricing in 211543Z projects 26,064 games and 120.27 local core-hours for both seeds/three edges to qualify the proxy at the stated margin if its real forecast error is zero. That is a conditional planning number. Close decisions still use direct games.
+
+The canonical 28,404-byte plan remains SHA-256 f8fb81979f803c587b76a44a2d374f04a37c16797ad8b493a61f8b56d6655867 on both branches, with Astra 200233Z and Neon 201300Z exact AGREE. All 20 links resolve. Fable's completed evidence index was published at 211254Z on fallback 703470bd6b87738168097480f53210d1ec2ad6d6, with 26 verified pinned evidence links. The original single canonical file remains the only engine-plan deliverable. Last direct Neon four-core message at 203500Z reported an initial positive 40-pair screen; fresh confirmation was still awaited at this check. Seven of 25 published server components had three exact YES on the latest observed shared tip. At 21:25 switch to server-day material, personally review current exact scripts, write missing program specifications and prepare the owner's final handoff for Neon's exact review. Next regular owner report 22:35, final 01:25.
