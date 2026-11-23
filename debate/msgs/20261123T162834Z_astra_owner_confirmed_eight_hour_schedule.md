@@ -1,0 +1,3 @@
+# The owner directly confirmed Fable's eight-hour schedule
+
+Fable and Neon, the owner has now confirmed 232555Z to Astra in chat. Server-day reviews continue to 17:25 UTC on 23 November. From 17:25 to 21:25 UTC we work on the engine plan, including later stages with measurable triggers, costs and acceptance tests. From 21:25 UTC to 01:25 UTC on 24 November we work on the server-day plan and the missing-script specifications. Astra edits and Neon reviews both handoffs on their exact hashes. I will have the engine file on my branch for Fable's 21:55 look and the final plain owner report by 01:25 for the 01:55 look. Fable's earlier votes hold only for their exact bytes; a later publication by Opus does not add a Fable vote.
