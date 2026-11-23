@@ -1,0 +1,28 @@
+exe sha256 cef2f21589102392 | net sha256 737f197808fef489 | book sha256 ac44af15ef0d7233 | 24 loop options
+=== N18 (1): go softnodes 16 on book line 4, twelve searches each, a new game before every search, Hash 64
+    position: rnbqk1nr/pp2bppp/2ppp3/8/3PP3/3B4/PPPN1PPP/R1BQK1NR w KQkq - 0 5
+    Threads 1: the engine's own 'softnodes nodes' line: [37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37]; above the hard cap of 64: 0 of 12; moves ['g1f3']
+    Threads 2: the engine's own 'softnodes nodes' line: [37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37]; above the hard cap of 64: 0 of 12; moves ['g1f3']
+    Threads 4: the engine's own 'softnodes nodes' line: [74, 111, 74, 37, 37, 74, 37, 37, 74, 37, 37, 37]; above the hard cap of 64: 5 of 12; moves ['g1f3']
+ok  one thread: 37 nodes and g1f3 in 12 of 12 (seats: the same)
+ok  four threads go above the hard cap at least once: 5 of 12, largest 111 (astra 12 of 12, largest 6,836; neon 7 of 12, largest 148)
+    two threads: 0 of 12 above the cap, largest 37 (astra: 5 of 12, 74); no bar, scheduler
+=== N18 (1b): go softnodes 2000 on book line 25 (hard cap 8,000), Hash 64
+    position: r2qkb1r/pp2pppp/2n2n2/3p4/3P2b1/3B1N1P/PPP2PP1/RNBQ1RK1 b kq - 0 7
+ok  one thread: [2677, 2677, 2677, 2677] (seats: always 2,677)
+    four threads, 16 searches: [3473, 4423, 2148, 2916, 3312, 2654, 2544, 2232, 2623, 2274, 2350, 2123, 2054, 2087, 2431, 3159]; above 8,000: 0 (astra: 1 of 16, 28,073; the others 2,122 to 4,597); no bar, scheduler
+=== N18 (6): go depth 9 on 8/8/2n2r2/3qN1k1/8/8/8/K7 w - - 90 141, Hash 64
+    Threads 1: nodes of three searches [5865, 5865, 5865]
+    Threads 2: nodes of three searches [87603, 124682, 139910]
+ok  one thread: 5,865 nodes (neon: 5,865)
+ok  two threads search more than five times as many: [87603, 124682, 139910] (neon: 68,611 = 11.7 times)
+=== N19: one legal move on the clock, 6k1/5ppp/8/8/8/8/5PqP/7K w - - 0 1 (the 24 loop options as they are: one thread, Hash 16)
+    go perft 1: h1g2: 1 | nodes 1
+    go wtime 60000 btime 60000 winc 600 binc 600: bestmove h1g2, depth 27, nodes 13629020, engine time 2656 ms, wall 2656 ms (soft limit by the source's formula 3176 ms)
+       seats: neon depth 27, 13,629,020 nodes, 3,656 ms; astra depth 26, 9,332,264 nodes, 3,558 ms
+ok  the forced move is searched for the whole soft time: h1g2, 2656 ms inside 2500 to 4500, depth 27 >= 20
+    go wtime 10000 btime 10000 winc 100 binc 100: bestmove h1g2, depth 24, nodes 1369978, engine time 308 ms, wall 309 ms (soft limit by the source's formula 529 ms)
+       seats: both seats depth 22 and 896,215 nodes; 280 ms and 382 ms
+ok  the forced move is searched for the whole soft time: h1g2, 309 ms inside 150 to 800, depth 24 >= 20
+ok  nodes when depth 22 was finished: 896215 (both seats ended there with 896,215)
+ALL TYPED-IN EXPECTATIONS MET

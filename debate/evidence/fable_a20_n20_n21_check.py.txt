@@ -1,0 +1,338 @@
+"""Fable 2026-11-23: arithmetic checks of three agreed messages of the debate, on the PC, no engine, no game.
+    a20_n20_n21_check.py <net .fnn3 (round 67's)> <the loop's state.json> <new output file>
+  A20 (astra 072753Z): the 8,192-row, batch-128 fixture over 40 passes, rebuilt from the description.
+  N20 (neon 072613Z): the logistic slope, the 150-pair half-width, the splice errors, three 500-pair tables,
+       the Wald sample sizes, round 67's net against Stockfish 11 (held against the loop's own state file).
+  N21 (neon 072614Z): the 32-bit lane ceilings, the worker payload sizes, the parameter counts; and astra's
+       later question 073715Z (which of 16 buckets a rank-parity split of round 67's king map can reach).
+Every expected value below is the seats', typed in BEFORE the first run. One thread.
+"""
+import json
+import math
+import os
+import random
+import sys
+
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+import numpy as np  # noqa: E402
+
+net_path, state_path, out_path = sys.argv[1:4]
+lines = []
+bad = 0
+
+
+def say(text):
+    lines.append(text)
+    print(text, flush=True)
+
+
+def check(label, got, want, tol):
+    global bad
+    ok = abs(float(got) - float(want)) <= tol
+    bad += 0 if ok else 1
+    say(f"{'ok ' if ok else 'BAD'} {label}: got {got:.9f}, seats {want}")
+    return ok
+
+
+def check_int(label, got, want):
+    global bad
+    ok = int(got) == int(want)
+    bad += 0 if ok else 1
+    say(f"{'ok ' if ok else 'BAD'} {label}: got {got}, seats {want}")
+    return ok
+
+
+# ------------------------------------------------------------------ A20
+say("=== A20: the 40-pass reader fixture (128 games x 64 rows, ID = 64*game + row, 8 strata = game mod 8, B = 128)")
+N, B, NB, PASSES = 8192, 128, 64, 40
+
+
+def strata_ids():
+    return [[64 * g + row for g in range(r, 128, 8) for row in range(64)] for r in range(8)]
+
+
+def fresh_stratified(seed):
+    """One pass: every stratum shuffled in order 0..7 by ONE Random(seed), 16 rows of each stratum a batch.
+    Returns the ordered row stream as 64 batches of 128 row IDs."""
+    rng = random.Random(seed)
+    st = strata_ids()
+    for v in st:
+        rng.shuffle(v)
+    return [sum((v[16 * i:16 * i + 16] for v in st), []) for i in range(NB)]
+
+
+def reorder(batches, seed):
+    """The plants' disguise: batch order first, then the rows inside each batch, by Random(seed)."""
+    rng = random.Random(seed)
+    order = list(range(NB))
+    rng.shuffle(order)
+    out = []
+    for i in order:
+        rows = list(batches[i])
+        rng.shuffle(rows)
+        out.append(rows)
+    return out
+
+
+def judge(streams):
+    """What a test of a real reader sees: for every pass the ordered row IDs in batches. Returns coverage,
+    mean distinct co-batch partners a row over all passes, and the mean share of a row's partners kept at lag 1
+    and at lag 2."""
+    cover = all(sorted(x for b in s for x in b) == list(range(N)) and all(len(b) == B for b in s) for s in streams)
+    union = np.zeros((N, N), dtype=bool)
+    mats = []
+    for s in streams:
+        lab = np.empty(N, dtype=np.int16)
+        for i, b in enumerate(s):
+            lab[np.asarray(b)] = i
+        m = lab[:, None] == lab[None, :]
+        union |= m
+        mats.append(lab)
+    distinct = (union.sum() - N) / N
+
+    def lag(k):
+        tot = 0
+        for e in range(len(mats) - k):
+            a = mats[e][:, None] == mats[e][None, :]
+            b = mats[e + k][:, None] == mats[e + k][None, :]
+            tot += (a & b).sum() - N
+        return tot / ((len(mats) - k) * N * (B - 1))
+
+    return cover, float(distinct), float(lag(1)), float(lag(2))
+
+
+def games_and_collision(stream):
+    games = sum(len({x // 64 for x in b}) for b in stream) / NB
+    tot = 0
+    for b in stream:
+        cnt = {}
+        for x in b:
+            cnt[x // 64] = cnt.get(x // 64, 0) + 1
+        tot += sum(n * (n - 1) for n in cnt.values())
+    return games, tot / (NB * B * (B - 1))
+
+
+fresh = [fresh_stratified(202611230639 + e) for e in range(PASSES)]
+g0, c0 = games_and_collision(fresh[0])
+check("pass 0, distinct games a batch (A17's 82.484375)", g0, 82.484375, 5e-7)
+check("pass 0, same-game share (A17's 0.007353054257)", c0, 0.007353054257, 5e-13)
+cov, dist_f, l1_f, l2_f = judge(fresh)
+say(f"    fresh stratified: every pass covers all rows in whole batches: {cov}")
+bad += 0 if cov else 1
+check("fresh stratified, mean distinct partners a row over 40 passes", dist_f, 3806.952393, 5e-7)
+check("fresh stratified, share of partners kept at lag 1", l1_f, 0.015543127, 5e-10)
+say(f"    fresh stratified, lag 2: {l2_f:.9f} (no figure of the seats); closed form of lag 1 "
+    f"(15/127)(15/1023)+(112/127)(16/1024) = {15/127*15/1023 + 112/127*16/1024:.9f} (neon: 0.015511349)")
+cut = 0.9 * dist_f
+check("the bar on this fixture, 0.9 x the fresh mean", cut, 3426.257153, 5e-6)
+
+frozen = [reorder(fresh[0], 202611230727 + e) for e in range(PASSES)]
+cov, dist_z, l1_z, l2_z = judge(frozen)
+bad += 0 if cov else 1
+check("plant 1 (one partition, fresh batch and row order every pass), mean distinct partners", dist_z, 127.0, 5e-7)
+check("plant 1, lag 1", l1_z, 1.0, 5e-10)
+gz = [games_and_collision(s) for s in frozen]
+same = all(abs(g - 82.484375) < 5e-7 and abs(c - 0.007353054257) < 5e-13 for g, c in gz)
+say(f"    plant 1 keeps A17's two per-pass figures on all 40 passes (so A17's check alone lets it through): {same}")
+bad += 0 if same else 1
+
+alt = [reorder(fresh[e % 2], 202611230727 + e) for e in range(PASSES)]
+cov, dist_a, l1_a, l2_a = judge(alt)
+bad += 0 if cov else 1
+check("plant 2 (two partitions alternating), mean distinct partners", dist_a, 252.010986, 5e-7)
+check("plant 2, lag 1 (passes an adjacent-pass check)", l1_a, 0.015661525, 5e-10)
+check("plant 2, lag 2", l2_a, 1.0, 5e-10)
+say(f"    verdicts under the bar {cut:.6f}: fresh {'PASS' if dist_f >= cut else 'FAIL'} (must pass), "
+    f"plant 1 {'PASS' if dist_z >= cut else 'FAIL'} (must fail), plant 2 {'PASS' if dist_a >= cut else 'FAIL'} (must fail)")
+bad += 0 if (dist_f >= cut and dist_z < cut and dist_a < cut) else 1
+
+# the global control: its generator is not written out in the messages; this is MY guess of it, not a check
+glob = []
+for e in range(PASSES):
+    ids = list(range(N))
+    random.Random(202611230639 + e).shuffle(ids)
+    glob.append([ids[B * i:B * i + B] for i in range(NB)])
+_c, dist_g, l1_g, _l2 = judge(glob)
+say(f"    fresh global (my guess of the generator: Random(202611230639+e) over the ascending IDs): "
+    f"{dist_g:.6f} partners, lag 1 {l1_g:.9f} (seats: 3806.672852, 0.015504532; closed form 127/8191 = {127/8191:.9f})")
+
+# MY ADDITION 1: how long a cycle of good partitions does the bar still catch?
+say("    my addition: a reader that cycles through k good partitions (k of the fresh passes), 40 passes")
+union = np.zeros((N, N), dtype=bool)
+first_pass_k = None
+row = []
+for k in range(1, PASSES + 1):
+    lab = np.empty(N, dtype=np.int16)
+    for i, b in enumerate(fresh[k - 1]):
+        lab[np.asarray(b)] = i
+    union |= lab[:, None] == lab[None, :]
+    d = (union.sum() - N) / N
+    if k in (1, 2, 4, 8, 16, 24, 32, 33, 34, 35, 36, 40):
+        row.append(f"k={k}: {d:.1f}")
+    if first_pass_k is None and d >= cut:
+        first_pass_k = k
+say("      " + "; ".join(row))
+say(f"      the bar fails every cycle of up to {first_pass_k - 1} partitions and lets a cycle of {first_pass_k} through "
+    f"(forecast from 8191 x (1 - (1 - 127/8191)^k): k = "
+    f"{math.ceil(math.log(1 - 0.9 * (1 - (1 - 127/8191) ** 40)) / math.log(1 - 127/8191))})")
+# MY ADDITION 2: how far does a healthy reader stray with other seed schedules?
+vals = []
+for base in range(6):
+    st = [fresh_stratified(900000 + 1000 * base + e) for e in range(PASSES)]
+    vals.append(judge(st)[1])
+say(f"    my addition: six other seed schedules of the fresh stratified reader give {min(vals):.2f} to {max(vals):.2f} "
+    f"partners (the bar is {cut:.2f}; the nearest plant 252.01)")
+
+# ------------------------------------------------------------------ N20
+say("=== N20: measuring a stronger engine")
+LN10 = math.log(10.0)
+
+
+def slope(s):
+    return 400.0 / (LN10 * s * (1.0 - s))
+
+
+def elo(s):
+    return 400.0 * math.log10(s / (1.0 - s))
+
+
+def score(e):
+    return 1.0 / (1.0 + 10.0 ** (-e / 400.0))
+
+
+check("slope dElo/ds at 0.50", slope(0.50), 694.8712, 5e-5)
+check("slope at 0.65", slope(0.65), 764, 0.5)
+check("slope at 0.75", slope(0.75), 927, 0.5)
+check("slope at 0.85", slope(0.85), 1363, 0.5)
+check("slope at 0.90", slope(0.90), 1930, 0.5)
+check("slope 0.85 / slope 0.50", slope(0.85) / slope(0.5), 1.96, 0.005)
+check("slope 0.90 / slope 0.50", slope(0.90) / slope(0.5), 2.78, 0.005)
+for s, e in ((0.65, 108), (0.75, 191), (0.85, 301), (0.90, 382)):
+    check(f"Elo of a score of {s}", elo(s), e, 0.5)
+check("150 pairs, half won-won half lost-lost: 95 % half-width", slope(0.5) * 1.96 * math.sqrt(0.25 / 150), 55.6013, 5e-5)
+check("splice 0.62 -> 0.65 on the old reference", elo(0.65) - elo(0.62), 22.49, 0.005)
+check("splice 0.40 -> 0.43 on the new reference", elo(0.43) - elo(0.40), 21.47, 0.005)
+check("the bogus splice 0.62 -> 0.43", elo(0.43) - elo(0.62), -134.01, 0.005)
+
+X = (0.0, 0.25, 0.5, 0.75, 1.0)
+
+
+def constrained_logl(counts, mu):
+    """As in n13_recount.py (the repaired, full-support form)."""
+    n = sum(counts)
+    used = [(c / n, x) for c, x in zip(counts, X) if c > 0]
+    has0 = any(x == 0.0 for _f, x in used)
+    has1 = any(x == 1.0 for _f, x in used)
+    t_lo, t_hi = -1.0 / (1.0 - mu), 1.0 / mu
+
+    def g(t):
+        return sum(fi * (xi - mu) / (1.0 + t * (xi - mu)) for fi, xi in used)
+
+    if not has0 and g(t_hi) >= 0:
+        t = t_hi
+    elif not has1 and g(t_lo) <= 0:
+        t = t_lo
+    else:
+        a, b = t_lo + 1e-12, t_hi - 1e-12
+        for _ in range(200):
+            m = 0.5 * (a + b)
+            if g(m) > 0:
+                a = m
+            else:
+                b = m
+        t = 0.5 * (a + b)
+    p = [fi / (1.0 + t * (xi - mu)) for fi, xi in used]
+    return sum(c * math.log(pi) for c, pi in zip([c for c in counts if c > 0], p))
+
+
+def llr(counts, e0, e1):
+    return constrained_logl(counts, score(e1)) - constrained_logl(counts, score(e0))
+
+
+for tab, want in (((0, 0, 500, 0, 0), 4.335986), ((5, 0, 490, 0, 5), 0.863876), ((25, 0, 450, 0, 25), 0.185835)):
+    check(f"R1's statistic (-3 / 0) on {list(tab)}", llr(tab, -3.0, 0.0), want, 5e-7)
+pool = (55, 713, 1399, 760, 73)
+n = sum(pool)
+mean = sum(c * x for c, x in zip(pool, X)) / n
+var = sum(c * x * x for c, x in zip(pool, X)) / n - mean * mean
+check("pair variance of the pooled deep table [55, 713, 1399, 760, 73]", var, 0.04130633, 5e-9)
+
+
+def wald_games(e0, v):
+    ds = score(0.0) - score(e0)
+    per_pair = ds * ds / (2.0 * v)
+    return 2.0 * 0.9 * math.log(19.0) / per_pair
+
+
+check("Wald games at truth 0, R1 (-3 / 0), that variance", wald_games(-3.0, var), 23494, 6)
+check("Wald games at truth 0, W8 (-5 / 0)", wald_games(-5.0, var), 8458, 3)
+check("games grow by 1 / variance: 0.04131 / 0.025", 0.04131 / 0.025, 1.65, 0.005)
+check("0.04131 / 0.012", 0.04131 / 0.012, 3.44, 0.005)
+st = json.load(open(state_path, encoding="utf-8"))
+rec = [v for k, v in st["anchors"].items() if k.endswith(":stockfish11_ccrl3494") and "r0067" in v["net"].replace("\\", "/")]
+assert len(rec) == 1, len(rec)
+rec = rec[0]
+say(f"    the loop's own record: {rec['label']} against {rec['reference']}, {rec['tc']}, "
+    f"{rec['games']} games, W-L-D {rec['wins']}-{rec['losses']}-{rec['draws']}, Elo {rec['elo']} +/- {rec['elo_err']}, "
+    f"reference options {rec['reference_options']}")
+check_int("its wins", rec["wins"], 141)
+check_int("its losses", rec["losses"], 70)
+check_int("its draws", rec["draws"], 89)
+sc = (rec["wins"] + rec["draws"] / 2) / rec["games"]
+check("its score", sc, 0.6183, 5e-5)
+check("its Elo", elo(sc), 83.8, 0.05)
+say(f"    3A's trigger: a score of 0.75 is {elo(0.75):+.1f} Elo, a lower bound of 0.70 is {elo(0.70):+.1f}; "
+    f"round 67's net stands at {sc:.4f}")
+
+# ------------------------------------------------------------------ N21
+say("=== N21: net shapes after 1024")
+INT32_MAX = 2147483647
+term = 255 * 255 * 127
+check_int("largest term 255 x 255 x 127", term, 8258175)
+check_int("terms one 32-bit lane holds", INT32_MAX // term, 260)
+for per, name, safe, unsafe, vs, vu in ((4, "AVX2 today (both sides added in 32 bits, H/4 terms a lane)", 1024, 1056, 2114092800, 2180158200),
+                                         (8, "AVX-512 today, or AVX2 with the sides widened apart (H/8)", 2080, 2112, 2147125500, 2180158200),
+                                         (16, "AVX-512 with the sides widened apart (H/16)", 4160, 4192, 2147125500, 2163641850)):
+    check_int(f"{name}: width {safe}, worst lane", safe // per * term, vs)
+    check_int(f"{name}: width {unsafe}, worst lane", unsafe // per * term, vu)
+    ok = safe // per * term <= INT32_MAX < unsafe // per * term
+    first = next(h for h in range(32, 8192, 32) if h // per * term > INT32_MAX)
+    say(f"    {'ok ' if ok and first == unsafe else 'BAD'} safe at {safe}, over at {unsafe}; the first width in steps of 32 "
+        f"(the loader's rule) that goes over: {first}")
+    bad += 0 if ok and first == unsafe else 1
+check("room left at 1024 on today's AVX2 sum, per cent", 100.0 * (1 - 256 * term / INT32_MAX), 1.55, 0.005)
+stack = 128 + 8
+for kb, want in ((8, 635528), (16, 705160)):
+    got = stack * (4160 + 1) + 4 * kb * 2176
+    check_int(f"worker payload at {kb} king buckets, bytes", got, want)
+    say(f"       = {got / 1024:.2f} KiB (seats: {'620.63' if kb == 8 else '688.63'})")
+check_int("difference, KiB", (705160 - 635528) // 1024, 68)
+
+
+def params(h, kb, ob=8):
+    return kb * 768 * h + h + ob * 2 * h + ob
+
+
+for h, kb, want in ((1024, 8, 6.31), (1024, 16, 12.60), (1536, 8, 9.46), (2048, 8, 12.62), (768, 8, None)):
+    p = params(h, kb)
+    if want is None:
+        say(f"    {h} x {kb} king buckets: {p:,} parameters (today's net; its file is {os.path.getsize(net_path):,} bytes)")
+    else:
+        check(f"parameters of {h} x {kb} king buckets, millions", p / 1e6, want, 0.005)
+raw = open(net_path, "rb").read(192)
+assert raw[:8] == b"FORGENN3"
+hidden, kbs, obs = (int.from_bytes(raw[o:o + 4], "little") for o in (20, 24, 28))
+kmap = list(raw[48:112])
+say(f"    round 67's net: hidden {hidden}, king buckets {kbs}, output buckets {obs}; king map by rank (rank 1 first):")
+for r in range(8):
+    say("       " + " ".join(str(v) for v in kmap[8 * r:8 * r + 8]))
+per_rank = [sorted(set(kmap[8 * r:8 * r + 8])) for r in range(8)]
+say(f"    buckets by rank index 0..7: {per_rank}")
+reach = sorted({2 * old + (r % 2) for r in range(8) for old in per_rank[r]})
+say(f"    astra 073715Z (after the agreed message, a question to neon): a split new = 2 x old + (rank index mod 2) "
+    f"reaches {len(reach)} of 16 buckets: {reach}")
+check_int("buckets such a split can reach (astra: 9)", len(reach), 9)
+
+say("ALL TYPED-IN NUMBERS AS THE SEATS'" if bad == 0 else f"{bad} CHECK(S) DIFFER")
+open(out_path, "x", encoding="utf-8", newline="\n").write("\n".join(lines) + "\n")

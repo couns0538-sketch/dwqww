@@ -1,0 +1,116 @@
+"""Fable 2026-11-23: three small checks for the look of 07:00 PC. No engine, no game, one thread.
+    a21_n21b_w7_check.py <a breadth store file rNNNN.s2k0.npz> <a live round cache .npz> <new output file>
+(1) A21 (astra 073421Z / 075923Z, neon 075114Z / 075808Z): the arithmetic behind "a second training seed".
+(2) N21, after the agreed message: the three king maps (round 67's, neon's first 16-bucket fixture, neon's
+    corrected one, 075114Z): buckets reached, one parent per new bucket, king steps that change the bucket.
+(3) W7, astra's question 075404Z: what "every second row" took, measured on the stored side-to-move arrays.
+Expected values are the seats', typed in BEFORE the first run.
+"""
+import math
+import sys
+
+import numpy as np
+
+store_path, cache_path, out_path = sys.argv[1:4]
+lines = []
+bad = 0
+
+
+def say(t):
+    lines.append(t)
+    print(t)
+
+
+def check(label, got, want, tol):
+    global bad
+    ok = abs(got - want) <= tol
+    bad += 0 if ok else 1
+    say(f"{'ok ' if ok else 'BAD'} {label}: got {got:.10g}, reported {want}")
+
+
+def same(label, got, want):
+    global bad
+    ok = got == want
+    bad += 0 if ok else 1
+    say(f"{'ok ' if ok else 'BAD'} {label}: got {got}, reported {want}")
+
+
+# ------------------------------------------------------------------ (1) A21
+say("=== (1) A21: the three capped 250,000-node tables of debate/evidence/fable_f2_deep_pair_tables.txt")
+T = {"r0052": [20, 240, 456, 255, 29], "r0053": [22, 235, 467, 247, 29], "r0065": [13, 238, 476, 258, 15]}
+pool = [sum(t[i] for t in T.values()) for i in range(5)]
+same("sum of the three tables [LL, LD, DD+WL, WD, WW]", pool, [55, 713, 1399, 760, 73])
+n = sum(pool)
+x = [0.0, 0.25, 0.5, 0.75, 1.0]
+mean = sum(c * v for c, v in zip(pool, x)) / n
+var = sum(c * (v - mean) ** 2 for c, v in zip(pool, x)) / n
+same("opening pairs", n, 3000)
+check("mean score", mean, 0.5069166667, 5e-11)
+check("variance of the pair score", var, 0.04130632639, 5e-12)
+slope = 400.0 / (math.log(10) * 0.25)
+se = slope * math.sqrt(var / 2000)
+check("one match of 2,000 pairs near an even score: standard error, Elo", se, 3.16, 0.005)
+check("its 95 % half-width, Elo", 1.96 * se, 6.19, 0.005)
+check("difference of two such matches on separate openings: standard error, Elo", se * math.sqrt(2), 4.47, 0.005)
+check("square root of 0.05", math.sqrt(0.05), 0.224, 0.0005)
+check("two trainings of 2,917 s, card hours", 2 * 2917 / 3600, 1.62, 0.005)
+check("4,000 games at 3,400 games an hour, hours", 4000 / 3400, 1.18, 0.005)
+
+# ------------------------------------------------------------------ (2) N21's king maps
+say("=== (2) N21: king maps, rank 1 first, files a to h")
+R67 = [[0, 1, 2, 3, 3, 2, 1, 0], [4, 4, 5, 5, 5, 5, 4, 4]] + [[6] * 8] + [[7] * 8] * 5
+OLD = [[v + 8 * (r % 2) for v in row] for r, row in enumerate(R67)]
+NEW = [[0, 1, 2, 3, 3, 2, 1, 0], [4, 5, 6, 7, 7, 6, 5, 4], [8, 8, 9, 9, 9, 9, 8, 8], [10, 10, 11, 11, 11, 11, 10, 10],
+       [12, 12, 13, 13, 13, 13, 12, 12], [12, 12, 13, 13, 13, 13, 12, 12],
+       [14, 14, 15, 15, 15, 15, 14, 14], [14, 14, 15, 15, 15, 15, 14, 14]]
+same("neon's first fixture, as he lists it (ranks 2, 4, 6, 8 shifted by 8)",
+     [OLD[1], OLD[3][0], OLD[4][0], OLD[5][0]], [[12, 12, 13, 13, 13, 13, 12, 12], 15, 7, 15])
+
+
+def reached(m):
+    return sorted({v for row in m for v in row})
+
+
+def steps(m):
+    """Ordered pairs of squares one king step apart, and how many of them change the bucket."""
+    total = diff = 0
+    for r in range(8):
+        for f in range(8):
+            for dr in (-1, 0, 1):
+                for df in (-1, 0, 1):
+                    if (dr or df) and 0 <= r + dr < 8 and 0 <= f + df < 8:
+                        total += 1
+                        diff += m[r][f] != m[r + dr][f + df]
+    return total, diff
+
+
+same("round 67's map reaches", len(reached(R67)), 8)
+same("the first 16-bucket fixture reaches", reached(OLD), [0, 1, 2, 3, 6, 7, 12, 13, 15])
+same("the corrected fixture reaches", reached(NEW), list(range(16)))
+parents = {}
+for r in range(8):
+    for f in range(8):
+        parents.setdefault(NEW[r][f], set()).add(R67[r][f])
+same("every bucket of the corrected map has exactly one parent bucket of round 67", all(len(p) == 1 for p in parents.values()), True)
+same("the corrected map is the same on files a..d and h..e", all(row == row[::-1] for row in NEW), True)
+for name, m, want in (("round 67's map", R67, 148), ("the first fixture", OLD, 324), ("the corrected fixture", NEW, 284)):
+    tot, d = steps(m)
+    same(f"{name}: king steps that change the bucket, of {tot}", d, want)
+
+# ------------------------------------------------------------------ (3) W7's "every second row"
+say("=== (3) W7: side to move in a breadth store file and in a live round's training cache")
+st = np.load(store_path)["stm"].astype(np.int8)
+ca = np.load(cache_path)["stm"].astype(np.int8)
+say(f"    store file: {len(st)} rows; live cache: {len(ca)} rows (the rows the trainer's loader hands on, in the order of the round's filtered file)")
+say(f"    store: share of rows with side-to-move value 1: {st.mean():.6f}; two neighbouring store rows have the SAME side to move in "
+    f"{(st[1:] == st[:-1]).mean():.6f} of the cases")
+say(f"    live cache, all rows: share {ca.mean():.6f}; two neighbouring rows have a DIFFERENT side to move in {(ca[1:] != ca[:-1]).mean():.6f}")
+ev = ca[0::2]
+say(f"    live cache, rows [0::2] (what the store's rule takes): share {ev.mean():.6f}; neighbouring picked rows have the SAME side to move in "
+    f"{(ev[1:] == ev[:-1]).mean():.6f}")
+# runs of equal side among the picked rows: how long does one side stay the picked one
+chg = np.flatnonzero(ev[1:] != ev[:-1])
+runs = np.diff(np.concatenate(([-1], chg, [len(ev) - 1])))
+say(f"    picked rows: {len(runs)} runs of one side; mean run {runs.mean():.2f} rows, median {np.median(runs):.0f}, 90th percentile {np.percentile(runs, 90):.0f}")
+say("ALL TYPED-IN NUMBERS AS REPORTED" if bad == 0 else f"{bad} NUMBER(S) DIFFER")
+open(out_path, "x", encoding="utf-8", newline="\n").write("\n".join(lines) + "\n")

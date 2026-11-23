@@ -1,0 +1,181 @@
+"""Fable 2026-11-23: live checks on the PC's own exe of neon's N18 (more than one thread) and N19 (clock time
+management). Single searches, never a game; the N19 part is two searches on the clock (about 4 s and 0.5 s).
+    n18_n19_check.py <forge.exe> <net .fnn3> <LOOP_OPTIONS.txt> <book .epd> <new output file>
+Expected values are the two seats' (Linux builds of the same source), typed in BEFORE the first run. Counts with
+more than one thread depend on the scheduler: there the claim, not a number, is the expectation.
+"""
+import hashlib
+import subprocess
+import sys
+import time
+
+exe, net, opt_file, book, out_path = sys.argv[1:6]
+net = net.replace("\\", "/")
+lines = []
+bad = 0
+
+
+def say(text):
+    lines.append(text)
+    print(text, flush=True)
+
+
+def sha(path):
+    return hashlib.sha256(open(path, "rb").read()).hexdigest()
+
+
+def verdict(ok, text):
+    global bad
+    bad += 0 if ok else 1
+    say(f"{'ok ' if ok else 'BAD'} {text}")
+
+
+OPTS = [x.strip() for x in open(opt_file, encoding="utf-8") if x.startswith("setoption")]
+OPTS = [f"setoption name NNUEArchFile value {net}" if "NNUEArchFile" in x else x for x in OPTS]
+assert len(OPTS) == 24, len(OPTS)
+FENS = [x.strip() for x in open(book, encoding="utf-8") if x.strip()]
+say(f"exe sha256 {sha(exe)[:16]} | net sha256 {sha(net)[:16]} | book sha256 {sha(book)[:16]} | 24 loop options")
+
+
+class Engine:
+    def __init__(self, extra):
+        self.p = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+        for o in OPTS + list(extra):
+            self.send(o)
+        self.send("isready")
+        got = self.until("readyok")
+        if any("ERROR" in x or "unknown option" in x or "invalid value" in x for x in got):
+            raise SystemExit("an option was refused: " + " | ".join(x for x in got if "info string" in x)[:300])
+        if not any("NNUE v3 active" in x for x in got):
+            raise SystemExit("the line 'NNUE v3 active' did not come")
+
+    def send(self, s):
+        self.p.stdin.write(s + "\n")
+        self.p.stdin.flush()
+
+    def until(self, word):
+        seen = []
+        while True:
+            x = self.p.stdout.readline()
+            if not x:
+                raise SystemExit(f"engine ended while waiting for {word}")
+            x = x.strip()
+            seen.append(x)
+            if x.startswith(word):
+                return seen
+
+    def search(self, fen, go):
+        """ucinewgame, isready, the position, one go. Returns (wall ms, lines up to bestmove)."""
+        self.send("ucinewgame")
+        self.send("isready")
+        self.until("readyok")
+        self.send(f"position fen {fen}")
+        t0 = time.perf_counter()
+        self.send(go)
+        got = self.until("bestmove")
+        return (time.perf_counter() - t0) * 1000.0, got
+
+    def quit(self):
+        self.send("quit")
+        self.p.wait(timeout=20)
+
+
+def field(info, name):
+    parts = info.split()
+    return int(parts[parts.index(name) + 1])
+
+
+def soft_line(got):
+    x = [y for y in got if y.startswith("info string softnodes nodes")]
+    return int(x[-1].split()[-1]) if x else None
+
+
+def last_info(got):
+    x = [y for y in got if y.startswith("info ") and " depth " in y and " nodes " in y]
+    return x[-1] if x else None
+
+
+# ---------------------------------------------------------------- N18 (1): go softnodes with helpers
+say("=== N18 (1): go softnodes 16 on book line 4, twelve searches each, a new game before every search, Hash 64")
+say(f"    position: {FENS[3]}")
+res = {}
+for threads in (1, 2, 4):
+    e = Engine(["setoption name Hash value 64", f"setoption name Threads value {threads}"])
+    rows = []
+    for _ in range(12):
+        _ms, got = e.search(FENS[3], "go softnodes 16")
+        rows.append((soft_line(got), got[-1].split()[1]))
+    e.quit()
+    res[threads] = rows
+    over = sum(1 for n, _m in rows if n is not None and n > 64)
+    say(f"    Threads {threads}: the engine's own 'softnodes nodes' line: {[n for n, _m in rows]}; "
+        f"above the hard cap of 64: {over} of 12; moves {sorted(set(m for _n, m in rows))}")
+verdict(all(n == 37 and m == "g1f3" for n, m in res[1]), "one thread: 37 nodes and g1f3 in 12 of 12 (seats: the same)")
+o2 = sum(1 for n, _m in res[2] if n > 64)
+o4 = sum(1 for n, _m in res[4] if n > 64)
+verdict(o4 >= 1, f"four threads go above the hard cap at least once: {o4} of 12, largest {max(n for n, _m in res[4])} "
+        f"(astra 12 of 12, largest 6,836; neon 7 of 12, largest 148)")
+say(f"    two threads: {o2} of 12 above the cap, largest {max(n for n, _m in res[2])} (astra: 5 of 12, 74); no bar, scheduler")
+
+say("=== N18 (1b): go softnodes 2000 on book line 25 (hard cap 8,000), Hash 64")
+say(f"    position: {FENS[24]}")
+e = Engine(["setoption name Hash value 64", "setoption name Threads value 1"])
+one = [soft_line(e.search(FENS[24], "go softnodes 2000")[1]) for _ in range(4)]
+e.quit()
+verdict(all(n == 2677 for n in one), f"one thread: {one} (seats: always 2,677)")
+e = Engine(["setoption name Hash value 64", "setoption name Threads value 4"])
+four = [soft_line(e.search(FENS[24], "go softnodes 2000")[1]) for _ in range(16)]
+e.quit()
+say(f"    four threads, 16 searches: {four}; above 8,000: {sum(1 for n in four if n > 8000)} "
+    f"(astra: 1 of 16, 28,073; the others 2,122 to 4,597); no bar, scheduler")
+
+# ---------------------------------------------------------------- N18 (6): the lone-king rule with two threads
+BK = "8/8/2n2r2/3qN1k1/8/8/8/K7 w - - 90 141"
+say(f"=== N18 (6): go depth 9 on {BK}, Hash 64")
+got_n = {}
+for threads in (1, 2):
+    e = Engine(["setoption name Hash value 64", f"setoption name Threads value {threads}"])
+    runs = []
+    for _ in range(3):
+        _ms, got = e.search(BK, "go depth 9")
+        runs.append(field(last_info(got), "nodes"))
+    e.quit()
+    got_n[threads] = runs
+    say(f"    Threads {threads}: nodes of three searches {runs}")
+verdict(all(n == 5865 for n in got_n[1]), "one thread: 5,865 nodes (neon: 5,865)")
+verdict(min(got_n[2]) > 5 * 5865, f"two threads search more than five times as many: {got_n[2]} (neon: 68,611 = 11.7 times)")
+
+# ---------------------------------------------------------------- N19: one legal move on the clock
+ONE = "6k1/5ppp/8/8/8/8/5PqP/7K w - - 0 1"
+say(f"=== N19: one legal move on the clock, {ONE} (the 24 loop options as they are: one thread, Hash 16)")
+e = Engine([])
+e.send(f"position fen {ONE}")
+e.send("go perft 1")           # perft prints no bestmove: its lines are read up to the next readyok
+e.send("isready")
+pl = e.until("readyok")
+say("    go perft 1: " + " | ".join(x for x in pl if x and x != "readyok")[:200])
+for go, soft, lo, hi, seats in (("go wtime 60000 btime 60000 winc 600 binc 600", 3176, 2500.0, 4500.0,
+                                 "neon depth 27, 13,629,020 nodes, 3,656 ms; astra depth 26, 9,332,264 nodes, 3,558 ms"),
+                                ("go wtime 10000 btime 10000 winc 100 binc 100", 529, 150.0, 800.0,
+                                 "both seats depth 22 and 896,215 nodes; 280 ms and 382 ms")):
+    ms, got = e.search(ONE, go)
+    li = last_info(got)
+    depth, nodes = field(li, "depth"), field(li, "nodes")
+    etime = field(li, "time") if " time " in li else -1
+    move = got[-1].split()[1]
+    say(f"    {go}: bestmove {move}, depth {depth}, nodes {nodes}, engine time {etime} ms, wall {ms:.0f} ms "
+        f"(soft limit by the source's formula {soft} ms)")
+    say(f"       seats: {seats}")
+    verdict(move == "h1g2" and lo <= ms <= hi and depth >= 20,
+            f"the forced move is searched for the whole soft time: h1g2, {ms:.0f} ms inside {lo:.0f} to {hi:.0f}, depth {depth} >= 20")
+    if soft == 529:
+        d22 = [y for y in got if y.startswith("info ") and " depth 22 " in y and " nodes " in y]
+        if d22:
+            n22 = field(d22[-1], "nodes")
+            verdict(n22 == 896215, f"nodes when depth 22 was finished: {n22} (both seats ended there with 896,215)")
+        else:
+            say("    no depth-22 line in this search: nothing to hold against 896,215")
+e.quit()
+
+say("ALL TYPED-IN EXPECTATIONS MET" if bad == 0 else f"{bad} EXPECTATION(S) NOT MET")
+open(out_path, "x", encoding="utf-8", newline="\n").write("\n".join(lines) + "\n")

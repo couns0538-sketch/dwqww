@@ -1,0 +1,87 @@
+=== A20: the 40-pass reader fixture (128 games x 64 rows, ID = 64*game + row, 8 strata = game mod 8, B = 128)
+ok  pass 0, distinct games a batch (A17's 82.484375): got 82.484375000, seats 82.484375
+ok  pass 0, same-game share (A17's 0.007353054257): got 0.007353054, seats 0.007353054257
+    fresh stratified: every pass covers all rows in whole batches: True
+ok  fresh stratified, mean distinct partners a row over 40 passes: got 3806.952392578, seats 3806.952393
+ok  fresh stratified, share of partners kept at lag 1: got 0.015543127, seats 0.015543127
+    fresh stratified, lag 2: 0.015498478 (no figure of the seats); closed form of lag 1 (15/127)(15/1023)+(112/127)(16/1024) = 0.015511349 (neon: 0.015511349)
+ok  the bar on this fixture, 0.9 x the fresh mean: got 3426.257153320, seats 3426.257153
+ok  plant 1 (one partition, fresh batch and row order every pass), mean distinct partners: got 127.000000000, seats 127.0
+ok  plant 1, lag 1: got 1.000000000, seats 1.0
+    plant 1 keeps A17's two per-pass figures on all 40 passes (so A17's check alone lets it through): True
+ok  plant 2 (two partitions alternating), mean distinct partners: got 252.010986328, seats 252.010986
+ok  plant 2, lag 1 (passes an adjacent-pass check): got 0.015661525, seats 0.015661525
+ok  plant 2, lag 2: got 1.000000000, seats 1.0
+    verdicts under the bar 3426.257153: fresh PASS (must pass), plant 1 FAIL (must fail), plant 2 FAIL (must fail)
+    fresh global (my guess of the generator: Random(202611230639+e) over the ascending IDs): 3806.672852 partners, lag 1 0.015504532 (seats: 3806.672852, 0.015504532; closed form 127/8191 = 0.015504822)
+    my addition: a reader that cycles through k good partitions (k of the fresh passes), 40 passes
+      k=1: 127.0; k=2: 252.0; k=4: 496.3; k=8: 962.7; k=16: 1811.9; k=24: 2561.5; k=32: 3223.0; k=33: 3300.0; k=34: 3375.9; k=35: 3450.6; k=36: 3524.2; k=40: 3807.0
+      the bar fails every cycle of up to 34 partitions and lets a cycle of 35 through (forecast from 8191 x (1 - (1 - 127/8191)^k): k = 35)
+    my addition: six other seed schedules of the fresh stratified reader give 3806.32 to 3806.64 partners (the bar is 3426.26; the nearest plant 252.01)
+=== N20: measuring a stronger engine
+ok  slope dElo/ds at 0.50: got 694.871171045, seats 694.8712
+ok  slope at 0.65: got 763.594693456, seats 764
+BAD slope at 0.75: got 926.494894727, seats 927
+BAD slope at 0.85: got 1362.492492245, seats 1363
+ok  slope at 0.90: got 1930.197697348, seats 1930
+ok  slope 0.85 / slope 0.50: got 1.960784314, seats 1.96
+ok  slope 0.90 / slope 0.50: got 2.777777778, seats 2.78
+ok  Elo of a score of 0.65: got 107.538124917, seats 108
+ok  Elo of a score of 0.75: got 190.848501888, seats 191
+ok  Elo of a score of 0.85: got 301.331066663, seats 301
+ok  Elo of a score of 0.9: got 381.697003776, seats 382
+ok  150 pairs, half won-won half lost-lost: 95 % half-width: got 55.601273664, seats 55.6013
+ok  splice 0.62 -> 0.65 on the old reference: got 22.494887764, seats 22.49
+ok  splice 0.40 -> 0.43 on the new reference: got 21.473943585, seats 21.47
+ok  the bogus splice 0.62 -> 0.43: got -134.005797190, seats -134.01
+ok  R1's statistic (-3 / 0) on [0, 0, 500, 0, 0]: got 4.335986303, seats 4.335986
+ok  R1's statistic (-3 / 0) on [5, 0, 490, 0, 5]: got 0.863876203, seats 0.863876
+ok  R1's statistic (-3 / 0) on [25, 0, 450, 0, 25]: got 0.185834703, seats 0.185835
+ok  pair variance of the pooled deep table [55, 713, 1399, 760, 73]: got 0.041306326, seats 0.04130633
+ok  Wald games at truth 0, R1 (-3 / 0), that variance: got 23491.421445638, seats 23494
+ok  Wald games at truth 0, W8 (-5 / 0): got 8457.658999071, seats 8458
+ok  games grow by 1 / variance: 0.04131 / 0.025: got 1.652400000, seats 1.65
+ok  0.04131 / 0.012: got 3.442500000, seats 3.44
+    the loop's own record: the best confirmed net (round 67) against stockfish11_ccrl3494, 6+0.06, 300 games, W-L-D 141-70-89, Elo 83.82 +/- 27.84, reference options {'Threads': 1, 'Hash': 16, 'Ponder': False}
+ok  its wins: got 141, seats 141
+ok  its losses: got 70, seats 70
+ok  its draws: got 89, seats 89
+ok  its score: got 0.618333333, seats 0.6183
+ok  its Elo: got 83.815370910, seats 83.8
+    3A's trigger: a score of 0.75 is +190.8 Elo, a lower bound of 0.70 is +147.2; round 67's net stands at 0.6183
+=== N21: net shapes after 1024
+ok  largest term 255 x 255 x 127: got 8258175, seats 8258175
+ok  terms one 32-bit lane holds: got 260, seats 260
+ok  AVX2 today (both sides added in 32 bits, H/4 terms a lane): width 1024, worst lane: got 2114092800, seats 2114092800
+ok  AVX2 today (both sides added in 32 bits, H/4 terms a lane): width 1056, worst lane: got 2180158200, seats 2180158200
+    ok  safe at 1024, over at 1056; the first width in steps of 32 (the loader's rule) that goes over: 1056
+ok  AVX-512 today, or AVX2 with the sides widened apart (H/8): width 2080, worst lane: got 2147125500, seats 2147125500
+ok  AVX-512 today, or AVX2 with the sides widened apart (H/8): width 2112, worst lane: got 2180158200, seats 2180158200
+    ok  safe at 2080, over at 2112; the first width in steps of 32 (the loader's rule) that goes over: 2112
+ok  AVX-512 with the sides widened apart (H/16): width 4160, worst lane: got 2147125500, seats 2147125500
+ok  AVX-512 with the sides widened apart (H/16): width 4192, worst lane: got 2163641850, seats 2163641850
+    ok  safe at 4160, over at 4192; the first width in steps of 32 (the loader's rule) that goes over: 4192
+ok  room left at 1024 on today's AVX2 sum, per cent: got 1.554882481, seats 1.55
+ok  worker payload at 8 king buckets, bytes: got 635528, seats 635528
+       = 620.63 KiB (seats: 620.63)
+ok  worker payload at 16 king buckets, bytes: got 705160, seats 705160
+       = 688.63 KiB (seats: 688.63)
+ok  difference, KiB: got 68, seats 68
+ok  parameters of 1024 x 8 king buckets, millions: got 6.308872000, seats 6.31
+ok  parameters of 1024 x 16 king buckets, millions: got 12.600328000, seats 12.6
+ok  parameters of 1536 x 8 king buckets, millions: got 9.463304000, seats 9.46
+ok  parameters of 2048 x 8 king buckets, millions: got 12.617736000, seats 12.62
+    768 x 8 king buckets: 4,731,656 parameters (today's net; its file is 9,463,528 bytes)
+    round 67's net: hidden 768, king buckets 8, output buckets 8; king map by rank (rank 1 first):
+       0 1 2 3 3 2 1 0
+       4 4 5 5 5 5 4 4
+       6 6 6 6 6 6 6 6
+       7 7 7 7 7 7 7 7
+       7 7 7 7 7 7 7 7
+       7 7 7 7 7 7 7 7
+       7 7 7 7 7 7 7 7
+       7 7 7 7 7 7 7 7
+    buckets by rank index 0..7: [[0, 1, 2, 3], [4, 5], [6], [7], [7], [7], [7], [7]]
+    astra 073715Z (after the agreed message, a question to neon): a split new = 2 x old + (rank index mod 2) reaches 9 of 16 buckets: [0, 2, 4, 6, 9, 11, 12, 14, 15]
+ok  buckets such a split can reach (astra: 9): got 9, seats 9
+2 CHECK(S) DIFFER

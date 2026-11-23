@@ -1,0 +1,135 @@
+"""Fable 2026-11-23: recount of astra's warm-depth rows (message 072450Z) that A19's entry quotes as "not yet
+recounted by Fable", and of astra's target-space figures on the same rows (073545Z).
+    a19_warm_recount.py <the 072450Z message file> <new output file>
+No engine, no game. Expected values are astra's and neon's (072612Z), typed in BEFORE the first run.
+The PC trainer's map from a score to its target: sigmoid(cp x 2.25 / 400).
+"""
+import csv
+import io
+import sys
+
+import numpy as np
+
+src, out_path = sys.argv[1:3]
+lines = []
+bad = 0
+
+
+def say(t):
+    lines.append(t)
+    print(t)
+
+
+def check(label, got, want, tol):
+    global bad
+    ok = abs(got - want) <= tol
+    bad += 0 if ok else 1
+    say(f"{'ok ' if ok else 'BAD'} {label}: got {got:.8f}, reported {want}")
+
+
+t = open(src, encoding="utf-8").read()
+a = t.index("```csv") + len("```csv")
+b = t.index("```", a) if "```" in t[a:] else len(t)
+rows = list(csv.DictReader(io.StringIO(t[a:b].strip())))
+COLS = ("soft2k", "soft8k", "soft32k", "soft128k", "soft512k")
+
+
+def cell(c):
+    if not c:
+        return None
+    mv, sc, _dp, _nd = c.split("/")
+    return mv, (None if sc.startswith("m") else int(sc))
+
+
+searches = sum(1 for r in rows for k in COLS if r[k])
+say(f"warm panel: {len(rows)} rows, {len({r['game'] for r in rows})} games, {searches} searches (reported 3,064 rows, 12,639 searches)")
+bad += 0 if (len(rows), searches) == (3064, 12639) else 1
+C = {k: [cell(r[k]) for r in rows] for k in COLS}
+same = sum(1 for r, c in zip(rows, C["soft2k"]) if c[0] == r["warm_move"] and c[1] == int(r["warm_cp"]))
+say(f"{'ok ' if same == len(rows) else 'BAD'} the warm 2,000-node search equals the game's own move and score on {same} of {len(rows)} rows (reported: all)")
+bad += 0 if same == len(rows) else 1
+game = np.array([int(r["game"]) for r in rows])
+
+
+def agree(k, ref, mask=None):
+    v = np.array([x is not None and y is not None and x[0] == y[0] for x, y in zip(C[k], C[ref])], dtype=float)
+    return v if mask is None else v[mask]
+
+
+def sig(cp):
+    return 1.0 / (1.0 + np.exp(-np.clip(2.25 * cp / 400.0, -40, 40)))
+
+
+def scores(k):
+    return np.array([np.nan if (x is None or x[1] is None) else x[1] for x in C[k]], dtype=float)
+
+
+S = {k: scores(k) for k in COLS}
+mate_ref = sum(1 for x in C["soft128k"] if x is not None and x[1] is None)
+say(f"    reference rows at 128,000 nodes that returned a mate score: {mate_ref} (reported 20)")
+
+# primary: 8,000 against 2,000, reference 128,000
+a2, a8, a32 = agree("soft2k", "soft128k"), agree("soft8k", "soft128k"), agree("soft32k", "soft128k")
+check("move agreement with 128,000 nodes at 2,000, per cent", 100 * a2.mean(), 61.13, 0.005)
+check("at 8,000, per cent", 100 * a8.mean(), 68.02, 0.005)
+check("difference, points", 100 * (a8.mean() - a2.mean()), 6.89, 0.005)
+fin = ~np.isnan(S["soft2k"]) & ~np.isnan(S["soft8k"]) & ~np.isnan(S["soft128k"])
+say(f"    rows with a finite score at 2,000, 8,000 and 128,000: {int(fin.sum())} (reported 3,044)")
+bad += 0 if int(fin.sum()) == 3044 else 1
+e2 = np.abs(S["soft2k"] - S["soft128k"])[fin]
+e8 = np.abs(S["soft8k"] - S["soft128k"])[fin]
+check("mean distance to the 128,000-node score at 2,000, centipawns", e2.mean(), 99.54, 0.005)
+check("at 8,000, centipawns", e8.mean(), 84.56, 0.005)
+check("reduction, per cent", 100 * (1 - e8.mean() / e2.mean()), 15.05, 0.005)
+check("32,000 against 2,000: agreement gain, points", 100 * (a32.mean() - a2.mean()), 16.87, 0.005)
+fin32 = fin & ~np.isnan(S["soft32k"])
+e32 = np.abs(S["soft32k"] - S["soft128k"])[fin32]
+e2b = np.abs(S["soft2k"] - S["soft128k"])[fin32]
+say(f"    32,000: distance {e32.mean():.2f} centipawns on {int(fin32.sum())} rows, {100 * (1 - e32.mean() / e2b.mean()):.2f} % lower "
+    f"(reported 55.83 and 43.91 %)")
+
+# the trainer's own target scale (astra 073545Z)
+t2 = np.abs(sig(S["soft2k"]) - sig(S["soft128k"]))[fin]
+t8 = np.abs(sig(S["soft8k"]) - sig(S["soft128k"]))[fin]
+check("the same in the trainer's target units, 2,000", t2.mean(), 0.03338352, 5e-9)
+check("8,000", t8.mean(), 0.02803695, 5e-9)
+check("reduction in target units, per cent", 100 * (1 - t8.mean() / t2.mean()), 16.02, 0.005)
+big = np.abs(S["soft128k"][fin]) > 1000
+say(f"    rows with a 128,000-node score beyond 1,000 centipawns: {int(big.sum())} (reported 431)")
+check("their share of the centipawn distance at 2,000, per cent", 100 * e2[big].sum() / e2.sum(), 56.08, 0.005)
+check("their share of the target distance at 2,000, per cent", 100 * t2[big].sum() / t2.sum(), 2.36, 0.005)
+
+# the deeper reference on every game's fourth sampled row (k = 3)
+k3 = np.array([r["k"] == "3" and bool(r["soft512k"]) for r in rows])
+say(f"    rows with a 512,000-node reference: {int(k3.sum())} (reported 383)")
+b2, b8 = agree("soft2k", "soft512k", k3), agree("soft8k", "soft512k", k3)
+check("against 512,000 nodes: agreement gain of 8,000 over 2,000, points", 100 * (b8.mean() - b2.mean()), 6.53, 0.005)
+f5 = k3 & ~np.isnan(S["soft2k"]) & ~np.isnan(S["soft8k"]) & ~np.isnan(S["soft512k"])
+d2 = np.abs(S["soft2k"] - S["soft512k"])[f5]
+d8 = np.abs(S["soft8k"] - S["soft512k"])[f5]
+check("against 512,000 nodes: centipawn distance at 2,000", d2.mean(), 87.21, 0.005)
+check("at 8,000", d8.mean(), 79.25, 0.005)
+u2 = np.abs(sig(S["soft2k"]) - sig(S["soft512k"]))[f5]
+u8 = np.abs(sig(S["soft8k"]) - sig(S["soft512k"]))[f5]
+check("target distance to the 512,000-node score at 2,000", u2.mean(), 0.05175099, 5e-9)
+check("at 8,000", u8.mean(), 0.04537682, 5e-9)
+
+# my own bootstrap over games, another seed (astra: [5.45, 8.32] points and [13.38, 16.86] %)
+rng = np.random.default_rng(20261123)
+ids = np.unique(game)
+idx = {g: np.flatnonzero(game == g) for g in ids}
+fin_idx = np.flatnonzero(fin)
+pos_in_fin = -np.ones(len(rows), dtype=int)
+pos_in_fin[fin_idx] = np.arange(len(fin_idx))
+pts, red = [], []
+for _ in range(2000):
+    pick = np.concatenate([idx[g] for g in rng.choice(ids, size=len(ids), replace=True)])
+    pts.append(100 * (a8[pick].mean() - a2[pick].mean()))
+    pf = pos_in_fin[pick]
+    pf = pf[pf >= 0]
+    red.append(100 * (1 - e8[pf].mean() / e2[pf].mean()))
+say(f"    my own bootstrap over the {len(ids)} games that have rows, 2,000 draws, another seed: "
+    f"{np.percentile(pts, 2.5):.2f} to {np.percentile(pts, 97.5):.2f} points (astra 5.45 to 8.32) and "
+    f"{np.percentile(red, 2.5):.2f} to {np.percentile(red, 97.5):.2f} % (astra 13.38 to 16.86)")
+say("ALL TYPED-IN NUMBERS AS REPORTED" if bad == 0 else f"{bad} NUMBER(S) DIFFER")
+open(out_path, "x", encoding="utf-8", newline="\n").write("\n".join(lines) + "\n")

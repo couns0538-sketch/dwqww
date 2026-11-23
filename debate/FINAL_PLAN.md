@@ -710,6 +710,38 @@ proof, and what Fable's own check showed and did not show.
     that sentinel is owed before the table at the final values. Not run by Fable: the two 60-position sweeps.
   - Cost: seconds; no games.
 
+- **A20 (changes W8; Astra). The new trainer's reader must mix afresh on EVERY pass, not only on the first.**
+  Entered at 2026-11-23T15:13:13Z (Fable's clock). Agreed wording: `20261123T072753Z_astra_agreed_a20.md` (Astra `072134Z`,
+  corrected in `072148Z`; Neon `072612Z`).
+  - The real batch reader runs A17's fixture (8,192 rows, batches of 128) through all 40 passes. If its full
+    ordered row sequence equals an independently regenerated trusted order on EVERY pass, the condition is met.
+    Otherwise the comparable whole-window shuffle, its seed schedule and its strata are declared before,
+    identity and coverage are checked per pass, and the mean number of DISTINCT rows a row shares a batch with
+    over the forty passes must be at least 0.9 times the same figure of a matched fresh reference. The cutoff
+    holds for this fixture only.
+  - Through the real reader both plants must fail: ONE good partition into batches that is repeated on every
+    pass (the order of the batches and the order inside a batch fresh each time), and a cycle of TWO good
+    partitions. A correct fresh shuffle must pass. The fixed quotas of the eight strata describe the constructed
+    stratified control; a global random permutation gets its own comparator.
+  - W8's paid throughput and its qualification match at 2,000 soft nodes stay as issued, with the rules for
+    20,000 and 40,000 games.
+  - Both seats' values: fresh stratified 3,806.952393 partners a row; one frozen partition 127; two alternating
+    252.010986. The share of a batch's pairs that sit together again one pass later is 0.015543127 for the
+    fresh reader and 0.015661525 for the two-cycle, whose share TWO passes later is 1: a look at the next pass
+    alone does not see the two-cycle, the partner count does. The first pass is A17's: 82.484375 games a batch
+    and 0.007353054257.
+  - No strength change has been measured. The PC's trainer of today shuffles the whole window on every pass;
+    the plants guard the reader that replaces it.
+  - Fable's check (`debate/evidence/fable_a20_n20_n21_check.txt`): the fixture, the reference and both plants
+    rebuilt with a script of Fable's own: 3,806.952393, 127.0 and 252.010986; 0.015543127 and 0.015661525; the
+    two-cycle's share two passes later is 1; the fresh reader passes the bar (3,426.26), both plants fail.
+    Plant 1 keeps A17's two per-pass figures on all 40 passes: A17 alone cannot see it. Added by Fable, not
+    part of the agreed text: a cycle of k good partitions gives about 127 x k partners while the pairs do not
+    repeat yet (k = 16: 1,811.9; 32: 3,223.0; 34: 3,375.9; 35: 3,450.6), so the 0.9 bar fails every cycle of up
+    to 34 partitions and lets a cycle of 35 or more through. The stronger form (the ordered rows equal to the
+    trusted order on every pass) has no such edge and is used wherever it can be shown.
+  - Cost: 327,680 row presentations of a small fixture, processor only.
+
 ### For later, once the engine is stronger
 
 The owner asked Astra and Neon (23 November, after the close) to look also for plans and improvements for
@@ -760,9 +792,264 @@ the order of the work that is in order now.
     the 128,000-node score is 0.04330 for reset 2,000, 0.03375 for the real game's 2,000 and 0.03199 for reset
     8,000: in the trainer's units the real labels close 84.4 % of the gap (97.1 % in raw centipawns), and the
     430 rows beyond 1,000 centipawns hold 54.7 % of the centipawn distance but 2.5 % of the target distance.
-    Measured AFTER the agreed message, recomputed by Neon (`072612Z`), not yet recounted by Fable: with warm
+    Measured AFTER the agreed message, recomputed by Neon (`072612Z`) and since recounted by Fable from Astra's
+    rows (`debate/evidence/fable_a19_warm_recount.txt`: 3,064 rows, 12,639 searches, every figure equal; an
+    own bootstrap over games with another seed gives 5.52 to 8.29 points and 13.43 to 16.82 %): with warm
     searches at both depths (Astra `072450Z`) 8,000 against 2,000 gives 6.89 points more agreement [5.45, 8.32]
     and scores 15.05 % closer [13.38, 16.86]: smaller than the reset figures, still positive. And against
     endgame tables (Astra `072543Z`): on 69 informative rows no depth from 2,000 to 128,000 played a move that
     lost the table's result, and the bar Astra had declared for it failed: agreeing more often with one deep
-    search is not the same as playing objectively better moves.
+    search is not the same as playing objectively better moves. In the trainer's own target units the warm
+    figures are 0.03338352 against 0.02803695, 16.02 % closer (Astra `073545Z`, Neon `075114Z`; recounted by
+    Fable: equal). And on an independent set of 466 informative four- and five-piece games 2,000 and 8,000
+    nodes lost the table's result on the same single position and 128,000 nodes on none: 8,000 repaired no
+    error of 2,000 (Astra `074810Z`, counts confirmed by Neon `075114Z`; not recounted by Fable).
+
+- **N18 (Neon; precisions by Astra). More than one search thread: repairs first, then scaling, each thing tested
+  alone.** Entered at 2026-11-23T15:13:13Z (Fable's clock). Agreed wording: `20261123T072041Z_neon_agreed_n18.md` (Neon
+  `071700Z`; Astra `065443Z`, `071934Z`).
+  - WHEN: W1 to W16 are done (self-play, training and W15's source repairs stay on ONE thread) and a match or
+    an analysis use on several cores is planned, with a named promoted one-thread build, the target processor
+    and the time control.
+  - WHAT: separate things, one candidate at a time.
+    - Repairs of what the program promises (`search.cpp`): with helper threads `go softnodes` keeps its hard
+      cap of four times the soft count across ALL threads and prints its `softnodes nodes` line after the
+      helpers are stopped and joined, or soft nodes are restricted to one thread and declared so (2657, 3230
+      to 3247, 3352 to 3353). An outside `stop` that arrives while the helpers are being joined is not
+      overwritten by the flag that was saved before the join (3350 to 3354). The stricter lone-king rule for
+      more than one thread (46 to 65, 2053 to 2068) is intended: a change to it keeps the earlier KBB / KBN and
+      missed-mate results as regression checks and is judged apart; fewer nodes or equal code paths prove
+      nothing.
+    - Candidates for scaling, one match on the target clock each: helpers that search different depths (the
+      worker's number `id_` is unused in the search today); a vote on the best move over the helpers' finished
+      iterations (today only the main worker's result is returned, 3349); a standing pool of workers instead of
+      threads created and joined at every move (3338 to 3353); changes to the locking of the hash table, timed
+      on the target PC at 4, 8 and 16 threads before anything is changed.
+  - TEST and BAR: ThreadSanitizer and the address and undefined-behaviour sanitizers at 2, 4 and 8 threads with
+    the net on, over `go movetime`, `go infinite` with an outside `stop`, `go nodes`, `go softnodes`,
+    `MultiPV 3` (main worker only), ponder, the KBB / KBN fixtures and `selfgame`: zero reports, every contract
+    fixture passed, and the one-thread node pins of W5 (a) unchanged to the node. Then a scaling table on the
+    target PC (20 or more fixed positions at depth 15 and 17 and at one second a move: nodes a second, time to
+    depth and node overhead at 1, 2, 4 and 8 threads). Then paired matches on the clock on the target PC,
+    reversed opening pairs, W3's sequential frame: Hash, machine, games at once and clock equal for the first
+    comparison of four threads against one (a run with a scaled Hash is a separate package); every candidate
+    alone against the unchanged four-thread program. A repair passes its fixtures, the pins and its declared
+    no-loss test even if it costs time; a speed candidate improves the time to depth AND passes a positive bar
+    declared before.
+  - WHY IT WAITS: everything in W1 to W16 runs one thread per process (many processes side by side), where the
+    hash table needs no lock and a search repeats to the node. Tuning threads now would spend the PC's match
+    hours before the stronger net exists.
+  - Proof by both seats (Linux builds of this source, round 67's net, the 24 loop options, Hash 64):
+    `go softnodes 16` on line 4 of `loop/build_recipe/pgo_selfplay_books.epd` has a hard cap of 64 nodes: one
+    thread 37 nodes in 12 of 12 searches; four threads above 64 in 12 of 12 (largest 6,836) on Astra's machine
+    and in 7 of 12 (largest 148) on Neon's. `go softnodes 2000` on line 25 (cap 8,000): one search of 16 at
+    28,073 nodes with four threads. By Neon alone, on a virtual machine with 4 cores: ThreadSanitizer with zero
+    reports over five suites at 2 and 4 threads; 20 positions at depth 15: 1.37 times faster to depth with four
+    threads (3.16 times the nodes a second, 2.31 times the nodes); the lock ablation; the lone-king position
+    `8/8/2n2r2/3qN1k1/8/8/8/K7 w - - 90 141` at depth 9: 5,865 nodes with one thread, 68,611 with two.
+  - Fable's check (`debate/evidence/fable_n18_n19_check.txt`; the PC's own Windows program, the loop's): the
+    source lines read, they are as described (the worker's number is used only in the constructor; only the
+    main worker's result is returned; the stop flag saved before the join is written back after it; helpers
+    carry no soft-node budget and the `softnodes nodes` line is printed before they are joined; the lone-king
+    rule acts with two or more threads). Run on the PC: one thread 37 nodes and the same move in 12 of 12;
+    four threads above the cap of 64 in 5 of 12 (largest 111); two threads in 0 of 12 (Astra: 5 of 12). Line 25:
+    one thread 2,677 nodes in 4 of 4, as the seats; four threads 2,054 to 4,423 in 16 searches, none above
+    8,000 (the seats' one case of 28,073 did not show here). The lone-king position: 5,865 nodes with one
+    thread (Neon's number), 87,603 to 139,910 with two. So the overshoot is real on the PC too, and its size
+    depends on the machine. Not checked by Fable: the sanitizer runs, the scaling timings and the lock
+    ablation (Neon's alone, on a virtual machine).
+
+- **N19 (Neon; precisions and later measurements by Astra). Time management on the clock: four changes, one per
+  clock trial.** Entered at 2026-11-23T15:13:13Z (Fable's clock). Agreed wording: `20261123T072042Z_neon_agreed_n19.md` (Neon
+  `071701Z`; Astra `071949Z`).
+  - WHEN: W1 to W16 are done, the stronger net (W8 / W13) is promoted, and play on the clock (10+0.1, 60+0.6,
+    60+0 or moves to go) is the strength target instead of matches at fixed nodes.
+  - WHAT: four bounded changes; `go depth`, `nodes`, `softnodes`, `movetime`, `infinite` and the wait while
+    pondering stay as they are.
+    1. One legal move in timed play (`search.cpp` 2956): the time or depth spent on a forced move is bounded
+       instead of the whole soft time being searched; ponder, analysis and roots restricted by `searchmoves`
+       get declared behaviour; the normal `bestmove` line and every fixed-budget node pin stay.
+    2. `TmFinishIteration` (off by default): its deadline is clamped to the hard limit before the test "this
+       iteration will not finish" (3212 to 3216); then the option is tried on the stronger net.
+    3. The share of time by move number (`clock_plan.hpp` 41 to 45): a smooth curve instead of the constant
+       divisor 22, under which move 1 gets 3.1 times (60+0.6) to 6.1 times (60+0) the nominal soft time of
+       move 40.
+    4. A score that falls from move to move, a best move that keeps changing, and `TmNodeShare` (off by
+       default; its per-iteration log line is silenced before any match): each judged apart.
+  - TEST and BAR: fixtures first (processor seconds): the one-legal-move position
+    `6k1/5ppp/8/8/8/8/5PqP/7K w - - 0 1` at 10+0.1 and at 60+0.6 answers inside a bound declared before (for
+    example 50 ms on a quiet target machine) while W5 (a)'s pins stay to the node; a unit test of the clamp;
+    100 quick games over four time controls with no loss on time (0 of 100 still allows a true rate of up to
+    2.95 %: a launch check, not a qualification). Then ONE change per match on the target PC: controls,
+    openings, looks and caps named before; reversed opening pairs at 10+0.1, then separate held-out pairs at
+    60+0.6 (and sudden death for the curve), every loss on time of both colours counted. A change goes on only
+    with the lower end of the 95 % interval from the opening pairs above 0 (or a declared positive sequential
+    test) AND its confirmation at the long control; otherwise it stays off and is reported. Matches at fixed
+    nodes cannot judge time management.
+  - WHY IT WAITS: nothing in W1 to W16 runs on a game clock, and the best time curve depends on the stronger
+    net's speed, branching and score stability.
+  - Proof by both seats (Linux builds, round 67's net, the 24 loop options): on the one-legal-move position at
+    60+0.6 (soft time by the formula 3,176 ms) Neon's build searched to depth 27 for 3,656 ms, Astra's to depth
+    26 for 3,558 ms; at 10+0.1 (soft time 529 ms) both reached depth 22 with 896,215 nodes. In the source: the
+    constant divisor; the deadline `soft x factor` without a clamp (with one move to go the hard limit is 1.6
+    times the soft time while the factor can reach 4.9; the separate hard stop still acts); both options off
+    by default.
+  - Measured after the agreed message by Astra (`074516Z`, `075442Z`; counts confirmed by Neon `075808Z`; not
+    recounted by Fable): 0.573 % of self-play rows have one legal move. On 128 such positions from real games,
+    answering the forced move at once and leaving the next move's time as it is put the NEXT move's score
+    farther from a 4-million-node reference (183.5 against 279.9 centipawns), while handing the saved time to
+    the next move put it closer (149.7): the forced search also warms the tables for the move after it. So
+    change 1 is tried as whole games on the clock, also in the form "a short capped search, the saved time
+    handed on", and is never judged from the saved milliseconds alone.
+  - Fable's check (`debate/evidence/fable_n18_n19_check.txt`; the PC's own Windows program): `go perft 1` gives
+    one move. At 60+0.6 the forced move was searched to depth 27 with 13,629,020 nodes (Neon's count to the
+    node; 2,656 ms on this faster machine); at 10+0.1 to depth 24 in 308 ms, with 896,215 nodes when depth 22
+    was finished (both seats' count to the node). The formula in `clock_plan.hpp` gives 3,176 and 529 ms; the
+    deadline has no clamp to the hard limit (`search.cpp` 3211 to 3214) and the deepening loop has no path for
+    a single legal move. On the PC the only games on a clock today are the yardstick matches against Stockfish
+    (6+0.06). Not checked by Fable: the ratios 3.1 and 6.1 by move number and the `TmNodeShare` branch.
+
+- **N20 (Neon; statistics corrected by Astra). Measuring a stronger engine: when the opening suite or the test
+  bounds are reviewed, and how a new reference engine is bridged to the old one.** Entered at 2026-11-23T15:13:13Z (Fable's
+  clock). Agreed wording: `20261123T072613Z_neon_agreed_n20.md` (Neon `072043Z`; Astra `065443Z`, `072419Z`,
+  `072803Z`).
+  - WHEN, two separate triggers:
+    - The internal suite: the run history is kept apart by gate (R1 / W8), bounds, cap and node or clock depth.
+      A review of the opening suite or of the bounds starts when a promoted stronger engine shows BOTH a rising
+      share of capped or inconclusive runs (or rising hours a run) AND a calibrated contrast (for example twice
+      the nodes against once, or a known promoted net against its parent, on today's book) that has lost 25 %
+      or more of the separation it had at round 67, or needs twice the hours to pass the sequential test. The
+      raw draw rate alone is no trigger, and a higher pair variance is no goal in itself.
+    - The outside reference: a promoted Forge reaches a paired score of 0.75 or more (+191 Elo; lower end of
+      the 95 % interval from the opening pairs above 0.70) against the top UNRESTRICTED Stockfish reference of
+      that day (today Stockfish 11 at full strength), so that the bridge is built before the score saturates
+      near 0.85 (+301 Elo), where one point of score is worth twice the Elo it is worth at 0.50.
+  - WHAT. Internal: a sharper unbalanced opening suite and / or a sequential test in normalized Elo are tried
+    under equal budgets; the bounds or openings of a running test are never changed midway; any normalized-Elo
+    code needs synthetic boundary fixtures (the standard of N13 / A15 / A16) and a declared reading before it
+    replaces a logistic-Elo claim. Outside: ONE ladder of unrestricted Stockfish releases (10, 11, 12, ...),
+    the next step chosen so that Forge scores between 0.30 and 0.60 against it; strength-limited settings
+    (Stockfish 19 at 3100) are a separate named track and are never spliced into the ladder. Before an old
+    reference is retired: a 2 x 2 bridge on the SAME named openings (old Forge and new Forge, each against the
+    old and the new reference, both colours on every opening) with binary, net, Hash, threads, games at once,
+    clock and openings pinned.
+  - TEST and BAR. Internal: today's book against the candidate on the calibrated contrast under equal hours:
+    separation, error and power (checked by resampling opening pairs), hours to a stop, no adjudication
+    artefact. The book changes only if it separates better AND stops sooner at equal error. Outside: the number
+    of shared openings and a tolerance for D = (new Forge minus old Forge against the old reference) minus (the
+    same against the new reference) are declared before. The interval for D comes from resampling openings
+    with all four colour-reversed pairs, EIGHT games, of an opening kept together (Astra `072803Z`, agreed by
+    Neon `075114Z`: the agreed message's "four games" reads so). A shift is called portable across references
+    only if that whole interval lies inside the tolerance; overlapping intervals or equal signs prove nothing;
+    otherwise both records are kept and the new reference opens as its own track. The old reference is retired
+    only when the new one is recorded with the new Forge between 0.25 and 0.75.
+  - WHY IT WAITS: at 250,000 nodes on today's book the pair variance is healthy (0.0413 with 50.7 % draws) and
+    round 67's net sits well inside Stockfish 11's range (a score of 0.618). Changing suites or references now
+    would break the record during W1 to W16, before Forge has outgrown them.
+  - Proof by both seats: three tables of 500 pairs with 90 % drawn games each give R1's test +4.336 (a pass),
+    +0.864 and +0.186: the draw rate says nothing about how fast a test stops. One point of score is worth
+    694.9 Elo at a score of 0.50, 764 at 0.65, 927 at 0.75, 1,363 at 0.85 and 1,930 at 0.90. 150 opening pairs
+    that are half win-win and half loss-loss carry +/- 55.6 Elo, while the same game results as win-loss pairs
+    carry none. An unbridged splice: 0.62 -> 0.65 is +22.5 Elo against one reference and 0.40 -> 0.43 is +21.5
+    against another, but reading 0.62 -> 0.43 as one step gives a false -134.0.
+  - Fable's check (`debate/evidence/fable_a20_n20_n21_check.txt`): every number above recomputed: the three
+    test values to six places, the pooled variance 0.041306, the game counts at a true difference of 0 (8,458
+    for W8's bounds; 23,491 for R1's against the message's 23,494, a difference of rounding), the factors 1.65
+    and 3.44, the +/- 55.60 and the three splice figures. Two of the Elo-per-point figures are rounded up by
+    one in the agreed message (926.49 and 1,362.49); nothing depends on it. The loop's own record holds the
+    cited match: round 67's net against Stockfish 11 at 6+0.06, 300 games, 141-70-89, +83.8 +/- 27.8, the
+    reference on one thread with Hash 16. Not checked by Fable: the simulated mean numbers of games to a stop
+    (4,348 against 16,813; 2,047 against 6,792).
+
+- **N21 (Neon; memory and integer bounds corrected by Astra). Net shapes after 1024: king buckets, width, output
+  buckets and deeper heads are separate candidates, and the deciding match is on the clock.** Entered at
+  2026-11-23T15:13:13Z (Fable's clock). Agreed wording: `20261123T072614Z_neon_agreed_n21.md` (Neon `072044Z`; Astra
+  `072400Z`); corrected after it by both (Astra `073715Z`, `075255Z`; Neon `075114Z`, `075808Z`).
+  - WHEN: W8's trainer has qualified, the store of at least 2 billion rows is verified, and W13 (b) has
+    finished its matched comparison of 1024 against 768 (8 king buckets and 8 output buckets each): 1024 is
+    adopted or has stopped gaining, and 2 to 4 billion unique kept rows exist, so that more buckets do not
+    starve.
+  - WHAT: never two axes in one run.
+    - (A) 1024 wide with 16 mirrored king buckets: no change of the net file format and no source change (the
+      loader allows 32 king buckets, 16 output buckets, width 1024). The first-layer weights double (6.31 to
+      12.60 million), it stays inside W9's bounds for 1024, and a search worker needs 68 KiB more. The exact
+      king map is pinned, and the training rows per bucket are counted on the big store first.
+    - (B) 1536 wide, 8 king buckets (9.46 million weights). Before ANY width above 1024: the AVX2 sum in
+      `nnue_v3.cpp` 124 to 130 adds both sides in 32 bits (a quarter of the width in terms per lane) and can
+      overflow from width 1056; the AVX-512 path (an eighth) is safe up to 2080. Widening each side separately
+      to 64 bits moves AVX2 to 2080 safe / 2112 not, and AVX-512 to 4160 / 4192. Every path (the evaluation,
+      the fused quiet and capture updates, the fallback) is checked again on both signs, and the sizes of the
+      accumulator and of a refresh-cache entry are recomputed: a larger compile-time maximum makes every
+      worker larger also for 768 and 1024 nets unless it is sized at run time.
+    - (C) 2048 wide, 8 king buckets (12.62 million weights): inside the 2080 ceiling, the same prerequisites;
+      its speed on the target PC is a forecast until it is timed.
+    - (D) A head of several layers (for example 1024 -> 16 -> 32 -> 1): a new file format, a trainer export and
+      kernels for every instruction set; only if the single-layer shapes visibly stop gaining.
+  - TEST and BAR, ONE deciding test at equal cost. (1) Before any training: W9's worst-case bounds on both
+    signs over all paths, and equal values from the AVX-512, the AVX2 and the plain build; repeated timings of
+    the real program on the target PC and the worker's size: zero overflow, zero mismatch. (2) The candidate
+    and the reigning net trained on the same frozen window, the same recipe and an equal declared card budget
+    (card hours and rows per bucket recorded). (3) An independent paired match ON THE CLOCK on the target PC
+    (10+0.1, then 60+0.6 as confirmation; reversed opening pairs, one thread, pinned Hash): the candidate
+    replaces the reigning net only with the lower end of the 95 % interval from the opening pairs above 0 at
+    10+0.1 and confirmed at 60+0.6. A match at 250,000 fixed nodes may be played beside it as a diagnosis of
+    evaluation against speed; the clock decides. Before the net makes self-play positions: R1 and the
+    throughput economics of W5 (g).
+  - WHY IT WAITS: W13 (b) has not yet run 1024 on the 2-billion store, and larger maps or widths need the
+    verified store and the target PC's measured 1024 baseline before card hours are spent or the file format
+    or the maximum width is changed.
+  - Proof by both seats (the source on this branch): one weighted term is at most 255 x 255 x 127 = 8,258,175,
+    so a 32-bit lane holds 260 terms on either sign; the six ceilings above follow from that. The net memory
+    of a worker at the compile-time maximum of 1024: 635,528 bytes with 8 king buckets, 705,160 with 16. By
+    Neon alone, on a virtual machine (the target PC's timings are owed): 768 -> 1024 at 8 buckets costs 4.3 %
+    (AVX-512) to 8.8 % (AVX2) of the nodes a second.
+  - Corrected after the agreed message, by both: the 16-bucket fixture behind the agreed message's speed cost
+    of "0.00 % / -2.51 %" reached only 9 of its 16 buckets (Astra's find, `073715Z`). With a map that reaches
+    all 16 and gives every new bucket one parent bucket of round 67 (Neon `075114Z`), 1024 wide with 16 buckets
+    costs 4.8 % (AVX-512) and 3.3 % (AVX2) of the nodes a second against 8 buckets on `bench 15`, and 4.3 %
+    and 5.7 % of the time of 20 self-play games; the two fixtures are kept apart by name. A 16-bucket map that
+    is really used costs speed: candidate (A) is "no source change", not "free".
+  - Fable's check (`debate/evidence/fable_a20_n20_n21_check.txt`, `fable_a21_n21b_w7_check.txt`): the source
+    read: the AVX2 pair sum adds both sides in 32 bits before it widens (`nnue_v3.cpp` 124 to 126; the loop
+    takes two terms per lane per step), the AVX-512 path has the same pattern at half the terms per lane; the
+    loader takes widths of 32 to 1024 in steps of 32 (608 to 610); the largest output weight is 127
+    (`nnue_v3.hpp` 68). Recomputed: 8,258,175 and 260; the first width in steps of 32 that can overflow is
+    1056, 2112 and 4192 for the three cases, and width 1024 has 1.6 % of room under today's AVX2 sum; the two
+    memory figures from the header's layout (equal to the seats' measured sizes); the four weight counts;
+    round 67's king map read from the net file (four buckets on the first rank, two on the second, one for
+    the third, one for ranks 4 to 8). Both 16-bucket maps rebuilt: the first reaches 9 buckets, the corrected
+    one all 16 with one parent each, and a king step changes the bucket in 148 (round 67), 324 and 284 of 420
+    cases, as Neon reports. Not checked by Fable: every timing (Neon's virtual machine), the `sizeof` values
+    measured on Linux, the kernel latencies.
+
+- **A21 (Astra). A second training seed before a recipe is used for many trainings.** Entered at 2026-11-23T15:13:13Z
+  (Fable's clock). Agreed wording: `20261123T075923Z_astra_agreed_a21.md` (Astra `073421Z`, `075337Z`; Neon
+  `075114Z`, `075808Z`).
+  - WHEN: W8 has qualified, the store and the target scale are fixed, and R6 has a result on that scale. Before
+    several new trainings are committed to a recipe, or the other recipe is given up: only if a reversal of 5
+    Elo on another seed would change that decision and the spending it avoids is worth the repeat.
+  - WHAT: first look for an existing, well-documented training with another seed on the same parent, rows,
+    recipe, trainer and compute. Otherwise ONE held-out training seed is named before either arm runs, and a
+    matched pair (the recipe against its control) is trained on it; each seed keeps its own control. A
+    particular verified net keeps its ordinary promotion gates.
+  - TEST and BAR: both seeds' estimates and intervals are published. At each seed the matched pair plays a
+    declared schedule of 4,000 games at 250,000 nodes on reversed openings, with separate confirmation
+    openings (or R3 where the speeds differ). An upper end below 0 on the held-out seed speaks against broad
+    use of the recipe; a lower end above 0 supports a gain on the two tested seeds; an interval across 0
+    leaves it open. No penalty for a properly promoted single net, and no general probability is read from
+    two seeds.
+  - WHY IT WAITS: two more matched trainings, only when a decision hangs on them: at today's window about 1.62
+    card hours for two trainings of 2,917 s plus about 1.18 hours of match time; two trainings on 2 billion
+    rows are priced from the real pilot. The plan as it stands needs no general retraining gate.
+  - Proof by both seats: the three capped 250,000-node tables of rounds 52, 53 and 65
+    (`debate/evidence/fable_f2_deep_pair_tables.txt`) sum to [55, 713, 1399, 760, 73] over 3,000 opening pairs
+    (mean 0.50692, variance 0.041306). A new match of 2,000 pairs near an even score therefore carries about
+    +/- 6.19 Elo, and the difference between two such matches a standard error of about 4.47: one match cannot
+    tell a gain of that size from the luck of a seed. Playing one net on more openings measures the match's
+    error, never the variation from training to training. No controlled seed-only repeat was found in this
+    branch's evidence.
+  - Fable's check (`debate/evidence/fable_a21_n21b_w7_check.txt`): the three tables summed and every figure
+    recomputed: equal. The nearest thing in the PC's records that Fable knows: the new trainer's net against
+    the old trainer's on the same 12 rounds (the same data and recipe, another step code, 16 November): -4.0
+    +/- 8.8 in 2,000 games at 250,000 nodes. One pair, and not a seed-only repeat; the records were not searched
+    further for this entry.
