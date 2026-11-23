@@ -1,0 +1,55 @@
+The six-game fixture of N12 (astra 20261123T051447Z and after) on the PC's WINDOWS program, run by fable on 23 November 2026
+at 04:46:27 PC clock (12:46Z fable's clock, 05:46Z astra's and neon's), behind the PC's loop gate, one thread.
+Tool: fable_n12_sixgames.py.txt (astra's Linux numbers and digests were typed into it before its first run).
+
+exe: C:/nnue-lab/runs/forge/engines/v3-r15dsg-sp-clang/forge.exe
+selfgame line: selfgame softnodes 2000 evallimit 2000 maxply 300 writeminply 8 drawply 80 drawscore 5 drawcount 8
+--- six games, one process, `ucinewgame` before each
+N12 first | rows 86 | drawadj | searches 86 | nodes 302461 | first row: sg 8 21 b1c3
+N12 second | rows 101 | drawadj | searches 101 | nodes 383484 | first row: sg 8 11 e2e3
+A7 threefold | rows 0 | rule | searches 0 | nodes 0 | first row: -
+A7 same FEN, non-draw | rows 127 | evallimit | searches 128 | nodes 530258 | first row: sg 8 24 e2e4
+A7 nonterminal history 1 | rows 81 | drawadj | searches 81 | nodes 307107 | first row: sg 8 34 d2d3
+A7 nonterminal history 2 | rows 67 | rule | searches 67 | nodes 227258 | first row: sg 8 34 d2d3
+--- the same once more (a second process): must be equal
+N12 first | rows 86 | drawadj | searches 86 | nodes 302461 | first row: sg 8 21 b1c3
+N12 second | rows 101 | drawadj | searches 101 | nodes 383484 | first row: sg 8 11 e2e3
+A7 threefold | rows 0 | rule | searches 0 | nodes 0 | first row: -
+A7 same FEN, non-draw | rows 127 | evallimit | searches 128 | nodes 530258 | first row: sg 8 24 e2e4
+A7 nonterminal history 1 | rows 81 | drawadj | searches 81 | nodes 307107 | first row: sg 8 34 d2d3
+A7 nonterminal history 2 | rows 67 | rule | searches 67 | nodes 227258 | first row: sg 8 34 d2d3
+--- PLANT 1: no `ucinewgame` before game 2
+N12 first | rows 86 | drawadj | searches 86 | nodes 302461 | first row: sg 8 21 b1c3
+N12 second | rows 43 | rule | searches 43 | nodes 152827 | first row: sg 8 8 e2e3
+A7 threefold | rows 0 | rule | searches 0 | nodes 0 | first row: -
+A7 same FEN, non-draw | rows 127 | evallimit | searches 128 | nodes 530258 | first row: sg 8 24 e2e4
+A7 nonterminal history 1 | rows 81 | drawadj | searches 81 | nodes 307107 | first row: sg 8 34 d2d3
+A7 nonterminal history 2 | rows 67 | rule | searches 67 | nodes 227258 | first row: sg 8 34 d2d3
+--- PLANT 2: `writeminply 9` for game 2
+N12 first | rows 86 | drawadj | searches 86 | nodes 302461 | first row: sg 8 21 b1c3
+N12 second | rows 100 | drawadj | searches 101 | nodes 383484 | first row: sg 9 4 e8g8
+A7 threefold | rows 0 | rule | searches 0 | nodes 0 | first row: -
+A7 same FEN, non-draw | rows 127 | evallimit | searches 128 | nodes 530258 | first row: sg 8 24 e2e4
+A7 nonterminal history 1 | rows 81 | drawadj | searches 81 | nodes 307107 | first row: sg 8 34 d2d3
+A7 nonterminal history 2 | rows 67 | rule | searches 67 | nodes 227258 | first row: sg 8 34 d2d3
+
+ok   the second process gives the same six games, row for row
+ok   Windows = Astra's Linux on 'N12 first' (rows, reason, searches, nodes): (86, 'drawadj', 86, 302461) against (86, 'drawadj', 86, 302461)
+ok   Windows = Astra's Linux on 'N12 second' (rows, reason, searches, nodes): (101, 'drawadj', 101, 383484) against (101, 'drawadj', 101, 383484)
+ok   Windows = Astra's Linux on 'A7 threefold' (rows, reason, searches, nodes): (0, 'rule', 0, 0) against (0, 'rule', 0, 0)
+ok   Windows = Astra's Linux on 'A7 same FEN, non-draw' (rows, reason, searches, nodes): (127, 'evallimit', 128, 530258) against (127, 'evallimit', 128, 530258)
+ok   Windows = Astra's Linux on 'A7 nonterminal history 1' (rows, reason, searches, nodes): (81, 'drawadj', 81, 307107) against (81, 'drawadj', 81, 307107)
+ok   Windows = Astra's Linux on 'A7 nonterminal history 2' (rows, reason, searches, nodes): (67, 'rule', 67, 227258) against (67, 'rule', 67, 227258)
+ok   game 2, digest of all rows = Astra's Linux digest (163821dae36439f1... against 163821dae36439f1...)
+ok   game 2 first row starts `sg 8 11 e2e3`
+ok   PLANT 1 changes game 2 as on Linux: rows 43, rule, nodes 152827 against 43, rule, 152827
+ok   PLANT 1 digest = Astra's (ecca95c7090172e6... against ecca95c7090172e6...)
+ok   PLANT 1 first row starts `sg 8 8 e2e3`
+ok   PLANT 1 leaves the other five games as they were
+ok   PLANT 2 changes game 2 as on Linux: rows 100, searches 101, nodes 383484 against 100, 101, 383484
+ok   PLANT 2 digest = Astra's (39c876edcaefebd4... against 39c876edcaefebd4...)
+ok   PLANT 2 first row starts `sg 9 4 e8g8`
+ok   PLANT 2 leaves the other five games as they were
+ok   PLANT 2's rows are the baseline's rows without the first one
+
+ALL AS ASTRA'S LINUX RUN

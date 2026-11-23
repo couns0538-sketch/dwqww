@@ -1,0 +1,148 @@
+"""Fable 2026-11-23, debate N12 (Neon) with Astra's six-game fixture (astra 053252Z): the WINDOWS side.
+Six eight-ply openings in ONE engine process that stays alive, with the loop's Windows program, the loop's
+options, round 67's net and the loop's `selfgame` line; before each game `ucinewgame` + `isready`.
+Then the two planted faults on game 2: (1) no `ucinewgame` before it, (2) `writeminply 9` for it.
+One thread, a few seconds. The known answers below are ASTRA'S LINUX numbers, typed in before this ran.
+
+    n12_sixgames.py <config> <exe> <LOOP_OPTIONS.txt> <net file> <new out file>
+"""
+import hashlib
+import subprocess
+import sys
+
+sys.path.insert(0, "C:/nnue-lab/pipeline")
+from nnloop.common import load_config  # noqa: E402
+
+cfg, exe, options, net, out_file = sys.argv[1:6]
+g = load_config(cfg)["datagen"]
+PLACE = "<the full path of the net file forge65_r0067.fnn3>"
+opts = [ln.strip().replace(PLACE, net) for ln in open(options, encoding="ascii") if ln.strip().startswith("setoption")]
+BAD = ("unknown option", "invalid value", "ERROR", "No such option", "sgerror", "illegal")
+
+
+def selfgame_line(write_min_ply):
+    return (f"selfgame softnodes {int(g['soft_nodes'])} evallimit {int(g['eval_limit'])} maxply {int(g['max_ply'])} "
+            f"writeminply {write_min_ply} drawply {int(g['draw_adj_ply'])} "
+            f"drawscore {int(g['draw_adj_score'])} drawcount {int(g['draw_adj_count'])}")
+
+
+OPENINGS = (
+    ("N12 first", "e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4 g8f6"),
+    ("N12 second", "d2d4 d7d5 c2c4 e7e6 b1c3 g8f6 c1g5 f8e7"),
+    ("A7 threefold", "g1f3 g8f6 f3g1 f6g8 g1f3 g8f6 f3g1 f6g8"),
+    ("A7 same FEN, non-draw", "g1f3 g8f6 b1c3 b8c6 c3b1 c6b8 f3g1 f6g8"),
+    ("A7 nonterminal history 1", "b1c3 g8f6 c3d5 b8a6 g1h3 a6b8 h3g1 f6e4"),
+    ("A7 nonterminal history 2", "b1c3 g8f6 c3e4 f6g8 e4c3 g8f6 c3d5 f6e4"),
+)
+# Astra's Linux reference (053252Z): rows, end reason, searches, nodes
+LINUX = ((86, "drawadj", 86, 302461), (101, "drawadj", 101, 383484), (0, "rule", 0, 0),
+         (127, "evallimit", 128, 530258), (81, "drawadj", 81, 307107), (67, "rule", 67, 227258))
+LINUX_PLANT1_GAME2 = (43, "rule", None, 152827)          # searches not given by Astra
+LINUX_PLANT2_GAME2 = (100, "drawadj", 101, 383484)       # reason not given by Astra for this arm; nodes and searches are
+DIGEST = {"baseline": "163821dae36439f102eac8c56d10ac1b3ce4c865cb938607657e9fd5a4791ed3",
+          "no reset": "ecca95c7090172e6d3278706871df42927de2d657cc713cf229b7c9d0584e3b0",
+          "writeminply 9": "39c876edcaefebd4c57d722a9583387b7dfee23c91b26ecea24069f5817c5178"}
+FIRST_ROW = {"baseline": "sg 8 11 e2e3", "no reset": "sg 8 8 e2e3", "writeminply 9": "sg 9 4 e8g8"}
+
+out = open(out_file, "x", encoding="ascii", newline="\n")
+
+
+def say(s=""):
+    print(s)
+    out.write(s + "\n")
+    out.flush()
+
+
+def run_sequence(label, skip_reset_before=None, wmp9_for=None):
+    """One fresh engine process, all six games in it. Returns [(rows, fields of the end line)]."""
+    p = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+
+    def cmd(lines, word):
+        p.stdin.write("\n".join(lines) + "\n")
+        p.stdin.flush()
+        seen = []
+        while True:
+            ln = p.stdout.readline()
+            assert ln, "the engine ended"
+            ln = ln.rstrip()
+            seen.append(ln)
+            assert not any(b in ln for b in BAD), ln
+            if ln.startswith(word):
+                return seen
+
+    assert any("NNUE v3 active" in s for s in cmd(opts + ["isready"], "readyok")), "the net is not active"
+    games = []
+    for i, (_name, hist) in enumerate(OPENINGS):
+        if i != skip_reset_before:
+            cmd(["ucinewgame", "isready"], "readyok")
+        seen = cmd(["position startpos moves " + hist, selfgame_line(9 if i == wmp9_for else int(g["write_min_ply"]))],
+                   "sgend")
+        rows = [s for s in seen if s.startswith("sg ")]
+        w = seen[-1].split()
+        end = {w[k]: w[k + 1] for k in range(1, len(w) - 1, 2) if w[k] in ("result", "reason", "plies", "searches", "nodes")}
+        games.append((rows, end))
+    p.stdin.write("quit\n")
+    p.stdin.flush()
+    p.wait(timeout=20)
+    say(f"--- {label}")
+    for (name, _h), (rows, end) in zip(OPENINGS, games):
+        say(f"{name} | rows {len(rows)} | {end['reason']} | searches {end['searches']} | nodes {end['nodes']}"
+            f" | first row: {' '.join(rows[0].split()[:4]) if rows else '-'}")
+    return games
+
+
+def digest(rows, end):
+    """Astra's field digest: every complete `sg ...` row, one space, the end line's result integer, LF; in order."""
+    h = hashlib.sha256()
+    for r in rows:
+        h.update((r + " " + end["result"] + "\n").encode("ascii"))
+    return h.hexdigest()
+
+
+def shape(game):
+    rows, end = game
+    return (len(rows), end["reason"], int(end["searches"]), int(end["nodes"]))
+
+
+say("exe: " + exe)
+say("selfgame line: " + selfgame_line(int(g["write_min_ply"])))
+base = run_sequence("six games, one process, `ucinewgame` before each")
+again = run_sequence("the same once more (a second process): must be equal")
+plant1 = run_sequence("PLANT 1: no `ucinewgame` before game 2", skip_reset_before=1)
+plant2 = run_sequence("PLANT 2: `writeminply 9` for game 2", wmp9_for=1)
+
+fails = []
+
+
+def check(what, ok):
+    say(f"{'ok  ' if ok else 'FAIL'} {what}")
+    if not ok:
+        fails.append(what)
+
+
+say()
+check("the second process gives the same six games, row for row", base == again)
+for i, (name, _h) in enumerate(OPENINGS):
+    check(f"Windows = Astra's Linux on '{name}' (rows, reason, searches, nodes): {shape(base[i])} against {LINUX[i]}",
+          shape(base[i]) == LINUX[i])
+d = digest(*base[1])
+check(f"game 2, digest of all rows = Astra's Linux digest ({d[:16]}... against {DIGEST['baseline'][:16]}...)", d == DIGEST["baseline"])
+check(f"game 2 first row starts `{FIRST_ROW['baseline']}`", base[1][0][0].startswith(FIRST_ROW["baseline"] + " "))
+s1 = shape(plant1[1])
+check(f"PLANT 1 changes game 2 as on Linux: rows {s1[0]}, {s1[1]}, nodes {s1[3]} against 43, rule, 152827",
+      (s1[0], s1[1], s1[3]) == (LINUX_PLANT1_GAME2[0], LINUX_PLANT1_GAME2[1], LINUX_PLANT1_GAME2[3]))
+d1 = digest(*plant1[1])
+check(f"PLANT 1 digest = Astra's ({d1[:16]}... against {DIGEST['no reset'][:16]}...)", d1 == DIGEST["no reset"])
+check(f"PLANT 1 first row starts `{FIRST_ROW['no reset']}`", plant1[1][0][0].startswith(FIRST_ROW["no reset"] + " "))
+check("PLANT 1 leaves the other five games as they were", all(plant1[i] == base[i] for i in (0, 2, 3, 4, 5)))
+s2 = shape(plant2[1])
+check(f"PLANT 2 changes game 2 as on Linux: rows {s2[0]}, searches {s2[2]}, nodes {s2[3]} against 100, 101, 383484",
+      (s2[0], s2[2], s2[3]) == (LINUX_PLANT2_GAME2[0], LINUX_PLANT2_GAME2[2], LINUX_PLANT2_GAME2[3]))
+d2 = digest(*plant2[1])
+check(f"PLANT 2 digest = Astra's ({d2[:16]}... against {DIGEST['writeminply 9'][:16]}...)", d2 == DIGEST["writeminply 9"])
+check(f"PLANT 2 first row starts `{FIRST_ROW['writeminply 9']}`", plant2[1][0][0].startswith(FIRST_ROW["writeminply 9"] + " "))
+check("PLANT 2 leaves the other five games as they were", all(plant2[i] == base[i] for i in (0, 2, 3, 4, 5)))
+check("PLANT 2's rows are the baseline's rows without the first one", plant2[1][0] == base[1][0][1:])
+say()
+say("ALL AS ASTRA'S LINUX RUN" if not fails else f"{len(fails)} CHECK(S) DIFFER")
+sys.exit(0 if not fails else 1)
