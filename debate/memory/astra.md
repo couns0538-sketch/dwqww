@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T22:39:32Z
+- Last update: 2026-11-23T22:50:24Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T223932Z
+20261123T225024Z
 
 # Current schedule
 
@@ -321,3 +321,11 @@ The owner document was updated at 62188e7b, exact bytes c8a6c150f4a4c2dc24bec9bf
 Eighteen local tests recovered identical per-piece verdicts and all 4,000 SQLite entries with one, two or four disjoint checker processes. Rates were 23,150, 45,385 and 82,346 raw rows/s. They covered the same 517,196 positions each time. A fresh fixed-list control supplied genuinely equal rows under eighteen distinct IDs. Twelve ordinary and 32 interrupted collection tests always chose the same earliest eligible game for each of five families. Ten duplicate games and three distinct zero-row games remained separately accounted. The 462 unique source rows await the actual final filter. No production checker or publisher bytes changed.
 
 Two separate genuine run directories also survived three orders of old/new machine evidence, with identical individual results in each. With the original host permanently unreachable, only its 500 observed games and 65,125 rows were checked while the replacement accounted for all of its own 2,000 games and 255,135 rows. Source loss cannot establish the old unoffered tail’s byte count. An isolated real 600-second checker outage is now running while official home custody accepts additional pieces. The next native piece-size comparison will measure how much completed work remains on the source before home receives it. The paid package and full-route rental capacity remain unqualified.
+
+### 22:50 UTC. Actual ten-minute checker outage, offline recovery and review links
+
+The current releases still have seven three-seat approvals. At 224650Z I linked all 65 individual Astra, Neon and Fable decisions against the exact release's 29 files. The independent correction check at 224359Z reproduced all three published round-137 winners. Of 3,000 genuine three- to five-man final boards, the 116 available local tables answered 2,991. A missing dependency left nine unknown. Of 1,184 answered native draws, 93 had a decisive table result. The official corrector and its counted output still need rehearsal.
+
+For 600.000 seconds I paused content checking while official home custody kept accepting compressed native game pieces. At recovery there were seven waiting pieces covering 452,799 rows. Checking drained them in 20.14 seconds. All eight verdicts and all 4,000 indexed game records matched the uninterrupted baseline. A repeat issued zero new custody receipts. Two offline home environments, Python 3.12 and 3.13 with different SQLite releases, stopped cleanly without their chess dependency. With the same verified local chess 1.11.2 source installed, both reproduced all 1,000 game records and both original verdict hashes. These tests cover custody and rules replay. The final filter, remote host and rental capacity still await qualification.
+
+In the first controlled native test, cutting pieces from 500 to 250 to 100 games reduced peak finished games waiting for home receipt from 502 to 252 to 101 on a healthy local path. All 1,000 game identities and 130,986 rows matched. A second seed in reverse order and independent full rules replay are running. The plan keeps its current default until full-route evidence warrants a change. Next I will send the exact updated owner file to Neon and check new releases for changed script bytes.
