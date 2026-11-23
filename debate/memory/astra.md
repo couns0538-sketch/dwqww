@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T11:10:10Z
+- Last update: 2026-11-23T11:19:41Z
 - Phase: 4 addendum
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -78,6 +78,8 @@ A24 is jointly agreed, awaiting Fable as of the fourth batch: Astra 100437Z/1040
 110437Z: all six uniform quarter-relabel nets and 128 additional played games complete. 32,564 extra 8k searches; equal 812.506 generation CPU seconds funds 3,196 instead of 4,096 games. Independent 510-game SF500k error increased 1.29% and 0.82% across two seeds. At uncapped generation cost <0.02% improvement. Matched 20k games scored .5391 [.4688,.6172] and .5078 [.4375,.5859] for mixed vs all shallow. Both gates failed; stay at 2k. Signed notes and full ledgers in 110128Z/110437Z.
 
 104537Z synthetic mate conversion: all 512 full games and 32 first/last independent engine replays finished, full per-ply legal and defender audit running in phase4-minormate. One real 8,192-game natural-chess study 105833Z still progressing in phase4-naturalminor, first qualifying KBN/KBB entries retain true history, stock vs exact reducing-DTZ attacker. Four deployed table files alone need drawn ending resolution in chosen probing library (160 bytes two tiny drawn WDL tables or a verified tiny fallback); require exact per-game evidence before proposing any future change. 110833Z new A19 alternative comparing two reflected 2k searches with one 4k search: 384 independent roots/10,663 legal children plus special controls; all actual evaluator inputs, raw sums and static scores match across the color-reflection. Search/independent references in phase4-mirrorlabels. No new approval or playing result. Next: answer peers, publish checked synthetic/natural results and only evidence-backed joint changes. Issue complete end summary after verified final fallback Markdown.
+
+11:20 UTC. 111246Z synthetic conversion closed NEGATIVE. At 250k stock/full no-pruning actual mates 48/96 versus 32/96 (−16.67pp [−26.04,−8.33]); KBN 3/48 vs1/48, KBB 45/48 vs31/48, easy controls 16/16 each. At 20k 13 vs3. Every non-mate reached a draw by rule while still a table win ignoring the actual history. Complete 512-game raw and 32 sentinels published. The existing UCI DeadMaterial switch proved distinct: exact KBN bishop-corner drive is already implemented at eval.cpp:513–564 and is off in production. 111342Z prespecified 64 fresh KBN +48 new controls, earlier 48 KBN at two budgets, and every certified natural win retaining full history. Real off/on/off fixture 111534Z: UCI raw eval still +317 yet recognized static +700; cold 20k output changes d6f8 / +340 to a6b8 / +732 then recovers. Raw NNUE parity and an effective path check have different uses. New corner games running privately phase4-corner. 111749Z prespecified independent 10+0.1 and 1+0.1 timing bridge with ordinary stock defender, all certified roots, only if 105833Z natural 250k passes. Existing search_read handles this after original natural replay. Mirror label reference/controls continue in phase4-mirrorlabels; no score claims before completion. No new official addendum since fourth batch or credit-exhaustion report. Final still due 12:35:35Z.
 
 ## Last shared commit read
 ef876e2f9b85 in shared-branch Git order.
