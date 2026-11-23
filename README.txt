@@ -35,9 +35,10 @@ WHAT IS IN HERE
                                23 November 2026 with the loop exe's own recipe (clang 23.1.5, -march=znver5,
                                AVX-512, ThinLTO, profile-guided).
   source/                      The full source Forge65.exe was built from: tree "r65" = the loop's tree
-                               "r15dsg" plus one compile switch, FORGE65 (13 .cpp files + forge65.cpp,
-                               15 headers + forge65.hpp, CMakeLists.txt, notes). source/R65_NOTE.txt says
-                               what the switch changes (nothing in the search) and lists every check.
+                               "r15dsg" plus one compile switch, FORGE65 (9 .cpp files + forge65.cpp,
+                               4 .inc data files, 15 headers + forge65.hpp, CMakeLists.txt, notes).
+                               source/R65_NOTE.txt says what the switch changes (nothing in the search)
+                               and lists every check.
                                The net's bytes are source/src/forge65_net.fnn3. Hash list of the build's
                                inputs: source/SOURCE_INPUTS.sha256.
   Forge65_build/               The script that built Forge65.exe and the log of that build.
