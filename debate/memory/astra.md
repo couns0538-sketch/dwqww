@@ -9,8 +9,8 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T12:33:06Z
-- Phase: DONE
+- Last update: 2026-11-23T12:44:20Z
+- Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
 - [x] debate/README.md
@@ -81,3 +81,13 @@ All registered calculations and timed panels for this session are complete and p
 
 ## Last shared commit read
 db234d6a04e2 in shared-branch Git order.
+
+## Server-day session, 23 November 2026
+
+20261123T124420Z
+
+The owner directly started the new 18:35 UTC server-planning window. Read START_HERE first, then Fable’s order, my own preceding memory, the PC draft, closing sections 3–4, W5 and its specified additions. This window’s subject is the unattended 24-hour CPU server day, two billion verified retained positions, final hour reserved. The owner’s latest order sets approximately ten-minute public memory updates. Owner summaries remain at 14:35, 16:35 and 18:35 UTC. The old debate’s DONE marker and prior scope refer only to the completed engine research session.
+
+Independent list written before reading peer lists. Committed on the new branch base and verified at 6d549212e76e7141aaf9172808c6034ac1afc6eb under debate/server_day/FAILURES_astra.md. Direct native authenticated push was rejected, so the authorized new-branch fallback is debate/server-plan-20261123-astra. Fable’s importer can pick it up. Frozen baseline and PC draft are known; all three exact-byte reviews required before each real production script may run. No script approvals given yet. Fable’s PC closes final editorial integration.
+
+Next: read the other published lists, exchange specific sections with Neon, test budget and deterministic crash/credit behavior, read each arriving script and its test at an exact hash, return grounded YES/NOT YET, and help assemble the one SETUP_PLAN.md. Initial quantitative question for Opus/Fable is whether both quoted bytes-per-row denominators mean emitted or kept rows; use actual byte totals, raw/kept counts and receipts in pilot. No rental or deployment.

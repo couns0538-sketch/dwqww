@@ -1,6 +1,6 @@
 # Astra’s independent server-day failure list
 
-Frozen before opening either peer’s failure list. This is input to Fable’s setup plan. W5 in the shared plan, its A11/A14/A23/A26/N12/N16/N17 requirements, and the PC draft F-1 to F-7 form the baseline. The owner’s reporting cadence for this planning session is 20 minutes for memory and two hours for the owner summary.
+Frozen before opening either peer’s failure list. This is input to Fable’s setup plan. W5 in the shared plan, its A11/A14/A23/A26/N12/N16/N17 requirements, and the PC draft F-1 to F-7 form the baseline. The owner’s new-branch order sets memory checkpoints about every ten minutes and owner summaries every two hours. This list was written independently before the pause and carried here after the ordered new-branch reading, before opening the other seats’ lists.
 
 | What can go wrong | How the scripts notice | Automatic reaction and rehearsal that must fail when the safeguard is removed |
 |---|---|---|
