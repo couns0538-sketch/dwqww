@@ -1,12 +1,12 @@
 # Neon Memory (8h Continuation — Phase 2: Server-Day Plan)
 
-Updated: 2026-11-23T23:50:20Z (UTC).
-Active branch: `debate/server-plan-20261123` (HEAD pushed `128f225894`).
+Updated: 2026-11-23T23:59:30Z (UTC).
+Active branch: `debate/server-plan-20261123` (HEAD pushed `8093171f8d`).
 
 ## Phase & Schedule (`232555Z`, `FABLE OUT` `001806Z`)
 - **Phase 0 COMPLETE (`17:25Z`):** `FORMATS.md` 2.9 (`ac566296`), `SETUP_PLAN.md` 2.7 (`4100b2a5`), 7 `scripts_v2/` files **3/3 YES**.
 - **Phase 1 COMPLETE (`17:25Z` – `21:25Z`):** Canonical `debate/engine_plan/ENGINE_PLAN_8H.md` (`dfc0a0c2c1`, SHA-256 `f8fb8197...`) holds **2/2 EXACT `AGREE`**.
-- **ACTIVE NOW — Phase 2 (Hours 5–8, `21:25Z` – `01:25Z` Nov 24): SERVER-DAY PLAN (`~1h35m` left; Fable checks once at `01:55Z`).**
+- **ACTIVE NOW — Phase 2 (Hours 5–8, `21:25Z` – `01:25Z` Nov 24): SERVER-DAY PLAN (`~1h25m` left; Fable checks once at `01:55Z`).**
 - **Verified real Linux Forge test binaries:** `/tmp/server_day_bench/build_clean_lto/bin/forge` (GCC 13 PGO+LTO AVX2) plus 4 parity binaries in `/tmp/server_day_bench/avx_cmp/` (`gcc_avx2`, `gcc_avx512`, `clang_avx2`, `clang_avx512` — all 36/36 runs match `known/profile.json` `sg_sha256` `85ac8e75...` bit-for-bit).
 
 ## Phase 2 Deliverable Status (`23:18Z`)
@@ -23,7 +23,7 @@ Active branch: `debate/server-plan-20261123` (HEAD pushed `128f225894`).
    - 4-worker full-CPU `clockwatch` kill latency: 20/20 dead before `D` (`1.69–3.23 ms`, `p50=2.10 ms`); 12/12 mid-game tightened-`D` kills (`1.70–3.53 ms`); `SIGKILL` worker double-loss: 12/12 orphaned Forge engines survived without `PR_SET_PDEATHSIG` vs 0/12 survived (`2.76–4.86 ms`) with `PR_SET_PDEATHSIG(SIGKILL)`.
    - 4-variant SIMD+compiler benchmark (`profile.uci`, 4-worker saturation): AVX-512 beats AVX2 by `+9.13%` (GCC 13) / `+8.22%` (Clang 18); Clang 18 ThinLTO beats GCC 13 LTO by `+3.48%`/`+2.62%`; documented Ubuntu 24.04 `--gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/13` gotcha.
 
-## Next Actions (`23:50Z – 01:25Z`, ~1h35m remaining)
+## Next Actions (`23:59Z – 01:25Z`, ~1h25m remaining)
 - Standing by actively on `origin/debate/server-plan-20261123` and `origin/debate/server-plan-20261123-astra` (Astra watcher confirmed `8c1c33a5c1` at `70aa73a48f`).
 - Automated regression harness `/tmp/server_day_repro/verify_repairs.py` ready for immediate validation of Opus's announced repairs (`guard`, `worker`, `packer`, `custody`, `content`, `credit`, `terminal`, `bootguard`, `launcher`, `make_control`).
 - Maintain ~10-minute memory cadence and keep `FINAL_FOR_THE_OWNER.md` synced with 2/2 `AGREE` before `01:25Z`.
