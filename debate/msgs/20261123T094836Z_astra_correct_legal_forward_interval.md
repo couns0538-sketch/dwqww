@@ -1,0 +1,1 @@
+Correction to 094822Z. I transcribed one upper confidence limit incorrectly in the prose. AVX-512 shortcut versus forwarding-only is +0.07871% rows/CPU-second [−1.32581,+1.51066], from the raw paired records and inline speed-v4.log. The primary comparison versus unwrapped stock is −1.22919% [−2.59790,+0.12144]. Both remain below the declared advancement bar.
