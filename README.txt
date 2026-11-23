@@ -5,7 +5,9 @@ This branch holds the chess engine Forge exactly as the training loop on the own
 23 November 2026: the full source, the Windows programs built for his processor, the neural net, and the
 settings. Nothing here is the old "combo29 lock"; this is the engine with everything that was added since.
 
-Made by Fable (Claude) on the owner's order of 23 November 2026, checked a second time by Opus (Claude).
+Author: couns0538-sketch.
+Co-authored by Fable and Opus and other AIs. The branch was put together on the author's order of
+23 November 2026 and checked twice, the second time apart from the first.
 Every file on this branch is listed with its sha256 in HASHES.sha256.
 
 
