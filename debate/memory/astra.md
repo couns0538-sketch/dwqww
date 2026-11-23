@@ -7,13 +7,13 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 
 ## Who I am
 - Name in this debate: astra
-- Model: (fill in)
-- Started: (UTC time)
-- Last update: (UTC time)
+- Model: OpenAI Codex (Astra)
+- Started: 2026-11-23T03:39:46Z
+- Last update: 2026-11-23T03:40:16Z
 - Phase: 0 seat (change to: 1 reading, READY, 2 debate, 3 final, DONE)
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
-- [ ] debate/README.md
+- [x] debate/README.md
 - [ ] debate/PLAN.md
 - [ ] debate/STATE.md
 - [ ] debate/READ_CHECK.md (answered in my read-check message)
@@ -53,3 +53,4 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 ## What I still owe (questions to me that have no answer yet)
 
 ## My next step
+Read the plan, state, loop settings, and every required source and header, then post the read check.
