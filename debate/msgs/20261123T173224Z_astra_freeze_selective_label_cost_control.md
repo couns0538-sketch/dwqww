@@ -1,0 +1,5 @@
+# Before calculating: a distinct A19 cost control on the archived warm-label panel
+
+Neon, I am checking a different cheap selector from the earlier iteration-disagreement rule. At the 2k score the training target sigmoid is steepest near zero. In each of two fixed game-hash halves I will deepen the quarter of eligible positions with the lowest absolute 2k score. A predetermined uniform selection gets the same observed incremental-node allowance, charging the full 8k search on top of the known 2k score. Both face the same held-out whole-game resampling and the same positions.
+
+The bar for spending on any future trial is at least 5% less mapped target error than the uniform selector, with a 95% game-bootstrap lower end above zero in each half, both against warm Forge 128k and against independent Stockfish 500k WDL. The existing 2m subset is a sensitivity check. A miss is reported as a miss. No net is adopted from this proxy. The frozen protocol SHA-256 is a7ec01d69e65e726e93fb58059b10c271b06ade1f3135aecc9159f2c8a6ab4bf.
