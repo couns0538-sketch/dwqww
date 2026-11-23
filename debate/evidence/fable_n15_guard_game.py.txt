@@ -1,0 +1,131 @@
+"""Fable 2026-11-23: N15 (Neon), on the PC's Windows program. One thread, a few seconds, no file written but its
+own output.
+
+  (1) Neon's seventh game (opening h2h4 b7b5 g2g4 g7g5 h1h2 c8a6 e2e3 d7d5) with the loop's options as they are,
+      with the MateAlphaGuard line LEFT OUT, and with MateAlphaGuard false. Neon's Linux numbers and digests are
+      typed in below BEFORE the first run of this tool.
+  (2) What the engine answers to a misspelt option name and to two bad values, and whether it still says readyok.
+
+    n15_guard_game.py <config.forge.toml> <forge.exe> <LOOP_OPTIONS.txt> <net .fnn3> <new output file>
+"""
+import hashlib
+import subprocess
+import sys
+
+sys.path.insert(0, "C:/nnue-lab/pipeline")
+from nnloop.common import load_config  # noqa: E402
+
+cfg, exe, options, net, out_file = sys.argv[1:6]
+g = load_config(cfg)["datagen"]
+PLACE = "<the full path of the net file forge65_r0067.fnn3>"
+opts = [ln.strip().replace(PLACE, net) for ln in open(options, encoding="ascii") if ln.strip().startswith("setoption")]
+GUARD = "setoption name MateAlphaGuard value true"
+assert opts.count(GUARD) == 1, "the options file does not hold the guard line exactly once"
+OPENING = "h2h4 b7b5 g2g4 g7g5 h1h2 c8a6 e2e3 d7d5"
+SELFGAME = (f"selfgame softnodes {int(g['soft_nodes'])} evallimit {int(g['eval_limit'])} maxply {int(g['max_ply'])} "
+            f"writeminply {int(g['write_min_ply'])} drawply {int(g['draw_adj_ply'])} "
+            f"drawscore {int(g['draw_adj_score'])} drawcount {int(g['draw_adj_count'])}")
+# neon 20261123T055748Z: (rows, result, reason, searches, nodes, digest)
+NEON_ON = (172, "1", "matescore", 173, 741342, "41284fe7df080ed1836cbe9ba1e9fa4d3c3b165e330e72bcbb5f28cbc3be63cf")
+NEON_OFF = (171, "1", "matescore", 172, 737195, "121b6606ab6de55da7ddc269390eeef18b3cd9b9f7f7b228de693691d89fe1b1")
+REFUSAL = ("unknown option", "invalid value", "ERROR", "No such option", "sgerror", "illegal")
+
+out = open(out_file, "x", encoding="ascii", newline="\n")
+
+
+def say(s=""):
+    print(s)
+    out.write(s + "\n")
+    out.flush()
+
+
+def talk(p, lines, word):
+    p.stdin.write("\n".join(lines) + "\n")
+    p.stdin.flush()
+    seen = []
+    while True:
+        ln = p.stdout.readline()
+        assert ln, "the engine ended"
+        seen.append(ln.rstrip())
+        if seen[-1].startswith(word):
+            return seen
+
+
+def game(label, option_lines):
+    p = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+    ready = talk(p, option_lines + ["isready"], "readyok")
+    refused = [s for s in ready if any(b in s for b in REFUSAL)]
+    assert any("NNUE v3 active" in s for s in ready), "the net is not active"
+    talk(p, ["ucinewgame", "isready"], "readyok")
+    seen = talk(p, ["position startpos moves " + OPENING, SELFGAME], "sgend")
+    p.stdin.write("quit\n")
+    p.stdin.flush()
+    p.wait(timeout=20)
+    assert not any(b in s for s in seen for b in REFUSAL), seen[-3:]
+    rows = [s for s in seen if s.startswith("sg ")]
+    w = seen[-1].split()
+    end = {w[k]: w[k + 1] for k in range(1, len(w) - 1, 2) if w[k] in ("result", "reason", "plies", "searches", "nodes")}
+    h = hashlib.sha256()
+    for r in rows:
+        h.update((r + " " + end["result"] + "\n").encode("ascii"))
+    got = (len(rows), end["result"], end["reason"], int(end["searches"]), int(end["nodes"]), h.hexdigest())
+    say(f"{label} | rows {got[0]} | result {got[1]} | {got[2]} | searches {got[3]} | nodes {got[4]} | digest {got[5]}"
+        f" | refusal lines while the options were set: {len(refused)}")
+    return got
+
+
+def answers(label, extra_line):
+    p = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+    ready = talk(p, opts + [extra_line, "isready"], "readyok")
+    p.stdin.write("quit\n")
+    p.stdin.flush()
+    code = p.wait(timeout=20)
+    lines = [s for s in ready if any(b in s for b in REFUSAL)]
+    say(f"{label} | sent: {extra_line} | refusal lines: {lines} | readyok: {ready[-1] == 'readyok'} | exit code {code}")
+    return lines, ready[-1] == "readyok", code
+
+
+say("exe: " + exe)
+say("opening: " + OPENING)
+say("selfgame line: " + SELFGAME)
+say(f"option lines in the file: {len(opts)}")
+say("--- (1) the seventh game")
+on = game("all options as the loop sends them", opts)
+on2 = game("the same, a second process", opts)
+omitted = game("the MateAlphaGuard line LEFT OUT", [o for o in opts if o != GUARD])
+off = game("MateAlphaGuard value false", [o.replace("MateAlphaGuard value true", "MateAlphaGuard value false") for o in opts])
+say("--- (2) what the engine answers to a faulty option line (sent after the good ones)")
+typo = answers("misspelt name", "setoption name MateAlphaGuad value true")
+big = answers("value out of range", "setoption name LmrQuietBase value 9999")
+word = answers("value not a number", "setoption name LmrQuietBase value abc")
+boolean = answers("boolean misspelt", "setoption name OwnBook value fales")
+
+fails = []
+
+
+def check(what, ok):
+    say(("ok   " if ok else "FAIL ") + what)
+    if not ok:
+        fails.append(what)
+
+
+say()
+check("the second process gives the same game", on == on2)
+check(f"guard on: Windows = neon's Linux {NEON_ON[:5]}", on[:5] == NEON_ON[:5])
+check(f"guard on: digest = neon's ({NEON_ON[5][:16]}...)", on[5] == NEON_ON[5])
+check(f"guard line left out: Windows = neon's Linux {NEON_OFF[:5]}", omitted[:5] == NEON_OFF[:5])
+check(f"guard line left out: digest = neon's ({NEON_OFF[5][:16]}...)", omitted[5] == NEON_OFF[5])
+check("guard false = guard line left out", off == omitted)
+check("guard on differs from guard left out", on != omitted)
+check("a misspelt name is answered with one `unknown option` line, readyok and exit code 0",
+      len(typo[0]) == 1 and "unknown option" in typo[0][0] and typo[1] and typo[2] == 0)
+check("a value out of range is answered with one `invalid value` line, readyok and exit code 0",
+      len(big[0]) == 1 and "invalid value" in big[0][0] and big[1] and big[2] == 0)
+check("a value that is not a number is answered with one `invalid value` line, readyok and exit code 0",
+      len(word[0]) == 1 and "invalid value" in word[0][0] and word[1] and word[2] == 0)
+check("a misspelt boolean is answered with one `invalid value` line, readyok and exit code 0",
+      len(boolean[0]) == 1 and "invalid value" in boolean[0][0] and boolean[1] and boolean[2] == 0)
+say()
+say("ALL AS NEON'S LINUX RUN" if not fails else f"{len(fails)} CHECK(S) NOT AS EXPECTED")
+out.close()
+sys.exit(0 if not fails else 1)

@@ -1,0 +1,28 @@
+exe: C:/nnue-lab/runs/forge/engines/v3-r15dsg-sp-clang/forge.exe
+opening: h2h4 b7b5 g2g4 g7g5 h1h2 c8a6 e2e3 d7d5
+selfgame line: selfgame softnodes 2000 evallimit 2000 maxply 300 writeminply 8 drawply 80 drawscore 5 drawcount 8
+option lines in the file: 24
+--- (1) the seventh game
+all options as the loop sends them | rows 172 | result 1 | matescore | searches 173 | nodes 741342 | digest 41284fe7df080ed1836cbe9ba1e9fa4d3c3b165e330e72bcbb5f28cbc3be63cf | refusal lines while the options were set: 0
+the same, a second process | rows 172 | result 1 | matescore | searches 173 | nodes 741342 | digest 41284fe7df080ed1836cbe9ba1e9fa4d3c3b165e330e72bcbb5f28cbc3be63cf | refusal lines while the options were set: 0
+the MateAlphaGuard line LEFT OUT | rows 171 | result 1 | matescore | searches 172 | nodes 737195 | digest 121b6606ab6de55da7ddc269390eeef18b3cd9b9f7f7b228de693691d89fe1b1 | refusal lines while the options were set: 0
+MateAlphaGuard value false | rows 171 | result 1 | matescore | searches 172 | nodes 737195 | digest 121b6606ab6de55da7ddc269390eeef18b3cd9b9f7f7b228de693691d89fe1b1 | refusal lines while the options were set: 0
+--- (2) what the engine answers to a faulty option line (sent after the good ones)
+misspelt name | sent: setoption name MateAlphaGuad value true | refusal lines: ['info string unknown option MateAlphaGuad'] | readyok: True | exit code 0
+value out of range | sent: setoption name LmrQuietBase value 9999 | refusal lines: ['info string invalid value for option LmrQuietBase'] | readyok: True | exit code 0
+value not a number | sent: setoption name LmrQuietBase value abc | refusal lines: ['info string invalid value for option LmrQuietBase'] | readyok: True | exit code 0
+boolean misspelt | sent: setoption name OwnBook value fales | refusal lines: ['info string invalid value for option OwnBook'] | readyok: True | exit code 0
+
+ok   the second process gives the same game
+ok   guard on: Windows = neon's Linux (172, '1', 'matescore', 173, 741342)
+ok   guard on: digest = neon's (41284fe7df080ed1...)
+ok   guard line left out: Windows = neon's Linux (171, '1', 'matescore', 172, 737195)
+ok   guard line left out: digest = neon's (121b6606ab6de55d...)
+ok   guard false = guard line left out
+ok   guard on differs from guard left out
+ok   a misspelt name is answered with one `unknown option` line, readyok and exit code 0
+ok   a value out of range is answered with one `invalid value` line, readyok and exit code 0
+ok   a value that is not a number is answered with one `invalid value` line, readyok and exit code 0
+ok   a misspelt boolean is answered with one `invalid value` line, readyok and exit code 0
+
+ALL AS NEON'S LINUX RUN

@@ -1,6 +1,6 @@
 # The Forge plan under debate
 
-**Version 3 (23 November 2026, during the debate). Kept by Fable; every change is listed at the bottom.**
+**Version 4 (23 November 2026, at the end of the debate's extension). Kept by Fable; every change is listed at the bottom. From the final vote on, `debate/FINAL_PLAN.md` is the plan; this file holds the reasons and the numbers behind it.**
 
 This file was written new for this branch from the project's working plan (a long file on the PC that also holds
 private notes; it is not uploaded). It says where the project wants to go, what is known, and what is planned
@@ -653,3 +653,29 @@ beside; card costs the one card of 20 GB. P10 goes with P1, P11 with P3, P12 wit
   settings (P1); the margin for "level" (P11); the advance criterion for "cut at 1000" (P3c). From Neon's audit of the draft: what it found missing is in
   the final plan (the net's pin, the count of endings, the disk floor, `MaxHidden`, the TD twin, W13 where the
   draft said W8). The en-passant rule of the opening key (Astra, Neon; P3b).
+- Version 4, 23 November 2026, at the end of the extension the owner gave (two more hours). The sections above
+  are NOT rewritten for it: each of the extension's sixteen changes is written out, with its test and its bar,
+  in `debate/FINAL_PLAN.md` at the item named here, and where that text and a section above differ, the final
+  plan counts. All sixteen are accepted by all three; proofs on `debate/BOARD.md` and in `debate/evidence/`.
+  For P3 (the trainer for 2 billion): F2 and F6 (Fable; the test's form by Astra), the new trainer's net is
+  also judged by games, ONE paired SPRT between -5 and 0 of at most 40,000 games with a pause at 20,000 (W8).
+  A8 (Astra) the update on a rented card is compared with the PC's, and a run with the learning rate at zero
+  must fail; A10 (Astra) a short run at the full shape on the card and data path that is paid for (both W6).
+  For P3b (the server day): F3 (Fable) the run survives the closed session, a killed allocator and a cut
+  link, and the server deletes nothing the PC has not confirmed; A11 (Astra) the end of the lease is
+  rehearsed (both W5 c). F4 (Fable) the day never depends on the opening table (W5 f; measured by Astra: 1.86 %
+  repeats, 28 minutes of the day). N12 (Neon) a fixed batch of games through the real path equals the PC's
+  Windows program, with two planted faults; A14 (Astra) the rules that correct a game's result after it ended
+  are part of the rehearsal; N15 (Neon) an option that did not arrive stops the start, and a seventh game sees
+  a missing `MateAlphaGuard` (all W5 i). For J10 (how a match is stopped): N13 (Neon) the stop's formula is
+  declared and the runner's stop function is held against four known tables; F5 (Fable) the same engine
+  against itself is +0.008672 a pair under that formula, H1 at 340 pairs (both W3 a); the look cadence is
+  every 1,000 games (R1, W8). For P2 (the standstill): A13 (Astra) when the three candidates' deep matches
+  are pooled, an opening counts once (W4). For P1 and P10 (the tune): the tune's own declaration held against
+  the plan (W1). For P4 (the wide net): N14 (Neon) the worst-case net is checked through the fused update the
+  search really uses, and the loader's bound is the narrowest lane's (W9); A9 (Astra) no paid training
+  without a tested stop-and-go-on (W13, W6); A12 (Astra) "did not beat round 67's net" is not "more
+  positions do not help": that is said only from a matched pair at equal passes (W13). For P11: the breadth
+  match is 2,000 games fixed, as declared on the PC (W7). For P5: no declaration of the TD twin's match was
+  found on the PC, so its bar is the plan's (W12). R1 carries the old run's pair counts and Astra's simulated
+  operating numbers.
