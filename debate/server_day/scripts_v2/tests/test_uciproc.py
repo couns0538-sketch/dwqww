@@ -42,6 +42,10 @@ pipes are the product's.
      nobody waited is reported by the next call at once
  L24 an `sgerror` after another unexpected line ends the wait at once (also when the caller judges the lines
      itself); an option line is read by its type
+ L25 (fourth edition, Astra `144526Z`; with it L21 got three more unusable limits: a finite one beyond what a
+     wait can serve, and whole numbers too large for a float) no failure after a command went out leaves the
+     object usable: a transcript line that cannot be written (on the real engine, and on the stand-in at three
+     places), an ending test that raises inside an answer
 """
 import queue
 import re
@@ -616,7 +620,9 @@ check(f"L20 each of {len(CUT)} cut or altered lines is refused by the table", no
 # ---------------------------------------------------------------- L21: every argument is judged before the first byte
 BAD_ARGS = (("a negative limit", {"secs": -1}), ("a cutoff that is not a number", {"cutoff": float("nan")}),
             ("an infinite limit", {"secs": float("inf")}), ("a limit that is a text", {"secs": "5"}),
-            ("a limit that is True", {"secs": True}), ("a cutoff that is True", {"cutoff": True}))
+            ("a limit that is True", {"secs": True}), ("a cutoff that is True", {"cutoff": True}),
+            ("a finite limit beyond what a wait can serve", {"secs": threading.TIMEOUT_MAX + 1000}),
+            ("a limit too large for a float", {"secs": 10 ** 400}), ("a cutoff too large for a float", {"cutoff": 10 ** 400}))
 eng = uciproc.Engine(EXE)
 native = []
 try:
@@ -781,6 +787,81 @@ check("L24 an option line is read by its type: a text default with spaces and th
                  "Hash": {"name": "Hash", "spin": "32", "min": "1", "max": "2048"},
                  "Ponder": {"name": "Ponder", "check": "false"},
                  "Clear Hash": {"name": "Clear Hash", "button": "button"}}, parsed)
+
+# ---------------------------------------------------------------- L25: no failure after a command went out leaves the object usable
+class FullDisk:
+    """A transcript whose n-th line cannot be written, as on a full disk. Every other line is kept, so the
+    object must be retired by that ONE failure and not by a transcript that stays broken."""
+
+    def __init__(self, fail_at):
+        self.n, self.fail_at, self.kept = 0, fail_at, []
+
+    def write(self, text):
+        self.n += 1
+        if self.n == self.fail_at:
+            raise OSError(28, "No space left on device")
+        self.kept.append(text)
+
+
+def tried(fn):
+    try:
+        return "returned", fn()
+    except Exception as x:  # noqa: BLE001
+        return type(x).__name__, str(x)
+
+
+eng = uciproc.Engine(EXE, log=FullDisk(4))     # 1 `>>> isready`, 2 `readyok`, 3 `>>> position ...`, 4 `>>> isready`
+try:
+    eng.ready(30)
+    first = tried(lambda: eng.command("position startpos moves e2e4 e7e5", 30))
+    retired = bool(getattr(eng, "gone", ""))
+    t0 = time.monotonic()
+    nxt = tried(lambda: eng.command("go perft 1", 30))
+    took = time.monotonic() - t0
+finally:
+    eng.kill()
+check("L25 the REAL engine, the transcript's fourth line cannot be written (the end mark of `position startpos moves e2e4 "
+      "e7e5`): the call raises EngineLogError, the object is retired, and the next `go perft 1` raises at once and answers "
+      "nothing (on the bytes before it answered `nodes 29`: the failed call had moved the board)",
+      first[0] == "EngineLogError" and retired and nxt[0] == "EngineError" and took <= 1.0,
+      (first[0], str(first[1])[:100], retired, nxt[0], str(nxt[1])[:100], round(took, 2)))
+slips = []
+for at, want in ((3, b"isready\n"), (4, b"isready\nposition startpos\n"), (5, b"isready\nposition startpos\nisready\n")):
+    got = WORK / f"got_l25_{at}.bin"
+    e = standin("say", [], got=got)
+    e.log = FullDisk(at)
+    try:
+        e.ready(10)
+        first = tried(lambda: e.command("position startpos", 10))
+        nxt = tried(lambda: e.command("go perft 1", 10))
+        one_more = tried(lambda: e.send("stop"))
+        code = e.quit(5)
+        time.sleep(0.3)
+    finally:
+        e.kill()
+    arrived = got.read_bytes() if got.exists() else b"(no file)"
+    if not (first[0] == "EngineLogError" and nxt[0] == "EngineError" and one_more[0] == "EngineError" and code is None
+            and arrived == want):
+        slips.append((at, first[0], nxt[0], one_more[0], code, arrived[:80]))
+check("L25 the stand-in, the transcript failing at its third, fourth and fifth line (before a command, between the command and "
+      "its end mark, inside the answer): each time EngineLogError, every later call refused, and the engine received exactly "
+      "what had gone out before the failure and not one byte more", not slips, slips)
+got = WORK / "got_l25_test.bin"
+e = standin("ten", got=got)
+try:
+    e.ready(10)
+    run = getattr(e, "run", None)
+    first = tried(lambda: run("go", lambda s: 1 // 0, 5)) if run else ("no such call", "")
+    nxt = tried(lambda: e.ready(5))
+    e.quit(5)
+    time.sleep(0.3)
+finally:
+    e.kill()
+arrived = got.read_bytes() if got.exists() else b"(no file)"
+check("L25 an ending test that raises inside an answer: an EngineError that names it (not the test's own error passed "
+      "through), the object retired, nothing sent afterwards",
+      first[0] == "EngineError" and "ZeroDivisionError" in str(first[1]) and nxt[0] == "EngineError" and arrived == b"isready\ngo\n",
+      (first[0], str(first[1])[:100], nxt[0], arrived[:80]))
 
 bad = [n for n, ok in results if not ok]
 print(f"\n{len(results) - len(bad)} of {len(results)} checks pass")

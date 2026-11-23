@@ -30,6 +30,8 @@ The rules it keeps (N15 and N17 of the plan; SETUP_PLAN.md rows 6 and 11):
 - an engine that has ended is reported at once by every later call, with its exit code (waited for no longer
   than that call's own time); a last line without its line end is an error, never a finished answer;
 - a command given with a cutoff that has passed sends nothing at all;
+- a transcript line that cannot be written, and an ending test that raises inside an answer, retire the object
+  too (fourth version): no failure after a command went out leaves the object usable;
 - after kill() or quit() the reader thread has ended, both pipes are closed and the object is retired.
 
 The calls: ready(), command() (ended by the next `readyok`), run() (ended by a line of the command's own:
@@ -68,16 +70,29 @@ class EngineTimeout(EngineError):
     """A wait ran into its limit or into the day's cutoff. The engine may still be searching: the caller ends it."""
 
 
+class EngineLogError(EngineError):
+    """A line of the transcript could not be written (a full disk). The object is retired: a run whose
+    transcript is broken is not continued, and a command that had gone out is never followed by another."""
+
+
 class _Bad:
     def __init__(self, text):
         self.text = text
 
 
 _NOTHING = object()
+# the longest limit one wait may be given: a bound of this file's own, inside what every platform's wait can
+# serve (threading.TIMEOUT_MAX is about 49 days on Windows; a longer wait raised OverflowError AFTER the bytes)
+MAX_SECS = min(7 * 86400.0, threading.TIMEOUT_MAX)
 
 
 def _number(x) -> bool:
-    return isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x)
+    if not isinstance(x, (int, float)) or isinstance(x, bool):
+        return False
+    try:
+        return math.isfinite(x)
+    except OverflowError:                 # a whole number too large for a float (10**400) is not a usable time
+        return False
 
 
 def _label(line) -> str:
@@ -130,8 +145,16 @@ class Engine:
             self._put(None)
 
     def _note(self, text):
-        if self.log is not None:
+        """One line into the transcript. A write that fails RETIRES the object, wherever it happens: before a
+        command (then that command is not sent), between a command and its end mark, or inside an answer
+        (fourth version, Astra's read of the third: the system's error passed through, the object stayed
+        usable, and the next command ran on a board that the failed call had already changed)."""
+        if self.log is None:
+            return
+        try:
             self.log.write(text + "\n")
+        except (OSError, ValueError) as e:
+            raise self._fail(EngineLogError, "the transcript", f"a line of it could not be written ({e})", "") from None
 
     def _exit_text(self, left: float) -> str:
         """The exit code, waited for no longer than the time the caller's wait has left (and 5 s at most)."""
@@ -153,12 +176,12 @@ class Engine:
     @staticmethod
     def _limits_fault(secs, cutoff, max_lines, done=_NOTHING) -> str:
         """'' when a wait may be made with these arguments; otherwise what is wrong with them."""
-        if not (_number(secs) and secs >= 0):
-            return f"its limit must be a finite number of seconds, 0 or more (got {secs!r})"
+        if not (_number(secs) and 0 <= secs <= MAX_SECS):
+            return f"its limit must be a finite number of seconds from 0 to {MAX_SECS:.0f} (got {str(secs)[:40]})"
         if cutoff is not None and not _number(cutoff):
-            return f"its cutoff must be a finite steady-clock time or None (got {cutoff!r})"
+            return f"its cutoff must be a finite steady-clock time or None (got {str(cutoff)[:40]})"
         if not (isinstance(max_lines, int) and not isinstance(max_lines, bool) and max_lines >= 1):
-            return f"its line bound must be a whole number of at least 1 (got {max_lines!r})"
+            return f"its line bound must be a whole number of at least 1 (got {str(max_lines)[:40]})"
         if done is not _NOTHING and not callable(done):
             return "its ending test must be callable"
         return ""
@@ -214,8 +237,8 @@ class Engine:
         before any byte: a text that is not plain, a retired object, a cutoff that is unusable or has passed."""
         self._check_text(line)
         if cutoff is not None and not _number(cutoff):
-            raise EngineError(f"{_label(line)}: its cutoff must be a finite steady-clock time or None (got {cutoff!r}); "
-                              "nothing was sent")
+            raise EngineError(f"{_label(line)}: its cutoff must be a finite steady-clock time or None "
+                              f"(got {str(cutoff)[:40]}); nothing was sent")
         if self.gone:
             raise EngineError(f"{_label(line)}: {self.gone}")
         if cutoff is not None and time.monotonic() >= cutoff:
@@ -271,7 +294,11 @@ class Engine:
             if line.startswith("sgerror"):       # ALWAYS at once: no end line follows it, whatever was read before
                 raise self._fail(EngineRefused, what, "no end line follows a game that was given up",
                                  first_bad or "the engine gave the game up: " + line[:200])
-            if done(line):
+            try:
+                ended = done(line)
+            except Exception as e:  # noqa: BLE001   the caller's own test failed in the middle of an answer
+                raise self._fail(EngineError, what, f"the ending test raised {type(e).__name__} ({e})", first_bad) from None
+            if ended:
                 break
             if len(lines) >= max_lines:
                 raise self._fail(EngineError, what, f"{len(lines)} lines and no end (the limit of one wait)", first_bad)
@@ -351,7 +378,7 @@ class Engine:
         except (OSError, ValueError):
             pass
         try:
-            code = self.p.wait(timeout=secs if _number(secs) and secs >= 0 else 30.0)
+            code = self.p.wait(timeout=secs if _number(secs) and 0 <= secs <= MAX_SECS else 30.0)
         except subprocess.TimeoutExpired:
             self.kill()
             return None
