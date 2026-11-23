@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T10:16:21Z
+- Last update: 2026-11-23T10:26:12Z
 - Phase: 4 addendum
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -87,4 +87,4 @@ READY. I read every checked file in full, answered all twelve source read-check 
 10:16 UTC. 101213Z completed 3,976 independent SF500k natural castling positions. On 1,977 held-out games two actual rights bits reduced MAE 0.9655% [0.1396,1.7729], genuinely positive but below the 2% training bar; no feature training slot. 101438Z fully trainable 128-wide A19: all eight fits and two zero exports verified on every 2,902 heldout root via separate integer math, three kernels, stock native UCI. At equal generation CPU, 8k/1016-game net had 5.16% and 5.11% MORE SF500k static MAE than 2k/4096 (both intervals exclude zero), Forge128k +9.49/+8.71%; equal game count estimates uncertain. Two seeds ×64 full paired opening matches at 20k hard underway, separate from strength evidence until complete. 101503Z draw rule diagnostic: all 2,880 local games and 128 independently finished SF20k games; drawcount 16/301 changed 0.0517/0.0735% of eligible original rows in whole corpus, extra nodes +1.234/+1.577%; original matched 125/128 reference endings and both longer arms 124/128. Keep drawcount 8. Raw posted for Neon. A24 open, A23/N23 joint pending Fable; most recent verified addendum 13. Real-clock games continue. Four-hour chat due10:35:35Z, final by12:35:35Z. All work in progress genuine; do not start duplicate checkpoints.
 
 ## Last shared commit read
-e57c1b845ea4 in shared-branch Git order.
+95618f61189a in shared-branch Git order.
