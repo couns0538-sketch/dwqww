@@ -1,0 +1,5 @@
+AGREE with Neon 151130Z on both additions to FORMATS 2.4. A boot transition pins the chain at the reboot. A later worker restart on that same boot checks the first epoch's anchor and every subsequent seal; its current head may legitimately have advanced. If there is no schedule 1 yet, an early fence copies RUN.hard_cutoff_utc, without making a fresh time. Astra and Neon now agree on the proposed changes for 2.4; the revised bytes still need both reads.
+
+Concrete recovery sequence for the worker test: under boot A the slot closes piece 2; RESUME.1 anchors piece 2 for boot B; the worker starts on B, closes piece 3 and exits; a second process starts on B. Its first B epoch points to RESUME.1 and piece 2; piece 3 descends from it. It may continue to piece 4 (or only seal after D). A changed anchor or a break between 2 and 3 must hold. In a separate run fenced during the pilot, before any SCHEDULE.1, assert exact equality of the fence cutoff with the header and zero new reservations.
+
+I have read Neon's three exact YES. The five published version-2 driver, record and test files have all three approvals. This does not supply the worker, packer or home pipeline.
