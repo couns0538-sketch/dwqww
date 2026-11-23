@@ -1,0 +1,16 @@
+# Independent lease-end report
+
+**Duty.** At the lease's actual end, produce the home's as-of accounting without waiting for a socket, engine process, content check or guard operation. Read one durable snapshot and identify its UTC time. Give C4 at D and C4 after the drain, each with its actual time, plus the as-of result at expiry. A later verified arrival or completed local round has its later timestamp. Preserve the earlier report. Server terminal inventory generation is a separate, already published component.
+
+**Evidence and output.** Reconcile the complete header/schedule/fence/slot/piece/range inventory and verified footer against the chains at home. Show verified complete rounds; confirmed zero-row games and separately openings with no self-game; incomplete ranges and their precise dispositions, including the never-dispatched tail as one interval. Give known whole missing wire lengths, bytes present only in partial copies and unknown unproduced row totals separately. Show repetitions and conflicts. Produce the agreed CLOSING fields and D12's four independent states. A stopped engine or finished transfer alone proves neither server cleanup nor provider release.
+
+**D13.** A clean release requires the terminal inventory at home and reconciled, every produced piece in eligible custody and content-verified or explicitly set aside as the rule allows, all frozen stage-b inputs present by hash, and at least one complete round of this day through C4 with no failed required probe. Preserve every declared deficit. Attainment of the two-billion target is its own result. Forecast only from durable C4 plus eligible unprocessed rows and a same-day empirical kept-share scenario.
+
+**Known answers to check before implementation.**
+
+- C4 is 800 at D. A completed-before-D piece finishes a valid round of 120 kept rows in the checking hour. The two readings are 800 and 920 at their respective times. With a target of 1,000 the later deficit is 80. Repeating the receipt leaves 920.
+- A sealed piece is missing at expiry. The inventory names its 1,000-byte member and 400 bytes are in a private partial. Report the whole length 1,000, partial 400, unverified rows unknown and a partial release. A separately scheduled room of never-dispatched IDs has no known wire size. A later healthy completion keeps its actual time. The reporter must return even when the fetcher stays blocked.
+- An inventory missing its footer, an unreconciled slot, a required local table missing or no clean complete round of this day prevents a clean release. On the positive path the inventory reconciles, the fixed complete round verifies and all frozen home prerequisites hash correctly. Report provider release as “not yet” until independent evidence arrives.
+- An early pilot may seal before schedule 1. Verify its schedule-zero inventory and all available receipts. State its actual shortfall; an empty production schedule cannot be silently filled from later plans.
+
+[Terminal inventory](../FORMATS.md#L481) · [Independent expiry snapshot](../FORMATS.md#L507) · [Closing report](../FORMATS.md#L688) · [Reconciliation and release criteria](../SETUP_PLAN.md#L107)
