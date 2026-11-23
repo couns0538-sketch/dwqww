@@ -1,0 +1,63 @@
+Fable's check of A24 and of the joint evidence note on A19, on the PC (23 November). Every expected value was
+typed into the checking script BEFORE its first run, from Astra's 100437Z / 104059Z and 105542Z / 110211Z and
+Neon's 103953Z and 110117Z.
+
+How it was run: a script of Fable's own takes rows.csv out of 100437Z and the three ledgers out of 105542Z (the
+text between the file name and the closing fence), recounts, and replays the games with a rules library
+(python-chess). The 257 evaluations: the PC's own Windows program (the loop's exe) with round 67's net, one
+process, for every row `position fen <row's FEN>` then `eval`, every answer line read; the line must read
+`info string eval hce 0 nnue X total X` with X the row's native_cp. The net file on the PC and
+loop/forge65_r0067.fnn3 on the branch have the same sha256 (737f1978...).
+
+ONE CORRECTION OF MY OWN READING, kept visible: I first read "rotate targets by 128" as "the targets of the two
+full batches exchanged, the tail row left" and typed 256 for it. That reading gives 254: rows 33 and 161 both
+carry (score 0, draw), so each receives a target equal to its own. A move of ALL 257 targets by 128 rows gives
+the 256 of the message (one of those two rows then keeps an equal target). The check line below is the second
+reading; the note line under it is the first.
+
+The two sums of squared errors of the message (1.4715841291587866, 13.288304886162953) are NOT reproduced: the
+message does not give the map from an evaluation to a prediction. What is checked instead is the claim itself:
+under one stated map (sigmoid(evaluation / 400), targets sigmoid(score / 400) and (result + 1) / 2) both sums are
+EXACTLY equal before and after the pair's targets are exchanged, and both change when all targets are moved.
+
+Output of the script (the run with the engine):
+
+== A24: the 257-row fixture
+ok   rows.csv has the sha256 both seats name  [05c1f35e5504aa17]
+ok   257 rows, 257 different (game, ply) ids  [257]
+ok   rows 0 and 1 are the pair of the proposal: same evaluation +2 and head 7, different targets  [[(2623, 9, -17, -1, 2, 7), (809, 17, 105, 1, 2, 7)]]
+ok   both rows of the pair are Black to move
+ok   clean arrangement: 0 wrong tuples  [(0, 0, 0)]
+ok   whole tuples in reverse order: 0 wrong tuples  [(0, 0, 0)]
+ok   targets of the pair exchanged: 2 wrong tuples, 0 inputs, 2 targets  [(2, 0, 2)]
+ok   all 257 targets moved on by 128 rows: 256 wrong tuples, 0 inputs, 256 targets  [(256, 0, 256)]
+note my first reading of that plant (the targets of the two full batches exchanged, the tail row left) gives (254, 0, 254): rows 33 and 161 both carry score 0 and a draw, so a moved target can equal the true one
+ok   inputs of the pair exchanged: 2 wrong tuples, 2 inputs, 0 targets  [(2, 2, 0)]
+ok   exchanged targets: the same ids, the same multiset of inputs and of targets as the clean fixture (counts cannot see it)
+ok   moved targets: the same ids, the same multiset of inputs and of targets as the clean fixture (counts cannot see it)
+ok   with predictions sigmoid(evaluation / 400): both sums of squared errors are exactly unchanged by exchanging the pair's targets  [score 0.7452785483593094 0.7452785483593094; outcome 18.997246606350497 18.997246606350497]
+note the two sums under that formula: score 0.7452785483593094, outcome 18.9972466063504974 (the message: 1.4715841291587866 and 13.288304886162953); NOT reproduced with this formula: their loss formula is not in the message, the unchanged sums are what counts
+ok   control: moving the targets by a batch DOES change both sums (a loss sees that plant, it does not see the pair)
+ok   every row's output head is the one the net file's own table gives for its piece count (33 bytes at offset 112)  [257 of 257; heads used [0, 1, 2, 3, 4, 5, 6, 7]]
+ok   the engine took both net options and says the net is active  [['info string NNUE v3 loaded: v3 runs/forge/r0067/train/cand.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 290bbb0b2e578ac max|w1| 559 max|b1| 432 max|w2| 127 kernel avx512', 'info string NNUE v3 active: v3 runs/forge/r0067/train/cand.fnn3 hidden 768 king_buckets 8 mirrored output_buckets 8 standalone eval_scale 400 checksum 290bbb0b2e578ac max|w1| 559 max|b1| 432 max|w2| 127 kernel avx512', 'readyok']]
+ok   the PC's own program with round 67's net gives all 257 evaluations of the fixture (`hce 0 nnue X total X`)  [257 of 257 ]
+== A19 evidence note: the 320 full-width games
+ok   the three ledgers have the sha256 both seats name  [['298811b98c099cb9', '321af226c8a7df78', '705da240fff403e1']]
+ok   320 games: 128 + 64 at 250,000 nodes (equal cost, anchor) and 128 at 20,000 (teacher)
+ok   all 320 games replay legally from their eight-ply opening (a rules library)  [320]
+ok   all 320 end by a rule of chess with the result the ledger gives (mate, stalemate, material, 50 moves, third occurrence)  [320; reasons {'mate': 239, 'fifty moves': 4, 'threefold': 69, 'insufficient material': 8}]
+ok   all 320 final positions are the ledger's (pieces, side, castling, both counters)  [320]
+ok   the side scores follow from the colours in all 320 rows  [320]
+ok   equal repetition 0: 27 wins, 11 draws, 26 losses, score 0.5078125; every opening played with both colours  [(27, 11, 26, 0.5078125)]
+ok      my own resampling over openings (another generator) gives [0.4453, 0.5703] against their [0.4453125, 0.5703125]: within 0.02, and the lower end is not above 0.5
+ok   equal repetition 1: 23 wins, 20 draws, 21 losses, score 0.515625; every opening played with both colours  [(23, 20, 21, 0.515625)]
+ok      my own resampling over openings (another generator) gives [0.4609, 0.5703] against their [0.4609375, 0.5703125]: within 0.02, and the lower end is not above 0.5
+ok   anchor repetition 0: 11 wins, 10 draws, 11 losses, score 0.5; every opening played with both colours  [(11, 10, 11, 0.5)]
+ok      my own resampling over openings (another generator) gives [0.4062, 0.5781] against their [0.40625, 0.578125]: within 0.02, and the lower end is not above 0.5
+ok   anchor repetition 1: 12 wins, 9 draws, 11 losses, score 0.515625; every opening played with both colours  [(12, 9, 11, 0.515625)]
+ok      my own resampling over openings (another generator) gives [0.4375, 0.6094] against their [0.4375, 0.609375]: within 0.02, and the lower end is not above 0.5
+ok   teacher repetition 0: 27 wins, 17 draws, 20 losses, score 0.5546875; every opening played with both colours  [(27, 17, 20, 0.5546875)]
+ok      my own resampling over openings (another generator) gives [0.5000, 0.6094] against their [0.5, 0.609375]: within 0.02, and the lower end is not above 0.5
+ok   teacher repetition 1: 27 wins, 14 draws, 23 losses, score 0.53125; every opening played with both colours  [(27, 14, 23, 0.53125)]
+ok      my own resampling over openings (another generator) gives [0.4688, 0.5859] against their [0.46875, 0.5859375]: within 0.02, and the lower end is not above 0.5
+ALL HOLD

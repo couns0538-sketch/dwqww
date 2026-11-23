@@ -877,6 +877,51 @@ proof, and what Fable's own check showed and did not show.
     only. Its script was read before its placing and is not placed in that form; the tune's declaration takes
     the rule above before the long run ends (Opus writes it, Fable reads it before it is placed).
 
+- **A24 (changes W8; Astra). Before W8's qualification training, every example's input, output bucket and
+  targets are tied to its source row at the place where the training step receives them.** Entered at
+  2026-11-23T18:26:15Z (Fable's clock). Agreed wording: `20261123T104059Z_astra_agreed_a24.md` (Astra `100437Z`,
+  `104027Z`; Neon `103953Z`).
+  - On a small fixture that the trusted resident path can read, spanning several batches and a partial last
+    one: each example's input features as really materialized (or a digest of them matched independently),
+    its output bucket and every active target term, with the mover's orientation and the teacher value where
+    one is used, are tied to the id of its source example. They are observed at the last real gather or
+    transfer the training uses. Three runs: the normal order, a legitimate reordering of whole examples, and
+    a restart or piece boundary where that can touch the gather. The expected tuples are computed
+    independently from the trusted source path. The clean and the reordered run must show zero mismatches;
+    exchanging only the targets of two rows, shifting the targets by one batch, and exchanging only the
+    inputs of two rows with the same prediction must each FAIL. A per-example check that exists already and
+    does this satisfies the item. No new production format and no paid run.
+  - Why: W8's reader tests (A17, A20, A22) check WHICH rows and games are visited, how often and in what
+    mix; W6 compares the updates of two machines, and those stay equal when one shared feeder gives both the
+    same shifted targets. A target buffer that is off by some rows keeps every row id, every count and the
+    whole multiset of targets. Where two rows have the same prediction, not even the loss changes when their
+    targets are exchanged, while the gradient does.
+  - Proof by both seats (round 67's net; 257 real rows: two batches of 128 and a tail of one; digest of the
+    rows `05c1f35e...`): each seat rebuilt all 257 input lists, output heads and evaluations independently.
+    Rows 0 and 1 (game 2623 ply 9 and game 809 ply 17, both Black to move, head 7) both evaluate to +2, with
+    the targets -17 and a loss against +105 and a win. Exchanging their targets leaves both sums of squared
+    errors over the 257 rows unchanged to the last bit and moves the gradient of a readout (norms 0.000224
+    and 0.00134). Wrong tuples, inputs, targets: clean 0, 0, 0; whole tuples reversed 0, 0, 0; the pair's
+    targets exchanged 2, 0, 2; all targets moved on by 128 rows 256, 0, 256; the pair's inputs exchanged
+    2, 2, 0. The fixture shows that the test can catch a fault no count sees; it does not say that the PC's
+    coming feeder has one.
+  - Fable's check (`debate/evidence/fable_a24_a19note_check.txt`): the digest of the rows; 257 different
+    ids; the pair as described; the five arrangements with a script of Fable's own: all five counts equal,
+    and after the exchange and after the move the ids, the multiset of inputs and the multiset of targets
+    are those of the clean fixture. The 256 belongs to a move of ALL 257 targets; exchanging the targets of
+    the two full batches gives 254, because rows 33 and 161 both carry a score of 0 and a draw: a moved
+    target can equal the true one, so a plant is judged by "at least one wrong tuple", not by a fixed count.
+    With equal predictions the two sums cannot change (a row's term depends on its prediction and its target
+    alone): checked as exact equality under sigmoid(evaluation / 400); the two sums of the message were not
+    reproduced, their formula is not in it. Every row's head is the one the net file's own table gives for
+    its piece count. The PC's own program with round 67's net gives all 257 evaluations. NOT run by Fable:
+    the rebuilding of the input lists and the gradient.
+  - What the PC adds: the loop's trainer of today compares, before every training, its fast gather with the
+    plain one over the SAME arrays (the kernel tests and the whole-window check of the compact record). That
+    catches a kernel that ties rows wrongly; it cannot catch a store that hands both the same shifted
+    targets. So nothing that exists satisfies the item for the reader from disk: it goes into W8's reader
+    harness on the fixture of A17, A20 and A22, before the qualification training.
+
 ### For later, once the engine is stronger
 
 The owner asked Astra and Neon (23 November, after the close) to look also for plans and improvements for
@@ -948,6 +993,28 @@ the order of the work that is in order now.
     every count, mean and interval equal. It says which MOVE another engine prefers; it does not say that the
     scores given to the trainer are more accurate or that a net trained on them is stronger, and Astra's check
     of the scores themselves (`082001Z`) had no result on the branch at this look.
+  - Evidence added on 2026-11-23T18:26:15Z (Fable's clock), a joint note that changes neither the action nor its bars:
+    `20261123T110211Z_astra_agreed_a19_evidence_update.md` (Astra `105542Z`; Neon `110117Z`, `103955Z`).
+    Today's generator stays at 2,000 soft nodes. The moves and scores of 8,000-node searches were better
+    against an independent referee, but that generator made 74.22 % fewer rows per processor second. Small
+    nets (128 wide, trained on the scores alone) preferred the larger shallow set in both matches at equal
+    cost (69.14 % and 66.80 %, 128 games each at 20,000 nodes). Short trainings of the full 768 width from
+    round 67's net (search score, game result and the BRANCH's built-in teacher as targets) gave no winner:
+    shallow against deep at equal cost 50.78 % [44.53, 57.03] and 51.56 % [46.09, 57.03] (64 games each at
+    250,000 nodes); against the untouched round 67 net 50.00 % and 51.56 %; with against without the teacher
+    term 55.47 % [50.00, 60.94] and 53.12 % [46.88, 58.59] at 20,000 nodes. No comparison passed the bar of a
+    lower end above 50 % in both repetitions. Width, start, targets and training scale differ from the PC's:
+    no best label depth and no gain in production follows. A19 stays the later comparison at equal production
+    cost with the real trainer, the promoted engine and the agreed games.
+  - Fable's check of that note (`debate/evidence/fable_a24_a19note_check.txt`, second part): the three
+    ledgers have the digests named; all 320 games replay legally from their openings with a rules library and
+    end by a rule of chess with the ledger's result (239 mates, 69 third occurrences, 8 by material, 4 by 50
+    moves); the final positions are the ledger's; the six triples of wins, draws and losses and the six
+    scores are equal; an own resampling over openings with another generator gives the six intervals to four
+    decimals. NOT run by Fable: the trainings, the node counts, the 128-wide matches and the label studies
+    (Neon recounted them). The teacher in these trainings is not the PC's: the PC's teacher is another net
+    (its file differs from the branch's built-in net in size and digest), so the teacher comparison says
+    nothing about the teacher term of the PC's recipe.
 
 - **N18 (Neon; precisions by Astra). More than one search thread: repairs first, then scaling, each thing tested
   alone.** Entered at 2026-11-23T15:13:13Z (Fable's clock). Agreed wording: `20261123T072041Z_neon_agreed_n18.md` (Neon

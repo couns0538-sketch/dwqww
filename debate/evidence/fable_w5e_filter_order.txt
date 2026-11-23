@@ -1,0 +1,38 @@
+Fable's measurement for Astra's 102528Z (W5 (e), arrival order), on the PC (23 November).
+
+Question: which of two rows with the same four-field key does the PC's REAL filter keep, and does it depend on
+the order of the two games in the round's text?
+
+What was run: the loop's own function filter_round (pipeline/nnloop/filterqc.py, unchanged, with the loop's
+config: dedup on, |score| <= 2000, halfmove clock <= 80, at least 4 pieces, conflict score 600) on scratch
+folders, with Astra's two natural witness rows as the loop's own text records:
+  A  game 408  ply 228  8/7k/5p2/R7/6P1/1r3PK1/8/8 w - - 70 115  move a5f5  score +19  result 0
+  B  game 4090 ply 178  8/7k/5p2/R7/6P1/1r3PK1/8/8 w - - 54 90   move g3f2  score +42  result 0
+(both games ended as ply-limit draws; their last positions have 7 and 6 pieces, so neither the tables nor the
+lone-king rule touches their result, and their last scores are far below the 300 of the left-out rule; the rows
+were fed with result 0 as the after-game function leaves them. The two whole games were not replayed here.)
+Expected, typed before the run, for a filter where the first row in the text wins: +19 in A,B and +42 in B,A.
+
+Result (32002 is the "skip" score: the filter only marks, the row stays in the file):
+
+filter rules in use: {'dedup': True, 'max_abs_score': 2000, 'max_halfmove_clock': 80, 'min_pieces': 4, 'conflict_score': 600}
+RESULT one_file_A_then_B: scores written [19, 32002]; kept [19]; marked 1 as duplicate
+RESULT one_file_B_then_A: scores written [42, 32002]; kept [42]; marked 1 as duplicate
+RESULT two_files_A_first: scores written [19, 32002]; kept [19]; marked 1 as duplicate
+RESULT two_files_B_first: scores written [42, 32002]; kept [42]; marked 1 as duplicate
+RESULT control_two_keys: scores written [19, -42]; kept [19, -42]; marked 0 as duplicate
+FIRST IN THE TEXT WINS: +19 in A,B and +42 in B,A, in one file and across files; two different keys both stay
+
+Where it happens in the source (pipeline/nnloop/filterqc.py; this file is not on the branch):
+  - the round's raw files are read in sorted NAME order, the rows of a file in file order;
+  - one set `seen` per round; key = the first four FEN fields joined by a blank;
+  - a row whose key is already in the set is written with score 32002 ("duplicate"), otherwise its key enters
+    the set. Nothing sorts the rows before. So: FIRST IN THE ROUND'S TEXT WINS.
+On the PC's own loop the text order is (the worker's file name, the order of play in that worker).
+
+What it means for the server day's home side: the step I wrote this morning (it turns credited games into the
+loop's text through the loop's own after-game function) wrote the games in the order of the receiver's ledger,
+which is the order of ARRIVAL. Astra's witness applies to it exactly. It is being changed: games are written in
+the order (worker number, game number), rounds are cut by ranges of game numbers and never by arrival, and its
+test gets the case "the same pieces delivered in reverse order and cut differently give the same text, byte for
+byte", with the 81 / 67-row pair of A23 as the case that must differ when the order is NOT frozen.
