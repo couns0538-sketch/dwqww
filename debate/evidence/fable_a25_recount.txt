@@ -1,0 +1,27 @@
+Fable's recount of the ledger behind A25 (Astra's 112610Z), 23 November.
+A script of Fable's own. Read: the blocks roots.csv and continuations.csv of the message. Checked with
+python-chess and with the PC's OWN Syzygy files (opened read-only), not with Astra's tables:
+  every root: its history is legal from the start position and gives the root's position (whole FEN, the
+    en-passant square only when a capture is legal); the material is the class named; the PC's tables call
+    it a win for the stronger side, with the ledger's value;
+  every continuation: legal from the root; the number of plies and the final position are the ledger's;
+    'mate' = checkmate on the board given by the stronger side; 'fifty' = the halfmove counter at 100;
+    a repetition ending = a third occurrence with the root's history counted.
+Expected values were typed before the run, from 112610Z and 112653Z.
+NOT recounted: the resampling intervals, the 8,192 source games, the clock games (113852Z), the
+corner-formula games (113910Z), the late-trigger games (114230Z).
+
+ok   31 roots: 25 with bishop and knight, 6 with two bishops on opposite colours  [(31, 25, 6)]
+ok   93 continuations (three for every root), 7,240 plies  [(93, 93, 7240)]
+ok   no line of the replay or of the PC's tables disagrees with the ledger  [[]]
+ok   exact root moves: 31 of 31 end in checkmate  [31]
+ok   the plain search at 250,000 nodes: 7 of 31 (1 of 25 and 6 of 6)  [(7, 1, 6)]
+ok     its other 24: 23 by the fifty-move rule, 1 by repetition  [(23, 1)]
+ok   the plain search at 20,000 nodes: 0 of 31 (27 fifty, 4 repetition)  [(0, 27, 4)]
+ok   exact against 250,000 nodes: 24 mates more, none lost  [(24, 0)]
+ALL HOLD
+
+PLANT (the recount must be able to fail): in a copy of the message the line of game 469 at 250,000 nodes
+was changed from a fifty-move draw to a mate. Result: exit code 1, two checks FAIL, with the lines
+  continuation 469/250000: checkmate by the stronger side is False, the ledger says 1
+  continuation 469/250000: ending 'mate' without a checkmate

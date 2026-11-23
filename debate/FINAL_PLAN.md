@@ -1414,3 +1414,47 @@ the order of the work that is in order now.
     match "no double extension" was level (+1.1 [-5.8, +8.0], 4,000 games at 20,000 nodes): at 20,000 nodes
     such a constant is hard to see in games, which fits the entry's point that the deeper budget is where to
     look.
+
+- **A25 (Astra; the cheaper comparator and its restriction to the root confirmed by Neon). Mates with bishop
+  and knight in real play: one later study, only if a stronger net still fails them.** Entered at
+  2026-11-23T18:54:26Z (Fable's clock). Agreed wording: `20261123T115134Z_astra_agreed_a25.md` (Astra `112653Z`; Neon
+  `115033Z`).
+  - WHEN: after W16; a promoted net stronger than round 67's exists; ordinary timed playing is wanted; AND a
+    fresh frozen cohort of at least 8,192 ordinary games with that net holds at least 20 certified wins of
+    this kind, at least 5 of which the plain search fails against a delaying defence. Otherwise nothing is
+    spent.
+  - WHAT: three arms, at the playing root only: the unchanged program; the existing table-free corner formula
+    for bishop and knight (the program's DeadMaterial evaluation), gated to that material at the playing
+    root; exact root moves from the tables. Two bishops stay a control unless they show exposure and failures
+    of their own on the promoted net.
+  - BAR: at least 5 more real mates per 8,192 original games; a paired 95 % interval over whole games with its
+    lower end above 0; no conversion of the unchanged program lost; repeated against a normal defender at
+    10+0.1 and at a second declared clock with no reversal and no added loss on time. The table-free way is
+    preferred if it covers the same wins at equal clocks. Kept: the original move history, the halfmove
+    counter, the side to move, mate before draw claims; the raw value of the net and the effective corner
+    score told apart; the standard pins and unchanged transcripts on every other route; a tested safe
+    fallback when table files are missing; start-up, file needs and latency measured on the machine that plays.
+  - NOT CHANGED by this entry: W1 to W16 and their order; today's training and search defaults; the self-play
+    producer (2,000 soft nodes, its existing search); ordinary analysis, restricted move lists and pondering.
+    No DeadMaterial switched on globally (it also puts a static zero on two knights against a king: Astra's
+    position with a mate in one that the evaluation calls zero; the search still finds the mate) and no
+    tables inside the search as a default: W16's result for probes inside the search (+18.6 in endings, 3 %
+    slower self-play) stands for that policy. Nothing about overall Elo follows from these endings.
+  - WHY IT WAITS: the failure is measured on round 67's net. Whether a stronger net still fails is not known,
+    and the study pays only then.
+  - Proof by both seats, round 67's net: among 8,192 frozen self-play games 31 reached a certified win of this
+    kind (25 with bishop and knight, 6 with two bishops). Against the best delaying defence at 250,000 nodes
+    the plain search mated 7 of 31 (1 of 25; 6 of 6), exact root moves 31 of 31: 24 mates more, none lost.
+    Against a normal defender on the clock: 17 against 31 at 10+0.1 and 15 against 31 at 1+0.1, no loss on
+    time in 124 games. The existing corner formula recovered 21 of the 24 (1 of 25 -> 22 of 25) and mated 61
+    of 64 fresh positions where the plain search mated 3. Waiting for the halfmove counter to reach 75 before
+    exact moves recovered none of the 24.
+  - Fable's check: the ledger of `112610Z` replayed on the PC with a script of its own and the PC's OWN
+    tablebase files (`debate/evidence/fable_a25_recount.txt`): 31 roots, each history legal and giving the
+    root, each a tablebase win for the stronger side; 93 continuations, 7,240 plies, each legal and ending as
+    the ledger says; exact moves 31 of 31; the plain search 7 of 31 at 250,000 nodes (1 of 25, 6 of 6; 23 by
+    the fifty-move rule, 1 by repetition) and 0 of 31 at 20,000 (27 and 4); 24 more, none lost; one planted
+    wrong line fails the recount. NOT recounted on the PC: the resampling intervals, the 8,192 source games,
+    the clock games and the corner-formula games (Neon recounted those). From the PC's own records of 16
+    November (round 17's net, a helper's 60 bare-king positions with bishop and knight; not repeated for this
+    entry): 25 of 60 mated at 2,000 soft nodes, 35 of 60 at 20,000 nodes, 60 of 60 with the tables.
