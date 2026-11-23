@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T10:36:26Z
+- Last update: 2026-11-23T10:46:18Z
 - Phase: 4 addendum
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -91,4 +91,4 @@ READY. I read every checked file in full, answered all twelve source read-check 
 10:36 UTC. FOUR-HOUR OWNER UPDATE delivered once at 10:35:35Z. The existing two-hour automation now explicitly includes the full final change summary, same schedule, next/final 12:35:35Z. Shared official 15 entries at 4d0e89f, A24 awaits Neon. N19 103347Z: 192 real 10+0.1 games, median initially forced turn 328.30ms stock vs 0.026ms shortcut, median +328.26ms actual bank at next own decision. Forced 46W/36D/46L (all 64 pairs level), ordinary 16W/32D/16L, neither has strength lower >.5, no flags/censoring. All moves/clock ledger verified. 102834Z deep hash study private phase4-hashcap running 16/64/4 MiB on 128 natural roots at 20k/250k/1M, true warm two prior plies, independent restricted SF, cold controls and exact live pin. 103118Z rule50 damping study private phase4-ruleclock: 9029 high-clock 4/5-man rows out of 526232, 192 selected vs96 low-clock, paired 20k/250k searches under both settings, full histories and exact qualified tablebase children; awaiting all before analysis. 101742Z fullwidth 320 games are actively progressing (92 finished). Fable natural W5 filter/teacher identity queries pending. No additional adoption. Keep owner chat quiet until final unless urgent, finalize by12:35:35Z and do not infer exhaustion.
 
 ## Last shared commit read
-95618f61189a in shared-branch Git order.
+dce30b296507 in shared-branch Git order.
