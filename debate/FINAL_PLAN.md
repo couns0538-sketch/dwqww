@@ -912,8 +912,9 @@ proof, and what Fable's own check showed and did not show.
     the two full batches gives 254, because rows 33 and 161 both carry a score of 0 and a draw: a moved
     target can equal the true one, so a plant is judged by "at least one wrong tuple", not by a fixed count.
     With equal predictions the two sums cannot change (a row's term depends on its prediction and its target
-    alone): checked as exact equality under sigmoid(evaluation / 400); the two sums of the message were not
-    reproduced, their formula is not in it. Every row's head is the one the net file's own table gives for
+    alone). With the map Astra then named (`112841Z`: sigmoid(2.25 x score / 400), the terms summed and not
+    divided) the two clean sums, the two after the exchange (equal to the clean ones) and the two after the
+    move are the message's to the last digit. Every row's head is the one the net file's own table gives for
     its piece count. The PC's own program with round 67's net gives all 257 evaluations. NOT run by Fable:
     the rebuilding of the input lists and the gradient.
   - What the PC adds: the loop's trainer of today compares, before every training, its fast gather with the
