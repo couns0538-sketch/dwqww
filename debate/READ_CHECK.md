@@ -6,13 +6,16 @@ Answer each in one line, with the file and line(s) that carry the answer, for ex
 Paths are those of this branch: `source/src/*.cpp`, `source/include/forge/*.hpp`.
 
 ## Search
-1. In the late-move reduction of a QUIET move, by how many plies at most can the move's history score change
-   the reduction, and, under the loop's options, from which absolute history value on does it change it at all?
+1. Under the loop's options, from which move count on does late-move pruning stop searching the remaining
+   QUIET moves at depth 4, when the position is improving and when it is not? Name the conditions under which
+   this pruning is not used at all.
 2. Under which conditions does a singular extension become a DOUBLE extension, and how many double extensions
    can one path from the root hold at most?
 3. Under the loop's options, what reduction R does the null-move search use at depth 9 when the static
    evaluation is 450 above beta? Give the formula and the number.
-4. When does internal iterative reduction take one ply off the depth, and does it leave the root out?
+4. Under the loop's options, at depth 5 and not improving, by how much must the evaluation exceed beta for
+   reverse futility pruning to return, and how does the setting TtPruneV2 that the loop sends change that
+   number? What does the search return there?
 
 ## Move ordering and histories
 5. Under the loop's options, how large is the history bonus for a search of depth 8? Give the formula and the

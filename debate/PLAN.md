@@ -1,6 +1,6 @@
 # The Forge plan under debate
 
-**Version 1 (23 November 2026, before the debate). Kept by Fable; every change is listed at the bottom.**
+**Version 2 (23 November 2026, before the debate). Kept by Fable; every change is listed at the bottom.**
 
 This file was written new for this branch from the project's working plan (a long file on the PC that also holds
 private notes; it is not uploaded). It says where the project wants to go, what is known, and what is planned
@@ -59,6 +59,9 @@ Where this file says "not checked", nobody has checked it.
 - **J7. A number belongs to its engine, net, settings and position set.** A tree-size factor from 200
   positions carries about +/- 6 %, is taken on book openings AND on positions from games (they have disagreed
   in sign), and says nothing about strength.
+- **J9. The newest net is not the best net until a match says so, at completely equal settings** (the same
+  program, the same settings, the same node limit, the same openings played from both sides). The owner's rule,
+  repeated on 23 November. It holds above all for the net that plays the rented server day (P3b).
 - **J8. The loop's gate is not changed on one match and a plausible story.** A gate change is tested like
   any other change. (A gate at default settings once promoted a net that was weaker as a whole engine.)
 
@@ -116,8 +119,8 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
 ### P2. The loop's decision rule. TO BUILD (two repairs), OPEN (the rule itself)
 - Known: candidates were better than the best net by about +3 to +4 at 50,000 nodes again and again
   (29 nets against round 33's net: +3.5 pooled), and one 4,000-game gate cannot see that. Since round 88 the
-  loop also pools its last 8 gates; the pool has not fired (rounds 128 to 135: 29,968 games,
-  -0.89 [-3.35, +1.57]). The direct match (round 87's net against round 67's, 30,000 games at 50,000 nodes):
+  loop also pools its last 8 gates; the pool has not fired (rounds 129 to 136: 29,968 games,
+  -0.07 [-2.52, +2.38]). The direct match (round 87's net against round 67's, 30,000 games at 50,000 nodes):
   +2.35 [-0.10, +4.80].
 - Two faults in the rule's code, found 23 November, repairs planned with tests (see P12).
 - Open: is the standstill since round 67 a measuring problem (real gains of +2 to +3 that the rule cannot
@@ -130,7 +133,8 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
   trained on more data than their opponent gained, 3 of 3 trained on less did not (16 November; size and
   composition changed together, so not clean).
 - Built: a feeder that keeps the window in main memory and hands it to the card in pieces passed its short
-  card tests (per-step losses equal to the live trainer's within run-to-run noise, speed 0.95 to 1.02).
+  card tests (per-step losses equal to the live trainer's within run-to-run noise; its speed against the live trainer's was recorded as 0.95 to 1.02, and which
+  way that ratio was divided has not been re-checked).
   Not yet run: 40 passes on a real window. In main memory it reaches about 450 million positions beside
   self-play: not enough for 3a. The next step reads from disk.
 - Open design questions (nothing decided): (a) the store: 44 bytes a position is 88 GB for 2 billion and the
@@ -143,6 +147,22 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
 - An outside figure, as a hypothesis only: public nets of this shape are trained on 1 to 20 billion positions.
 
 ### P3b. The rented days: a 64-core server for positions, then a rented card for the training. TO PREPARE
+- **Four conditions set by the owner (23 November):**
+  1. *Everything on the server runs by scripts, with no AI session beside it* (none will be available there):
+     one start command; it checks itself first (reference numbers, perft, known answers); it restarts a
+     worker that ends; it notices a full disk and a stalled worker; it stops by itself at a set time; every
+     step writes a log that can be read afterwards.
+  2. *The data is compressed from the moment it is written and sent to the PC while the day runs*, not at
+     its end: closed pieces with a checksum each, sent as soon as they are closed, checked on arrival, sent
+     again if the check differs. Sizes on this PC today: a round of about 16 million positions is 32 MB as the
+     engine's own game record (moves and scores; the positions are rebuilt from it) and 289 MB as packed
+     position text. So 2 billion positions are about 4 GB as game records, or about 36 GB as packed text.
+  3. *Not every position is kept: scripts choose the good ones automatically* (P3c).
+  4. *The program for the server is built the fastest way for its processor*: profile-guided and link-time
+     optimised, profiled with self-play itself, as the PC's own program is (clang, ThinLTO + PGO,
+     `-march=znver5` for the PC's Zen 5 processor; the PC's builds differ by up to 1.5 % between two builds
+     of the same source, so a speed claim needs two builds a variant). Full link-time optimisation against
+     ThinLTO has not been compared here.
 - What must exist and be proven on this PC before the server day, so that none of its hours is lost:
   (a) a build of the engine for that server's processor and system (today's programs are built for this PC:
   Windows, AVX-512; the server is probably Linux; the PC has a Linux subsystem to rehearse on);
@@ -150,8 +170,8 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
   package that starts with one command; (c) the check that the package makes the same positions as the loop:
   the three reference numbers and the perft counts on the new build, the two known answers with the loop's
   settings and net (226187 / 616966), and a set of whole self-play games replayed with equal moves and scores;
-  (d) how the positions come back and are verified (packed text is about 0.3 GB for 15 million positions,
-  so 2 billion are about 40 GB to move); (e) a rehearsal of everything at small scale.
+  (d) how the data comes back and is verified (condition 2 above); (e) a rehearsal of everything at small
+  scale, the scripts running alone from start to stop (condition 1).
 - Decided before the day, because every position of that day carries it: which net and which search settings
   play (so P1 must be finished and judged first), and how deep each move is searched (today 2,000 soft nodes;
   with about twice the positions to spare, deeper searches for better labels are a real choice).
@@ -160,6 +180,23 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
   in pieces is needed there; if not, P3's feeder is.
 - Not known: the server's exact processor, its system, the price of the hours (the owner's side), and how a
   net trained elsewhere is checked here before the loop trusts it (the trainer-against-engine check exists).
+
+### P3c. Which positions are kept: the filter. RUNNING (today's rules), OPEN (better rules)
+- Today's automatic filter (round 137: 16,009,233 positions written, 15,251,832 kept = 95.27 %): it drops
+  duplicates (479,948), positions whose rule-50 counter is above 80 (175,311), positions with fewer than
+  4 pieces (101,563) and positions whose score contradicts the game's result by more than 600 (579); the
+  score limit of 2,000 and the ply limit dropped none. Self-play itself writes no position before ply 8.
+  Positions whose best move is a capture are kept on purpose.
+- Measured here: keeping capture positions won +15.4 +/- 5.9 and +15.65 +/- 5.81 (6,000 games each, on an
+  earlier net and less data); dropping positions in check was level (+1.0). Both wait for one re-test on
+  today's net.
+- Not measured here: any rule that looks at how quiet a position is, at the gap between its static
+  evaluation and its search score, at the spread of piece counts over the kept set, or at how many
+  positions one game may contribute. Public trainers use rules of these kinds (as hypotheses for this
+  engine; sources to be named in the debate by whoever proposes one).
+- Why it matters more now: with 2 to 4 billion positions made in a day there is room to keep only the
+  better half, so a filter rule can be judged by training two nets on equal numbers of positions (kept by
+  the old rule against kept by the new one) at completely equal settings (J9).
 
 ### P4. Width: the 1024-wide net. STOPPED until P3 (3a)
 - Known: 1024 against 768, same recipe and rounds, node odds for the slower net: 4,400 games,
@@ -241,6 +278,8 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
   net for that data, and how is it judged against round 67's net when its speed differs?
 - Q2b. The rented days (P3b): what must be proven before the server day, what should that day's games look like
   (which net, which settings, how many nodes a move, one player or several), and how is its output checked?
+- Q2c. Which positions are good (P3c)? Name a filter rule, the evidence for it, and the two-net test that
+  would show it here. What is the smallest and safest form in which the server's output can travel?
 - Q3. Are the gate's depths right (50,000 nodes, then 250,000) for nets that learn from 2,000-node games and
   gain with depth? What would a better rule cost in games per day?
 - Q4. From your reading of `source/`: what would you change first for strength, with file and line, and how
@@ -305,3 +344,7 @@ beside; card costs the one card of 20 GB. P10 goes with P1, P11 with P3, P12 wit
 ## Changes to this file
 
 - Version 1, 23 November 2026: first upload, before the debate.
+- Version 2, 23 November 2026, before the debate: the owner's conditions for the rented server day (all by
+  scripts, compressed and sent from the first minute, automatic filtering, the fastest build for its
+  processor) in P3b; the new item P3c (the filter) and question Q2c; rule J9 (equal settings); P2 quotes the
+  newest pool; the feeder's speed line worded with its doubt.
