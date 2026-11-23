@@ -1,27 +1,28 @@
 # Neon Memory (Server Day Debate)
 
-Updated: 2026-11-23T14:41:30Z (UTC). Stop time: 18:35Z (~3h 54m remaining).
+Updated: 2026-11-23T14:50:00Z (UTC). Stop time: 18:35Z (~3h 45m remaining).
 Active branch: `debate/server-plan-20261123`.
 
 ## Owner Hand-Over Rule (`212743Z`, `212820Z`)
-- Stop stays **`18:35Z` UTC**. Fable stays in the debate for now.
-- On `FABLE OUT` (or 15 minutes of Fable silence without it): Astra becomes editor of the final state & `debate/server_day/FINAL_FOR_THE_OWNER.md`, Neon reviews with `AGREE`/`CHANGE` (can read Astra's branch directly via `git fetch`), and Astra hands the owner the final file in her window at stop.
+- Stop stays **`18:35Z` UTC**. Fable is active (`214118Z` = `1441Z` UTC).
+- On `FABLE OUT` (or 15 minutes of Fable silence): Astra edits final state & `FINAL_FOR_THE_OWNER.md`, Neon reviews with `AGREE`/`CHANGE`, Astra hands final file to owner at `18:35Z`.
 
 ## Current state of the server-day plan & formats
-- **`SETUP_PLAN.md` v2.2** (`35b8c34424e4...`): ALL decisions `D1`–`D15`, Section 2, Section 4 settled. Additional agreed requirements queued for `scripts_v2/`: D4 shortfall + 4 boundary cases (`140827Z`, `143323Z`), dual-mode normal vs raw-fallback storage room (`141912Z`, `212259Z` §2), per-ancestor cgroup headroom `min_L(max_L - current_L)` (`143622Z`), D10/N16 identical-binary A/A timing discipline + `completed_opening` (`144008Z`), multi-process home rules throughput (`140908Z`).
-- **`FORMATS.md` 2.2** (`02bd23ad...`): Astra `AGREE`, Neon `AGREE` + 4 closures (`143000Z`) ALL accepted by Fable (`213251Z`) and Astra (`143221Z`) for **2.3** (control-file `.zz` order with `offer.json.zz` last + `offer_wire_*`; stage a2 cross-checking all `seal.json` summary fields; exact `binpack + meta.xz -> raw_sha256` lossless reconstruction; `instance` `null != null` fail-closed rule).
-- **Independent references (`ref/astra/` + `ref/neon/`, outside paid package):**
-  - `ref/astra/` (`c4315a24...`): read by Fable & Neon; 13 native records + `cases/astra/record_v2_vectors.json` (`4fb382d0...`, all 13 positives verified bit-for-bit by Neon `144130Z`).
-  - `ref/neon/` (`750eb3c9...`): passed `15/15` + `6/6` on Neon's AND Astra's Linux hosts; left stable at `750eb3c9...` while Fable queues his line-by-line read.
+- **`SETUP_PLAN.md` v2.2** (`35b8c34424e4...`): ALL decisions `D1`–`D15`, Section 2, Section 4 settled. Additional agreed controls queued for `scripts_v2/`: D4 shortfall + 4 boundaries (`140827Z`, `143323Z`), dual-mode normal/raw-fallback storage (`141912Z`, `212259Z`), per-ancestor cgroup headroom `min_L(max_L - current_L)` (`143622Z`, `214118Z`), D10/N16 self-spread same-binary A/A rule (symmetrical faster/slower) + `completed_opening` (`edge3146` ply-7 vs `edge4013` ply-8, `144008Z`, `214118Z`), Stage `b` local prerequisite outage retry before single publication (`144620Z`, `145000Z`).
+- **`FORMATS.md` 2.2** (`02bd23ad...`): 2.3 queued with Neon's 4 closures (`143000Z`, accepted by Fable `213251Z` & Astra `143221Z`) + worker-writing questions + Stage `b` local retry wording.
+- **Independent references (`ref/astra/`, `ref/neon/`):** outside paid package. `ref/neon/` (`750eb3c9...`) passed `15/15` + `6/6` on both Linux hosts. `cases/astra/record_v2_vectors.json` (`4fb382d0...`, 13 positives + 10 negatives) independently verified by Neon and accepted by Fable.
 
 ## Approval Ledger State (`scripts_v2/`)
 - **Package 1 (`scripts/`, 17 files):** `0` effective `YES` (frozen baseline).
-- **`scripts_v2/` batch 1 rev 2 (`94e7518e...`, `42cf67d9...`):** BOTH Astra (`142216Z`) and Neon (`143000Z`) voted `NOT YET`. Fable (`213251Z`, `213501Z`) accepted Astra's 2 + Neon's 4 findings (and all 3 seats agreed `bestmove 0000` stays refused in the paid-day table, `type button` stays allowed, empty lines `""` refused). Driver rev 3 + test running behind PC gate now; `record.py` and `tools/budget.py` follow next.
-- **0 effective `YES` in `scripts_v2/` so far.**
-- Cached native Linux Forge binary ready at `/tmp/neon_forge_bin/forge_avx2` (`8c934216...`) for instant 2-second live testing of `scripts_v2/` drops.
+- **`scripts_v2/` driver v3 (`e68d9ef50e`, manifest `28b68c8f...`):**
+  - `scripts_v2/run/engine_lines.py` (`a82eb9c85f28f25792a98930b39fc4a4b26ad03639c4fc6ae303adffd32167f1`): **Astra `YES` (`144526Z`) + Neon `YES` (`145000Z`)** — awaiting Fable's formal `YES` line for first 3-seat `YES`!
+  - `scripts_v2/tests/test_uciproc.py` (`4c8cef0910a616265309de0f530707a4f7709c98998e7cc8d7134a0273194774`): **Astra `YES` (`144526Z`) + Neon `YES` (`145000Z`)** (58/58 on v3, 48/58 on v2, 15/53 on v1 on native Linux; will re-vote when 2 new `uciproc.py` checks are added).
+  - `scripts_v2/run/uciproc.py` (`ab4e7ec8d3e48dcf5d26cd63b6dc0f1f1672bc60e46dec705c5e2319a7030a8c`): **Astra `NOT YET` (`144526Z`) + Neon `NOT YET` (`145000Z`)** — both live-reproduced on Linux (`_note()` unguarded `ENOSPC` -> `nodes 29` with `gone == ''`; `secs = TIMEOUT_MAX + 1000` -> `OverflowError` -> `nodes 20` with `gone == ''`).
 
 ## Next actions
-1. Commit & push `144130Z` ack + memory update.
-2. Poll both branches (`AwaitShell`) for Fable's `scripts_v2/` driver v3, `FORMATS.md` 2.3, `record.py`, `tools/budget.py`, `home/`, `worker.py`, `packer.py`, `linux/`.
-3. For EVERY `scripts_v2/` file that lands: full line-by-line read + run official test suite on Linux + run targeted adversarial probes on `/tmp/neon_forge_bin/forge_avx2` -> cast exact-byte `YES <sha256> <path>` or `NOT YET <sha256> <path>`.
-4. Keep updating `debate/memory/neon.md` ~every 10 minutes; continue until `18:35Z` UTC.
+1. Commit & push `145000Z` votes + memory update.
+2. Watch both branches (`AwaitShell`) for:
+   - `scripts_v2/run/uciproc.py` v4 + updated `test_uciproc.py` -> immediate Linux verification & `YES`!
+   - `FORMATS.md` 2.3 -> fast `AGREE`!
+   - `scripts_v2/run/record.py`, `scripts_v2/run/worker.py` (95/95 on PC!), `scripts_v2/tools/budget.py` (177 checks on PC!), `packer.py`, `linux/`, `home/` -> immediate line-by-line review + live Linux fault tests on `/tmp/neon_forge_bin/forge_avx2` (`8c934216...`)!
+3. Keep updating `debate/memory/neon.md` ~every 10 minutes; continue until `18:35Z` UTC.
