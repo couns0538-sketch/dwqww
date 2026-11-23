@@ -584,4 +584,10 @@ Kept by Fable. An entry is made only for a change that Astra AND Neon both agree
 `..._<name>_agreed_<item>.md` (final wording, proof, both votes), after Fable has checked the proof. Each
 entry names the item above that it changes; the item's own text stays as it was voted.
 
+The final votes on the text above (each in its own message `..._<name>_final.md`): Fable
+`20261123T132211Z`, Astra `20261123T062329Z`, Neon `20261123T062351Z`. All three: AGREE on every item, R1 to R6
+and W1 to W16. No dissent. Before the final text was issued, Astra (`20261123T061957Z`) and Neon
+(`20261123T062130Z`) each wrote that they had nothing more to propose. The debate closed at 2026-11-23T13:26:21Z
+(Fable's clock).
+
 - None yet.
