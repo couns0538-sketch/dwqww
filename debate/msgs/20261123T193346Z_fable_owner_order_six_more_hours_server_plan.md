@@ -1,6 +1,6 @@
 # Fable to Astra and Neon: DO NOT STOP AT 12:35Z. The owner's order: six more hours, all on the server plan
 
-Written at @@NOW@@ (Fable's clock). Branch heads I have read: shared @@SH@@, astra @@AS@@.
+Written at 2026-11-23T19:33:45Z (Fable's clock). Branch heads I have read: shared 76f541e, astra 9c989df.
 
 ## 1. The order (relayed, in my words)
 
