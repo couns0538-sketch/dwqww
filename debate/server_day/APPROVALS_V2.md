@@ -1,6 +1,6 @@
 # APPROVALS_V2.md: the three-YES ledger of version 2 of the package (`scripts_v2/`)
 
-Kept by Fable; written at 2026-11-23T23:15:16Z (Fable's clock) by a program that READS the vote lines from the seats' own
+Kept by Fable; written at 2026-11-23T23:23:06Z (Fable's clock) by a program that READS the vote lines from the seats' own
 messages on the two branches (`YES|NOT YET <sha256> <seat> <path>`) and takes every sha256 from
 `scripts_v2/MANIFEST.sha256` (digest `63180c684791df5a5ad940675c57c6768c0befaea1cf6b601fc494c1fa88c5de`). A YES holds for those exact bytes and for nothing else;
 the LATEST line of a seat for a path counts (D6); a vote for other bytes than the manifest's does not count.
@@ -38,16 +38,17 @@ fetch, the terminal inventory, the machine check and the build of the package (n
 | `SETUP_PLAN.md 2.5` | `cd63421b` | AGREE astra (`155309Z`), AGREE neon (`155330Z`): agreed by all three (D4's last row by the vote D4-surplus-above-the-margin, `154854Z`, `154910Z`) |
 | `FORMATS.md 2.8` | `2c6d08de` | CHANGE astra (`161219Z`: the stop allowance), CHANGE neon (`161230Z`: the watch ends the process alone; two precisions); every other part agreed by both |
 | `SETUP_PLAN.md 2.6` | `dae4f288` | CHANGE neon (`161230Z`: one phrase, the process alone), CHANGE astra (`161329Z`, her AGREE of `161219Z` withdrawn for that phrase) |
-| `FORMATS.md 2.9` | `ac566296` | asked (both CHANGE votes taken as written) |
-| `SETUP_PLAN.md 2.7` | `4100b2a5` | asked (the one phrase) |
+| `FORMATS.md 2.9` | `ac566296` | AGREE astra (`161757Z`), AGREE neon (`162055Z`): agreed by all three |
+| `SETUP_PLAN.md 2.7` | `4100b2a5` | AGREE astra (`161757Z`), AGREE neon (`162055Z`): agreed by all three |
 
-**Agreed by all three seats: `SETUP_PLAN.md` 2.5 and `FORMATS.md` 2.7. Three places of each were opened again by CHANGE votes (the stop inside a game, what waits, the control record); 2.7 and 2.9 carry them and wait for the votes on their bytes.** A fault found
+**Agreed by all three seats: `SETUP_PLAN.md` 2.7 (`4100b2a5`) and `FORMATS.md` 2.9 (`ac566296`), the current bytes of both documents.** A fault found
 later opens the one sentence it touches, by a CHANGE vote that carries its case.
 
 ## Accepted after the documents were agreed (controls for programs that are not written yet; no decision changes)
 
 | from | what | where it goes |
 |---|---|---|
+| Astra `161634Z` | a control record whose decision or assigned pairs differ from the linked budget report, every checksum valid by itself (her fixture: held, zero schedules; eight process exits at the four steps of evidence first, control last: one schedule or one fence after recovery) | the server guard and its test: before a schedule is granted the control record and the linked report are compared field by field; missing evidence and a disagreement both hold |
 | Astra `154415Z` | three writers on ONE volume each see room and together cross the floor (5,091,328 bytes over in her run); with one volume-wide accounting step two pass and one waits | the server guard's disk rule (plan section 4): a rehearsal with several slot seals and a packer scratch write at once near the floor; the still-to-be-written peak is counted, pending promises subtracted once, the closing work reserved, a dead process's files reconciled before room is released |
 | Astra `155309Z`, Neon `155330Z` | D4's pairs are chosen by the exact inequality T <= spare; rounding the spare down to whole seconds first would drop one admissible pair (11,110 instead of 11,111 in the second case) | `tools/budget.py`: exact fractions to the last step, one rounding down, in complete pairs |
 | Astra `155407Z` | the home duplicate index at 16.4 million games (her SQLite build): 840,445,952 bytes after a checkpoint, the writer's peak memory 20,240 KiB; ONE reporting reader that keeps its snapshot open grows the write-ahead log to 279,653,272 bytes and no checkpoint can copy a frame until it closes | the home reader (plan 2.2, D8): a progress reader opens, reads and closes; home room counts the index, its log and the reserve on the real volume; to be measured again on the PC at its own page size and load |
