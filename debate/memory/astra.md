@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T15:39:53Z
+- Last update: 2026-11-23T15:50:08Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T153953Z
+20261123T155008Z
 
 The owner’s server-day session runs from 12:35 to 18:35 UTC on 23 November. START_HERE and its ordered sources were read. Only the server-day debate is active. Fable edits its single SETUP_PLAN; Astra publishes on the fallback derived from it, which Fable carries onto shared. Owner reports at 14:35, 16:35 and 18:35 UTC. Independent Astra failures were published first (6d54921); Fable merged the three lists into 45 testable failures.
 
@@ -133,3 +133,7 @@ Native 1,500-game, three-slot compressed recovery fixture, 152429Z: 188,004 rows
 FORMATS 2.5 b3b593d2… fixed the outstanding failed retry, but a durable unfinished record at D was incorrectly skipped on the next finalizer; 13 of 120 enumerated four-ID cases demonstrated it (153133Z). FORMATS 2.6 4c97d0838da3c11bb247e1dbaf2b3990580ebdd07e35814475ed64135eb6ed80 fixed that; the new counter rule passed all 120. Both seats then requested CHANGE on an independent empty-slot crash: fence before any worker, first-ever finalizer writes its epoch and dies, second finalizer mistakenly infers a possible game (153602Z; Neon amended its earlier vote at 153830Z). Mark an epoch play-capable or seal-only in the already durable line. The role-qualified result stays invariant under repeated finalizers in all 76 permitted histories checked. A worker must consume every pending successor schedule before reserving, not stop after just one new file. Await revised format.
 
 Measured the separate cost of cumulative schedules: 64 slots/128 rounds with one-round extensions used 85,946,368 allocated bytes for control history and its terminal portion, versus 43,880,448 with two-round extensions (153200Z). A simulated same-boot suspend left a monotonic-only timer showing 1,200 s available 300 s after D; seal-only on proven expiry, hold when clocks cannot be trusted (153451Z). Actual local sockets used the native fallback member to show 98,304 stalled versus 557,056 progressing temporary bytes, both zero verified receipts at simulated expiry; each later recovered the original hash. A separate release-time reporter must not block behind the fetch process (153725Z). No paid capacity or complete home rehearsal. Current local owner draft and independently verified grouped votes are ready for eventual final review. Next owner report 16:35 UTC, final 18:35 UTC.
+
+15:50 UTC. SETUP_PLAN 2.4 be886e29954b8141786eeb8442d1543efdcb7e2330c9c367e518c1f97ce97361 and FORMATS 2.7 58debbd34fc951fc9a4ba49b5cd2d197fae8f0c9a3d490902a01f4dae5626f4b are both agreed by all three, recorded by Fable 224736Z. My exact format AGREE is 154359Z, Neon 154410Z. The 120 disposition cases and 76 epoch histories are resolved by the new contract. Clocks, schedule-chain walk, late transfer and the as-of expiry report are explicit. Section 4's same-volume rule now has a genuine concurrent three-writer control (154415Z, accepted by Fable): independent checks exceed a 12,582,912-byte private margin by 5,091,328; volume-wide reservations admit two, not three. APPROVALS_V2 now distinguishes its standardized history and links the previously omitted early votes. All five published v2 executable/test files still have all three YES. The home side, guards, launcher and whole-day rehearsal remain missing.
+
+Fable read budget.py and its test privately, 224/224 PC checks, but a fractional position count is accepted; not published or approved. Both Astra and Neon voted AGREE on retaining the owner's chosen margin after allocating match time (Fable 224736Z; Neon 154910Z; my agree_d4_surplus_above_margin message). At 80,000 s, 2 billion outstanding, 27,500 kept/s, zero matches fit; at 30,000/s, cap is 6,666 whole seconds. A 9% drop gives 2.002 billion with retained margin vs 1.820 billion spending the full surplus. We favored SELF_PLAY when no whole pair actually fits. The revised plan's exact bytes still need review. The full-scale local synthetic disk-index trial is in progress: an intentional exit before piece 8,200's COMMIT reopened with exactly 8,200 committed pieces/4,100,000 candidate records; remaining scale and final integrity checks pending. Its purpose is home memory/disk sizing and duplicate succession, not a measured PC C4 rate. Next: read and test the revised official budget, worker and packer as each arrives.
