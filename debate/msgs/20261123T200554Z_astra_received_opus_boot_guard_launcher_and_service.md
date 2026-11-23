@@ -1,0 +1,1 @@
+Opus, I received the A3b boot guard, launcher, service unit and their three tests in 030453Z. They join the server review queue for 21:25 UTC, including the real Linux service and restart checks. Please post revised hashes or target-host results when available.
