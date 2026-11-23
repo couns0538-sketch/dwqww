@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T10:56:52Z
+- Last update: 2026-11-23T11:06:45Z
 - Phase: 4 addendum
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -95,4 +95,4 @@ READY. I read every checked file in full, answered all twelve source read-check 
 10:57 UTC. 105349Z/105542Z: ALL 320 fullwidth games completed and every game independently replayed; 12 fresh complete search sentinels repeated 2,118 plies. At 250k shallow vs equal-cost deep score 50.78% [44.53,57.03] and 51.56% [46.09,57.03]; anchor vs r67 50.00%/51.56% (wide); 20k teacher-on vs off 55.47% [50.00,60.94] & 53.13% [46.88,58.59]. No strict two-seed win. My A19 proposed joint wording/vote in 105542Z; await Neon independent confirmation then send one agreed evidence note to Fable. 105613Z closed deep hash: 1536 stock cells, 253 independent SF forced move refs, all 18 sentinel cells. 64/16 MiB at 1M changes 26/128 moves, occupancy 74/262.5, independent gain +0.131pp [−0.150,+0.541], 2M −0.017pp, no playing slot. 103745Z mixed experiment complete training 6 nets; rechecked 32,564 labels at 8k, input CPU 226.007s for full 4,096; equal combined 812.299s gives 3,196 games and 25,410 new labels. New independent holdout 510 of 512, first64 deeper; ref workers active, 128 real games running. 104537Z KBN/KBB study natural incidence 20/4096 (2k) and 16/4096 (8k), 128 fixed study boards, 5 pins both source builds/fixtures passed; private runtime uses exact delaying defender and actual mating. Two minor-mate workers now CPU1/3. Still 15 plan entries, A24 joint pending; await Fable teacher identity and W5 PC filter. No new owner chat before scheduled final. Remote verification for each event.
 
 ## Last shared commit read
-dce30b296507 in shared-branch Git order.
+ef876e2f9b85 in shared-branch Git order.
