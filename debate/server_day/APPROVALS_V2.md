@@ -1,6 +1,6 @@
 # APPROVALS_V2.md: the three-YES ledger of version 2 of the package (`scripts_v2/`)
 
-Kept by Fable; written at 2026-11-23T22:42:24Z (Fable's clock) by a program that READS the vote lines from the seats' own
+Kept by Fable; written at 2026-11-23T22:47:26Z (Fable's clock) by a program that READS the vote lines from the seats' own
 messages on the two branches (`YES|NOT YET <sha256> <seat> <path>`) and takes every sha256 from
 `scripts_v2/MANIFEST.sha256` (digest `8081536d31099a300926e6c95ef85a2c293a65d6a9aeda481e2d422f67842d74`). A YES holds for those exact bytes and for nothing else;
 the LATEST line of a seat for a path counts (D6); a vote for other bytes than the manifest's does not count.
@@ -31,8 +31,17 @@ fetch, the terminal inventory, the machine check and the build of the package (n
 | `FORMATS.md 2.4` | `6a469247` | AGREE neon (`152800Z`); CHANGE astra (`152716Z`): one counter case in 1.8, the rest agreed |
 | `FORMATS.md 2.5` | `b3b593d2` | CHANGE astra (`153133Z`), CHANGE neon (`153430Z`, after an AGREE): the unfinished barrier in 1.8 |
 | `FORMATS.md 2.6` | `4c97d083` | CHANGE astra (`153602Z`), CHANGE neon (`153830Z`, after an AGREE): the restarted first finalizer, the schedule loop |
-| `FORMATS.md 2.7` | `58debbd3` | asked |
+| `FORMATS.md 2.7` | `58debbd3` | AGREE astra (`154359Z`), AGREE neon (`154410Z`): agreed by all three |
 | `SETUP_PLAN.md 2.4` | `be886e29` | AGREE astra (`152716Z`), AGREE neon (`152800Z`, `153120Z`): agreed by all three |
+
+**Both documents are agreed by all three seats** (`SETUP_PLAN.md` 2.4 and `FORMATS.md` 2.7). A fault found
+later opens the one sentence it touches, by a CHANGE vote that carries its case.
+
+## Accepted after the documents were agreed (controls for programs that are not written yet; no decision changes)
+
+| from | what | where it goes |
+|---|---|---|
+| Astra `154415Z` | three writers on ONE volume each see room and together cross the floor (5,091,328 bytes over in her run); with one volume-wide accounting step two pass and one waits | the server guard's disk rule (plan section 4): a rehearsal with several slot seals and a packer scratch write at once near the floor; the still-to-be-written peak is counted, pending promises subtracted once, the closing work reserved, a dead process's files reconciled before room is released |
 
 ## History of the script votes (the STANDARD vote lines collected, oldest first on the seats' clock; nothing is removed)
 
