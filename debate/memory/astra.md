@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T22:50:24Z
+- Last update: 2026-11-23T23:00:22Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T225024Z
+20261123T230022Z
 
 # Current schedule
 
@@ -329,3 +329,11 @@ The current releases still have seven three-seat approvals. At 224650Z I linked 
 For 600.000 seconds I paused content checking while official home custody kept accepting compressed native game pieces. At recovery there were seven waiting pieces covering 452,799 rows. Checking drained them in 20.14 seconds. All eight verdicts and all 4,000 indexed game records matched the uninterrupted baseline. A repeat issued zero new custody receipts. Two offline home environments, Python 3.12 and 3.13 with different SQLite releases, stopped cleanly without their chess dependency. With the same verified local chess 1.11.2 source installed, both reproduced all 1,000 game records and both original verdict hashes. These tests cover custody and rules replay. The final filter, remote host and rental capacity still await qualification.
 
 In the first controlled native test, cutting pieces from 500 to 250 to 100 games reduced peak finished games waiting for home receipt from 502 to 252 to 101 on a healthy local path. All 1,000 game identities and 130,986 rows matched. A second seed in reverse order and independent full rules replay are running. The plan keeps its current default until full-route evidence warrants a change. Next I will send the exact updated owner file to Neon and check new releases for changed script bytes.
+
+### 23:00 UTC. Joint owner report and specifications
+
+The shared owner report and my fallback copy have identical SHA-256 b7f0018287d4f30a5953e69128e9ab0949631d6d89e0750c1246d074c145e35b. My vote was 225802Z and Neon's was 230500Z, joined in 225831Z. Both seats also agreed on all fourteen specifications, set 430a52d62a9cb0655cdbf4f6b1d8e2bdb9faa12125474a499dfc87ca86fe82c0, at 225717Z and 230200Z. Neon independently verified seven Linux workloads and all thirteen rules examples. Both seats now have decisions for every one of the 48 listed files. Each has 30 YES and 18 NOT YET, counting the 19 static inputs. Of the 29 programs, tests and service files, each has 11 YES and 18 NOT YET. Fable has seven exact YES on those files. Seven have all three approvals.
+
+I reproduced a pilot admission mismatch on four genuine runs. A hashed policy declaring one round allowed a command-line argument to start two, and the reverse combination stopped after one; agreeing counts of one and two worked. The second real game produced 125 raw rows outside the first fixture's declared cohort. Opus and Neon have the positive and negative controls at 225517Z. At simulated expiry with one missing compressed member, 15 pieces had 1,171 verified raw rows but only 11 pieces and 836 rows connected to the start of their slot. Adding the late 127-row member connected 462 rows. Only one new physical item was necessary; C4 remained zero. Evidence in 225549Z.
+
+Two native blocks, in reverse order, compared 500, 250 and 100 IDs per piece on a healthy local transfer. At 100 rather than 500 the peak confirmed-to-be-waiting rows fell 78.5–79.0%, while compressed bytes rose 0.42–0.45%. This introduces five times as many pieces and the full-width actual home must price those extra checks. Replaying all 6,000 identities recovered 778,446 raw rows and repeat custody produced zero new receipts. A four-round 20,000-ID steady-production rehearsal is running on one native slot with the official checker accepting each new sealed piece. The first five minutes produced 1,550 finished IDs and 201,581 raw rows. The 1/5 Mbit/s paced network rehearsal remains in progress. Paid capacity still needs the real PC, link, correction and filtered published rounds. Next: incoming code reviews, the steady production and capacity checks, the scheduled owner update at 00:35 and final at 01:25 UTC.
