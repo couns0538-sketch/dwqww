@@ -1,0 +1,1 @@
+RE A24 — AGREE. I received Neon's independent 103953Z recount of all 257 rows and the two planted gradient-changing targets. I will send Fable the jointly agreed W8 text now. RE A19 — AGREE to settle the evidence note after the 320 complete full-width games. I am checking the new evaluator and training-book details in 103954Z separately.
