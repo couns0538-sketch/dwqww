@@ -1,6 +1,6 @@
 # The final plan for Forge (debate of 23 November 2026)
 
-**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T12:20:00Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
+**DRAFT 2 (Astra's and Neon's objections to draft 1 are in), pushed at 2026-11-23T12:23:40Z (Fable's clock) so that Astra and Neon can object item by item before phase 3. It becomes final in phase 3; until then `debate/PLAN.md` is the plan.**
 
 Written by Fable from `debate/PLAN.md` (version 3) and `debate/BOARD.md`. Three took part: Fable (Claude, on the
 PC), Astra (OpenAI Codex), Neon (Gemini 4 Neon); all three read every file of the branch first. 19 proposals were
@@ -105,11 +105,14 @@ processor; rehearsed in the PC's Linux subsystem.
 - (c) The package by scripts alone (the owner's condition 1). TEST: one start command on a small rehearsal.
   BAR: it checks itself first; it restarts a worker that was killed on purpose; it reports a full disk and a
   stalled worker (both made on purpose); it stops by itself at the set time; every step is in a log.
-  PROPOSED in the extension (F3, Fable; not yet voted): the run goes on after the session that started it was
-  closed on purpose; the allocator is killed once on purpose and after its restart hands out no opening it
-  handed out before (its table is rebuilt from its own log); the link home is cut for ten minutes, and
-  afterwards every piece arrives and none is credited twice; the server deletes no piece the PC has not
-  confirmed (the whole day is about 4 GB at the measured 2.01 bytes a row).
+  Added in the extension (F3, Fable, sharpened by Astra; Neon's vote awaited): the run goes on after the
+  session that started it was closed on purpose. The allocator is killed on purpose twice: once after it has
+  written a reservation and before it has handed the batch out, once after the hand-out and before the games
+  are finished; after each restart no opening is handed out twice and no reservation is lost for good (its
+  table is rebuilt from its own log; a retry may finish the same game, which is credited exactly once). The
+  link home is cut for ten minutes; afterwards every piece arrives and none is credited twice. The PC's
+  confirmation is held back on purpose after it has checked a piece: the server still holds that piece and
+  deletes nothing the PC has not confirmed (the whole day is about 4 GB at the measured 2.01 bytes a row).
 - (d) The packed game record as the transfer form (A1; measured once on 16,005,930 rows: position, move, ply and result
   equal on all of them, the score on the 15,255,460 kept rows, which is all the source file allowed). TEST in
   the rehearsal: the same comparison with the server's Linux converter on a run whose raw text is kept. BAR:
@@ -124,10 +127,33 @@ processor; rehearsed in the PC's Linux subsystem.
   eligible. A game's identity for credit is the hash of its ordered five-field rows; when pieces are cut
   differently from the PC's rounds, the round boundaries that the PC's filter uses for its repeated-position
   rule are kept (Astra).
-- (f) No paid search twice (N8 a). One allocator process hands the workers their openings in batches and never
-  hands one out twice inside one frozen producer; each game's eight opening moves are logged. BAR: with 2
-  random plies, 200 games and the table off, the receiver reports about 42 copies; with it on, none; an
-  exhausted opening space ends with a clear error. **The key of the table: the whole FEN after the random plies plus the positions since the last pawn move or capture, in order, inside one frozen producer** (Astra's candidate, after Astra's counterexample to the whole FEN alone; sufficient by the engine's three history readers; it is proposal A7, agreed by all three; it keeps 117 of 132 copies = 88.6 % by Astra's and Neon's count with the engine's own position key, 113 by Fable's count with a finer form of the positions; the eight moves in order keep 3). The en-passant field (Astra, Neon; counted on the 132 copies): past positions are written as the engine's own key has them (a target only when a capture is legal); the current position keeps its target whenever a pawn stands ready to capture it, legal or not (Astra's pinned-pawn position shows that such a target changes scores although the key is the same). With this rule the count stays 117 of 132; with every raw target kept it is 77. Neon reached the same rule from the source on its own and replayed the 40 pairs that differ only in a target no pawn can capture: 40 of 40 identical games; all three agree on the rule, for the frozen producer with its book off (Astra); 117 of 132 is what this draw showed, not a universal rate. Two more allocator fixtures (Astra): its midgame position `k1N1r3/2p3n1/8/3pP3/p4Qb1/P2p1B2/8/4Kn2 w - d6 0 23` must get another key than the same position without the target, and the key of the opening `f2f4 e7e5 f4f5 d8f6 e1f2 a7a6 g2g3 g7g5` (a pinned pawn beside the target within the eight plies) must hold the target g6. Earlier games of the same producer whose eight moves were not logged can seed the table only where the opening's halfmove clock is 0 (99 of the 132 copies; Neon), and only when the whole key can be rebuilt from the record (Astra): a printed en-passant target is used as printed; with none printed, the record seeds the table only if no pawn stands where a hidden target beside a pinned pawn is possible; otherwise it is skipped (the receiver still finds exact duplicate games). Fixture: an importer that is given only the common FEN of the pinned-pawn case, with no move log, must not seed a key from it. Each game's eight moves are logged; refused pairs are sampled and replayed, and one replay with other rows makes the table fall back to the eight moves in order. Two more BARS (Astra; both pairs reproduced by Neon and on the PC): the two openings into the start position (one whole FEN; 0 rows and a 127-row game) are BOTH handed out, and so are `b1c3 g8f6 c3d5 b8a6 g1h3 a6b8 h3g1 f6e4` and `b1c3 g8f6 c3e4 f6g8 e4c3 g8f6 c3d5 f6e4` (one whole FEN, neither drawn at the start; 81 rows and 67 rows).
+- (f) No paid search twice (N8 a; A7). One allocator process hands the workers their openings in batches and never
+  hands one out twice inside one frozen producer; each game's eight opening moves are logged.
+  - THE KEY of its table (A7, Astra; agreed by all three): the frozen producer + the whole FEN after the random
+    plies + the positions since the last pawn move or capture, in order. Why not less: two openings with one whole
+    FEN can give different games (Astra's two pairs: 0 rows against 127, and 81 against 67; reproduced by Neon and
+    on the PC), because the engine's three readers of its position history go back exactly that far. Why not
+    more: the eight moves in order keep 3 of the 132 copies seen in 300,000 draws of the opening rule; this key
+    keeps 117 (what that draw showed, not a universal rate).
+  - The en-passant field (all three): past positions as the engine's own key has them (a target only when a
+    capture is legal); the current position keeps its target whenever a pawn stands ready to capture it, pinned
+    or not, and drops it otherwise. Such a target changes the search although the position key is the same
+    (Astra's pinned-pawn position, reproduced by Neon). The 40 copies this rule wins back against "every raw
+    target" (77 of 132) replayed to identical games: 40 of 40 on Linux (Neon), and all 40 are inside the 129 of
+    129 on the PC.
+  - Seeding from older rounds (Neon, Astra): a record without logged opening moves seeds the table only where its
+    halfmove clock is 0 AND the whole key can be rebuilt from the record (a printed target is used as printed;
+    with none printed, only if no pawn stands where a hidden target beside a pinned pawn is possible); otherwise
+    the record is skipped (the receiver still finds exact duplicate games).
+  - Safeguard: refused requests are sampled and replayed; one replay with other rows makes the table fall back to
+    the eight moves in order. Credit is given only by the receiver's verified rows (e).
+  - BARS in the rehearsal: with 2 random plies, 200 games and the table off, the receiver reports about 42
+    copies; with it on, none; an exhausted opening space ends with a clear error; all four openings of Astra's
+    two pairs are handed out (the two into the start position; `b1c3 g8f6 c3d5 b8a6 g1h3 a6b8 h3g1 f6e4` and
+    `b1c3 g8f6 c3e4 f6g8 e4c3 g8f6 c3d5 f6e4`); the position `k1N1r3/2p3n1/8/3pP3/p4Qb1/P2p1B2/8/4Kn2 w - d6 0 23`
+    gets another key than the same position without its target; the key of
+    `f2f4 e7e5 f4f5 d8f6 e1f2 a7a6 g2g3 g7g5` holds the target g6; an importer given only the common FEN of the
+    pinned-pawn case, with no move log, seeds no key from it.
 - (g) The pilot rule (A3). The day is steered by verified, kept rows per second of paid time at the receiver.
   BAR: 2 billion kept in 24 hours need 23,149 a second; a deeper search or a stricter filter runs for the whole
   day only if the pilot's rate covers its own target; the fallback is written down before the day.
@@ -142,6 +168,16 @@ processor; rehearsed in the PC's Linux subsystem.
 - TEST: one pass on one round there. BAR: the exported net loads on the PC and the PC's trainer-against-engine
   check passes on at least 1,000 named positions; peak memory and rows a second are read. If the teacher stays
   (W11): the hand-written evaluation's Linux build gives the same values as the Windows one on 3,000 positions.
+- Added in the extension (A8, Astra; Fable agrees; Neon's vote awaited): the UPDATE is compared, not only the
+  export (a trainer that skips every update still exports a net that loads and agrees with itself). From the
+  same weights and optimizer state, the same rows in the same order, a few optimizer steps on the PC and on
+  the rented card: the CHANGES of the predictions on fixed probe positions and the size of the update of each
+  group of weights agree within a tolerance set before from the PC's own spread between two runs; the
+  reference change is clearly larger than that tolerance; a run with the learning rate set to zero on purpose
+  FAILS; a group frozen on purpose stays frozen. And (Fable, a fact of the PC's trainer, which is not on this
+  branch): its log on the rented card must show the same `... USED` lines as on the PC, because a kernel step
+  that refuses itself there falls back without a word to a step that takes 2 to 3 times as long, which changes
+  what the card hours cost.
 
 **W7. Which rounds count toward the 2 billion (P11; A5).** Processor, about 3 hours; nets are trained.
 - TEST: "breadth" (every second row of rounds 29 to 78) against round 78's own candidate (every row of rounds
@@ -161,7 +197,8 @@ processor; rehearsed in the PC's Linux subsystem.
   equal length are each refused before training starts; the round mix of the batches matches a declared
   reference shuffle on a fixed fixture, and a reader that walks the rounds in order FAILS that check; on today's
   388-million window it gives a net whose hold-out loss is within 0.0001 of today's trainer's.
-- PROPOSED in the extension (F2, Fable; not yet voted): that net is also judged by games (R5) against the net
+- Added in the extension (F2, Fable; Astra agrees; Neon's vote awaited): the row ids, recipe, seed, opponents
+  and opening pairs are written down before the training (Astra), and that net is also judged by games (R5) against the net
   of today's trainer on the same window: a paired SPRT between -5 and 0 at 250,000 nodes (alpha = beta = 0.05,
   cap 20,000 games; about 8,300 games = 2.4 hours when the truth is level). H1 = the trainer may be used for
   the 2 billion; H0 or no boundary = the cause is found first.
@@ -237,7 +274,10 @@ guards get a per-position test (expected: no node count changes); the fixed draw
 `DrawJitter` at the tune's final values; a comment states the contract near the 50-move limit. Known and written down,
 not repaired unless the repair is free: an en-passant capture by a pinned pawn is in the move list before the
 legality test, and the search of one position then differs with and without the target (Astra's position: 797
-against 789); the opening key accounts for it (W5 f); which reader causes it has not been looked for.
+against 789); the opening key accounts for it (W5 f). Where it enters, by reading and not yet by a test: the capture list
+holds the illegal capture (`source/src/search.cpp` 1030 to 1053), the picker's selection swaps and its unstable
+sort run over the whole list (958 to 1000; the source says so itself for check evasions, 1169 to 1171), and the
+legality test comes after the pick (2228): so the order of equally scored legal captures can differ.
 
 **W16. Put off, with the reason.** A second player in self-play (P6): four rounds would show the trainer only
 0.10 x its share; if ever, outside the loop at full dose. Tablebase probing inside the search: +18.6 in endings,
@@ -257,8 +297,9 @@ teacher; judging a training by its hold-out loss.
 ## What is still open, with both sides
 
 - The opening key (W5 f) is closed: it is A7, and all three agree.
-- Astra has voted on everything that was new in draft 2 and has no dissent left: the en-passant rule of the key (W5 f), W10's advance criterion, the 1 % bar of W3 (b), "fewer than 6 of 600" in W14 (exactly six stays eligible) and the +/- 5 margin of W13. Neon agreed to draft 1 with its own list of edits, which are all in; its vote on draft 2 is awaited.
-- Proposed by Fable in the extension and open: F2 (W8: the disk trainer's net is also judged by games) and F3 (W5 c: a closed session, a killed allocator, a cut link, nothing deleted before the PC confirmed it).
+- Astra has voted on everything that was new in draft 2 and has no dissent left: the en-passant rule of the key (W5 f), W10's advance criterion, the 1 % bar of W3 (b), "fewer than 6 of 600" in W14 (exactly six stays eligible) and the +/- 5 margin of W13. Neon has voted the same way on all of them (`20261123T051650Z`): no dissent on draft 2 from either.
+- Added in the extension: F2 (W8) and F3 (W5 c), agreed by Astra and Fable; A8 (W6, Astra), agreed by Fable. Neon's votes on the three are awaited.
+- Astra's own stop is 06:39:46Z on its clock (its instruction in its chat), inside the owner's extension. The final text is therefore issued for the three votes at about 06:10Z on Astra's and Neon's clocks, unless Astra reports that its stop was moved; what Neon and Fable still improve after Astra's stop is marked "voted by two".
 - The choices that are the owner's: what the paid card hours go to first (the wide net or deeper labels, W13), and the dates and prices of the rentals.
 
 ## What was measured on the PC for this debate
