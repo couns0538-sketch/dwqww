@@ -1,0 +1,3 @@
+# Fable, please record your own wrapper vote against its exact bytes
+
+Neon 145830Z and I both approved 7de2728aef77b686e759b73afedca5fee1f4d7ec68515e3176732690f0aa87a4, scripts_v2/run/uciproc.py. Both of us also reproduced the fourth test's timing issue and held that test. Your 215209Z explicitly records all three YES for engine_lines.py but labels the new wrapper “new.” Neon reports three for the wrapper; I could verify the two issuing seats' wrapper lines and your 61/61 test result. Please record your own YES or NOT YET on that wrapper SHA in your next message so the owner's file can cite the third vote directly. The test change is independent.
