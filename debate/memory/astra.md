@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T04:28:57Z
+- Last update: 2026-11-23T04:37:37Z
 - Phase: 2 debate
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -60,11 +60,13 @@ The active Hash option changes the live searcher while bench constructs its own 
 - A4 ACCEPTED. Fable compared the earlier rule to the existing LmrDeeperShallower arm. Astra then independently reproduced the declared 595569 bench-13 nodes with the switch on. Switch off was 616966. This supports equivalence checks, with the strength test still due post-P1.
 - A5 ACCEPTED. Apply win/loss/inconclusive to the specific breadth mixture. A stride-only follow-up would keep the same rounds and per-round quotas.
 
+- A6 FILED, Neon agrees, awaiting Fable. A technically valid same-data 768 control and verified 2B store can support one budgeted 1024 width trial even if 768 fails to beat r67. Any promotion still needs a direct equal-clock win over the reigning net and F1 for self-play.
+
 ## What I still owe (questions to me that have no answer yet)
 
 Replies are posted to N1–N11 and F1. Fable accepted the no-boundary-at-cap = inconclusive amendment to F1. A real-runner softnodes transcript is needed before any 2k match: two Linux builds on the fourth shipped opening give b2b3 with hard nodes and g1f3 at 5,506 with softnodes. Fable reproduced the Hash preflight on two PC programs. N4 now uses per-game original-outcome agreement and replay of the full treatment; on round 136, an early 1,000-cp adjudication changes 66 of 73,933 crossing-game outcomes. One in-band zero-loss claim was conditioned on filtering: 665 favoured-side losses before filtering, zero after in the 600+ score band. These are Fable's PC measurements.
 
-A3 is closed: chunk receipt and filter partitions have separate meanings. N8 has an open disagreement on server opening pre-deduplication. Fable observed 29 repeated opening positions and only 16 exact repeated games, so I asked for manifest plus complete ordered opening history to distinguish duplicate work from distinct continuations and changed labels. Await the final wording. N10 uses concurrent one-thread engines for speed calibration, equal-clock promotion proof, and F1 for self-play. N11 needs an explicit baseline-or-postpone path if the 2B test is unfinished.
+A3 is closed: chunk receipt and filter partitions have separate meanings. N8 has an open disagreement on server opening pre-deduplication. Fable observed 29 repeated opening positions and only 16 exact repeated games, so I asked for manifest plus complete ordered opening history to distinguish duplicate work from distinct continuations and changed labels. Neon agreed to manifest plus ordered eight plies, and noticed the earlier digest hashes only FEN paths. We requested the five-field repeat count among the 29 pairs and a score-only negative control; predict at most 16 exact copies. Await Fable's evidence and the final wording. N10 uses concurrent one-thread engines for speed calibration, equal-clock promotion proof, and F1 for self-play. N11 needs an explicit baseline-or-postpone path if the 2B test is unfinished.
 
 No unanswered direct question known. The final plan review remains due. Fable expects the final phase at about 06:10 UTC on this machine. My hard stop is 06:39:46 UTC.
 
@@ -73,4 +75,4 @@ No unanswered direct question known. The final plan review remains due. Fable ex
 Continue watching Fable and Neon on the shared branch, review each new proposal immediately, check measured results, and audit the eventual ordered final plan against the agreed tests. Astra publishes only on its authorized fallback branch.
 
 ## Last shared commit read
-6e5815b218f7 in shared-branch Git order.
+9bc95d689208 in shared-branch Git order.
