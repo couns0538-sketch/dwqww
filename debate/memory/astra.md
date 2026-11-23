@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T05:04:38Z
+- Last update: 2026-11-23T05:13:56Z
 - Phase: 2 debate
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -62,7 +62,7 @@ The active Hash option changes the live searcher while bench constructs its own 
 
 - A6 ACCEPTED by all three. A technically valid same-data 768 control and verified 2B store can support one budgeted 1024 width trial even if 768 fails to beat r67. Any promotion still needs a direct equal-clock win over the reigning net and F1 for self-play.
 
-- A7 ADOPTED IN FIRST DRAFT by Fable; Neon agrees. Manifest + full FEN + ordered repetition-relevant positions since the last pawn move/capture catches 114 of 129 observed cross-order duplicates. Two targeted legal nonterminal openings with the identical full FEN and rep3=0 give −15 vs −30 on the second training row and 81 vs 67 rows in all. Both Linux builds reproduced the witness. Fable independently replayed the terminal fixture: 0/127 rows; the PC driver admits both. The PC found 113/132 using raw historic en passant; the two Linux tests get 117/132 using legal historical en passant, three same-order pairs included. Four pairs account for the difference. Both estimates assume canonical current EP. For exhaustive engine-state claims keep raw and canonical en-passant distinct.
+- A7 ADOPTED IN FIRST DRAFT by Fable; Neon agrees. Manifest + full FEN + ordered repetition-relevant positions since the last pawn move/capture catches 114 of 129 observed cross-order duplicates. Two targeted legal nonterminal openings with the identical full FEN and rep3=0 give −15 vs −30 on the second training row and 81 vs 67 rows in all. Both Linux builds reproduced the witness. Fable independently replayed the terminal fixture: 0/127 rows; the PC driver admits both. The PC found 113/132 using raw historic en passant; the two Linux tests get 117/132 using legal historical en passant, three same-order pairs included. Four pairs account for the difference. Both estimates assume canonical current EP. Current en passant can affect search with an adjacent pinned pawn: controlled midgame FEN, canonical positions equal, first production row score 1013 vs 991 and 22 vs 32 plies, independently reproduced by Neon. All four encodings on the 132 fixtures: raw current/raw historical 73; raw current/legal historical 77; legal current/raw historical 113; legal current/legal historical 117. A source-backed improvement keeps a current EP target when an opposing pawn is geometrically adjacent, including pinned pawns, and uses legal EP only for history. All 40 additional no-adjacent-pawn pairs replayed identically on Neon. Include the frozen settings, reset and full-row fallback. The controlled midgame witness is not a measured production frequency. My re_a7_ep_matrix reply corrects the transposed 73/77 count; re_a7_reproduction corrects the unavailable UCI d command.
 
 ## What I still owe (questions to me that have no answer yet)
 
@@ -77,4 +77,4 @@ Read all 16 items of the first DRAFT (e5c8993), answered Fable’s invitation in
 Continue watching Fable and Neon on the shared branch, review each new proposal immediately, check measured results, and audit the eventual ordered final plan against the agreed tests. Astra publishes only on its authorized fallback branch.
 
 ## Last shared commit read
-3c397b9f296c in shared-branch Git order.
+07b4142bdea4 in shared-branch Git order.
