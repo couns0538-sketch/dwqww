@@ -1,9 +1,14 @@
 # FORMATS.md: every file the server day writes, field by field
 
-Editor: Fable. **Version 2.5**, written at 2026-11-23T22:29:54Z (Fable's clock): 2.4 (sha256 `6a469247...`) has Astra's
+Editor: Fable. **Version 2.6**, written at 2026-11-23T22:34:02Z (Fable's clock): 2.5 (sha256 `b3b593d2...`) has AGREE from
+Neon (`153120Z`) and Astra's agreement on all of it but ONE more boundary of 1.8 point 3 (`153133Z`: an id that
+is durably `unfinished` at D is a barrier, not something to skip). 2.6 changes that rule, adds her measured
+cost of the schedule history and what a worker reads of it to 1.2 (`153200Z`), and two cases to section 3,
+each marked **[2.6]**; every other byte is 2.5's. **PROPOSED: your votes on these exact bytes, please.**
+Version 2.5 was written at 2026-11-23T22:29:54Z (Fable's clock): 2.4 (sha256 `6a469247...`) has Astra's
 agreement on all of it but ONE counter-selection case in 1.8 point 3, and she asks for one sentence of 1.8
 point 1 to be explicit (`152716Z`). 2.5 changes exactly those two places and adds her case to section 3, each
-marked **[2.5]**; every other byte is 2.4's. **PROPOSED: your votes on these exact bytes, please.**
+marked **[2.5]**; every other byte is 2.4's.
 Version 2.4 was written at 2026-11-23T22:25:00Z (Fable's clock): 2.3 (sha256 `9b9e5a39...`) has AGREE from
 both seats on all of its text but four places, and CHANGE on those (Astra `150955Z`, `151303Z`; Neon `151130Z`;
 each seat agrees with the other's changes). 2.4 changes exactly those four, each marked **[2.4]** where it
@@ -171,6 +176,14 @@ stand, the pilot's too: a row carried over unchanged keeps its bytes, its `sched
 wrote it, 0 for a pilot range); an added or shortened row carries the new n. `dispatch_end_utc` is never later
 than the same schedule's `cutoff_utc`. While no schedule exists (the pilot) the ranges are the header's
 `pilot_ranges`, and D and the dispatch end are both the header's `hard_cutoff_utc`.
+**[2.6] The schedule history costs room, and a worker reads each schedule once** (Astra `153200Z`). Because a
+schedule is a complete snapshot and 1.9 repeats every one of them, a rolling horizon keeps a history: 64 slots
+and 128 rounds extended one round at a time are 126 schedules, 41,357,313 canonical bytes and 85,946,368
+allocated with the wire copies and the terminal portion; two rounds at a time 64 schedules, 21,125,318 and
+43,880,448. D2's reserve counts the history already kept and the history still to come. A worker verifies a
+schedule once (canonical bytes, its link, its rows) and keeps the result; before every reservation it looks
+only for the NEXT number, verifies that one against the one it holds, and applies it. A schedule whose link to
+its predecessor does not hold never authorizes work.
 
 ### 1.3 Slot identity `w<NNN>/IDENTITY.json` (one record, written once by the slot's first worker)
 `schema`, `run`, `slot`, `run_fingerprint`. A worker that finds another identity, or a journal without one,
@@ -326,16 +339,21 @@ the ids of the four other states only (noselfgame, refused, unfinished, dispatch
    can be in doubt. When the slot is ended by a start that played nothing itself (`why` "finalizer") and the
    journal holds the epoch line of an EARLIER start, **[2.5]** (Astra `152716Z`: 2.4 said "the lowest counter
    that has no line at all", which picks the WRONG id when the id before it has a `failed` line) take the FIRST
-   counter of the slot's ranges, in dispatch order, that has no final disposition (`done`, `noselfgame`,
-   `refused`, `unfinished`). If that counter has attempt evidence (a `failed` line, which a restart also writes
-   for a torn record), it is `unfinished` and NO id of the slot is `dispatch_unknown`. Only if that same first
-   counter has no line at all is it `dispatch_unknown`: a search of it may have run and died before a byte of
+   counter of the slot's ranges, in dispatch order, that the serial dispatcher cannot have passed: **[2.6]**
+   (Astra `153133Z`; 2.5 skipped `unfinished` too and so named an id after a game that D had cut) skip ONLY
+   `done`, `noselfgame` and `refused`. If that counter has a durable `unfinished` line, it stays `unfinished`
+   and is a BARRIER: D stopped every search, and neither a new epoch nor a restart of the finalizer dispatches
+   after D. If it has an unresolved `failed` line (which a restart also writes for a torn record), it is
+   `unfinished` and a barrier too. With either barrier NO id of the slot is `dispatch_unknown`. Only if that
+   same first counter has no line at all is it `dispatch_unknown`: a search of it may have run and died before a byte of
    its record was durable, and nothing proves either way. It earns no game and no row, and it is listed like
    every id that is not `done`. Every counter without a line after that first one is `never_dispatched` (a slot
    always dispatches its first open counter, and plays a failed id again before it reserves the next, so none
    of them can have started); they are the tail that 1.7 writes as one interval. Her two cases: range 1 to 4
    with g1 done, g2 `failed`, g3 and g4 without a line gives one done, one unfinished, no `dispatch_unknown`,
-   two `never_dispatched`, tail from 3; g1 done and no line for g2 gives g2 `dispatch_unknown`, tail from 3. A slot whose FIRST start is the finalizer has no such id (an epoch line is durable
+   two `never_dispatched`, tail from 3; g1 done and no line for g2 gives g2 `dispatch_unknown`, tail from 3. **[2.6]** Her third: g1 durably
+   `unfinished` at D and g2 to g4 without a line gives one unfinished, no `dispatch_unknown`, three
+   `never_dispatched`, tail from 2 (2.5 named an extra unknown in 13 of her 120 four-id cases). A slot whose FIRST start is the finalizer has no such id (an epoch line is durable
    before any game is dispatched, so no earlier epoch line means no earlier game); a slot ended by the start
    that was playing has none either (its game in flight has its own line, and every earlier doubt was the
    first id that start played). Before the fence the same id is simply played again.
@@ -560,7 +578,10 @@ is reserved after it); a worker stopped after its game command went out and befo
 durable, then the fence (Astra `150955Z`: that ONE id `dispatch_unknown`, every later id `never_dispatched`,
 the range not complete, no credit for it), and its control, a slot whose first start is the finalizer (every
 id `never_dispatched`); **[2.5]** range 1 to 4 with g1 done and g2 `failed` before that finalizer (Astra
-`152716Z`: g2 `unfinished`, NO id `dispatch_unknown`, g3 and g4 `never_dispatched` from counter 3); Astra's endgame of `151513Z` with each child table removed in turn after the preflight
+`152716Z`: g2 `unfinished`, NO id `dispatch_unknown`, g3 and g4 `never_dispatched` from counter 3); **[2.6]** a worker killed right after its durable `unfinished`
+line at D and before its range seal (Astra `153133Z`: the restart writes the same six counts, also when it is
+itself interrupted, and names no id `dispatch_unknown`); a tightened schedule published while a worker lives
+(Astra `153200Z`: its next reservation obeys it); Astra's endgame of `151513Z` with each child table removed in turn after the preflight
 (pending, the missing file named) and then restored by its hash (draw, ONE complete round); the close near
 the floor with 16,384,000 scheduled ids and few games played (Astra `151916Z`: every range seal, the
 compressed inventory and the footer are written and verified and the floor holds; **[2.5]** the interval form was
@@ -577,7 +598,8 @@ slot's ranges; a game line without rows left out; a slot without output left out
 file cut before its footer; a spool of another run under a new run id; a spool copied to a second machine
 (another instance: no `RESUME`, held); **[2.2]** a round made `partial` on the terminal inventory alone, without `DRAIN.json`; a rebuilt engine with other bytes; a "no moves" record where 27 moves exist; a
 record whose opening line was changed (the binding fails) and one whose opening AND binding were changed (the
-reservation fails); a schedule that moves a started range; a converter that flips a result; a torn MIDDLE line
+reservation fails); a schedule that moves a started range; **[2.6]** a schedule whose link to its predecessor does not hold (it
+authorizes no game); a converter that flips a result; a torn MIDDLE line
 of a journal; a record with a key twice, a float, a control byte; a malformed game id; a search that runs past
 D (Astra `135328Z`: processor time of the engine process read at D and after the stop); a reservation inside
 the guard; a slot with a free lock and no `ended` line that the finalizer cannot verify; a never-offered piece
