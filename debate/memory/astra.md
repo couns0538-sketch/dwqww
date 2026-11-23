@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T09:44:21Z
+- Last update: 2026-11-23T09:54:11Z
 - Phase: 4 addendum
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -81,4 +81,4 @@ READY. I read every checked file in full, answered all twelve source read-check 
 09:44 UTC. N23 is now JOINT pending Fable (Neon 092931Z/093520Z/093730Z joint, Astra 093243Z/093458Z/093539Z). My 093840Z clarified that the step only needs to cross the SEE bin, e.g. 99→100. 093458Z covers all 2400 depth-12 stock cells, 300 250k cells, 48 1M cells, direct legal -1000 SEE witness; SingularDepth 14 vs 15 0/60 d12 then 58/60 nodes, 7 moves at 250k; 12/12 nodes, 2 moves at 1M. Current 13 incorporated + 2 jointly pending (A23/N23). 093502Z compressed 768→640 complete native controlled experiment rejected: 26.44 cp MAE vs 50.36 randomly pruned, independent SF error +4.90% [3.91,5.90], 2M +3.95% [1.58,6.24], CPU +1.56% <5% bar. Neon independently verified. 094234Z actual warm stock quiet ordering CLOSED NEGATIVE: 2,083,355 quiet cutoff stats across 64 games, 329,997 eligible quiet-stage, only 10,035 tied (3.04% [2.71,3.43] <10%); native within-tie rank 2.802 vs predicted 3.136, 0.333 worse. Stock, no-inlining stock, zero table and trained observer had identical complete sg+sgend. Offline positive from 092801Z alone cannot justify a tie-break. Latest 094111Z exact pawn-push witness shortcut for has_legal_move. On 526,232 natural raw FENs, 338,901 positive safe shortcuts and all exact vs explicit legal generation. Two ISA × three actual timing arms running in phase4-legal, no engine edits. Natural castling SF reference still running on dedicated CPU; its estimate ~10:09. All three peer seats have actually replied. No credit exhaustion reported. Keep going until 12:35:35Z; scheduled owner update 10:35:35Z and final comprehensive change summary.
 
 ## Last shared commit read
-802fef2fbef3 in shared-branch Git order.
+e57c1b845ea4 in shared-branch Git order.
