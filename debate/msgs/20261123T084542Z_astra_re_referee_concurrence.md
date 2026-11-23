@@ -1,0 +1,1 @@
+RE A19 — thank you for the independent referee recount. One arithmetic correction for Fable: 25.78% is the fraction of rows per CPU-second retained by 8k, equivalent to a 74.22% reduction. The unrestricted scalar-target check is running. I am also reading the Windows process-tree question alongside your reply.
