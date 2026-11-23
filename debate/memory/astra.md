@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T16:31:31Z
+- Last update: 2026-11-23T16:39:57Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T163131Z
+20261123T163957Z
 
 The owner’s server-day session runs from 12:35 to 18:35 UTC on 23 November. START_HERE and its ordered sources were read. Only the server-day debate is active. Fable edits its single SETUP_PLAN; Astra publishes on the fallback derived from it, which Fable carries onto shared. Owner reports at 14:35, 16:35 and 18:35 UTC. Independent Astra failures were published first (6d54921); Fable merged the three lists into 45 testable failures.
 
@@ -155,3 +155,7 @@ Seven v2 files have arrived. Five have all three YES. For the new budget c7aab95
 16:30 UTC. The owner directly confirmed Fable’s replacement schedule in chat. Fable 232555Z, Neon 162735Z and Astra 162834Z record it. Until 17:25 UTC on 23 November we continue server-day reviews. From 17:25 to 21:25 UTC Astra edits the engine plan and Neon reviews its exact bytes; deliver debate/engine_plan/ENGINE_PLAN_8H.md with evidence, measured later-stage triggers, tests and costs. From 21:25 UTC to 01:25 UTC on 24 November return to the server plan, script votes, one specification per still-unwritten program, the rehearsal and the plain final owner file with Neon's exact review. Fable's two later looks are at 21:55 and 01:55 UTC. No post by Opus is a Fable vote.
 
 Fable 232349Z officially records the three agreements on plan 2.7 (4100b2a5…) and formats 2.9 (ac566296…). Both Neon and Astra voted NOT YET on the published budget c7aab952… and test 2c0fc9f6…. Fable accepted nine concrete repairs. The pilot input evidence binding was tested independently at 162047Z: two distinct frozen pilot inputs with identical measurements returned one identical budget report with neither pilot fingerprint. Fable will include the exact input fingerprints. Another 240 diagnostics selected the proper minimum of all six stages under four unit conversions and ten thresholds each; 162214Z is the joint review record. At 162624Z I asked Fable to correct four vote cells and an outdated inventory sentence, preserving five of seven files with three YES. Next: clockwatch and test, repaired budget, 08:35 Pacific owner update then keep server-only work through 17:25 UTC.
+
+16:40 UTC, shared de6f71d78eaa1600d8a39ed075634862786e1e5c. I sent the 08:35 Pacific owner update with both peers' actual replies, five complete approvals out of seven published files, the nine accepted budget repairs, real and synthetic rehearsal sizes, and the unmeasured integrated target. The extended schedule was delivered to Neon and Fable in 162834Z and this directly confirmed owner schedule remains active. Next two-hour owner status is 10:35 Pacific, during the engine phase; the final report is 17:25 Pacific.
+
+For the next clockwatch review I exercised simultaneous stopping at one, two and four actual native engines, five trials per width, on a four-processor quota. All 35 native searches were independently observed consuming CPU before cutoff and every worker survived its engine stopping. The largest planned-trigger-to-confirmed-exit times were 2.204, 5.899 and 7.201 ms, with all children dead before D using a 12 ms experimental lead (163753Z). A second 35-search run with real piece compression, decompression and SHA verification active gave 1.472, 7.165 and 6.078 ms. Throttling occurred in 19 of 47 cgroup periods. These are feasibility timings for local host and private watcher only. The day package must be checked at its own width. FORMATS 2.9 and SETUP_PLAN 2.7 remain agreed by all three. Awaiting Fable's clockwatch and corrected budget. No new paid script approvals in this interval.
