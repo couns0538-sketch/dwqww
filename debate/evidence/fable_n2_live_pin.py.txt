@@ -1,0 +1,54 @@
+"""Fable 2026-11-23, debate RE N2 (Astra's hash control): the LIVE searcher's numbers for one fixed search, as a
+start-up check that `bench` cannot give (bench builds its own 16 MB searcher). One thread, a fraction of a second.
+
+    n2_live_pin.py <exe> <LOOP_OPTIONS.txt> <net file> <Hash MB> [<Hash MB> ...]
+
+Sends the loop's option lines (the net path filled in), then `setoption name Hash value H`, `isready`,
+`ucinewgame`, `position startpos`, `go depth 18`; waits for bestmove. Stops on any refusal line and demands the
+engine's own "NNUE v3 active" line. Prints the last info line with its nodes and hashfull, per Hash value.
+"""
+import subprocess
+import sys
+
+exe, options, net = sys.argv[1:4]
+PLACE = "<the full path of the net file forge65_r0067.fnn3>"
+lines = [ln.strip() for ln in open(options, encoding="ascii") if ln.strip().startswith("setoption")]
+assert sum(PLACE in ln for ln in lines) == 1, "the options file must name the net once"
+lines = [ln.replace(PLACE, net) for ln in lines]
+BAD = ("unknown option", "invalid value", "ERROR", "No such option")
+
+
+def until(p, word, seen):
+    while True:
+        ln = p.stdout.readline()
+        assert ln, "the engine ended"
+        ln = ln.rstrip()
+        seen.append(ln)
+        assert not any(b in ln for b in BAD), ln
+        if ln.startswith(word):
+            return ln
+
+
+for h in sys.argv[4:]:
+    p = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+    seen = []
+    for ln in lines + [f"setoption name Hash value {int(h)}", "isready"]:
+        p.stdin.write(ln + "\n")
+    p.stdin.flush()
+    until(p, "readyok", seen)
+    assert any("NNUE v3 active" in s for s in seen), "the net is not active"
+    p.stdin.write("ucinewgame\nisready\n")
+    p.stdin.flush()
+    until(p, "readyok", seen)
+    seen.clear()
+    p.stdin.write("position startpos\ngo depth 18\n")
+    p.stdin.flush()
+    best = until(p, "bestmove", seen)
+    info = [s for s in seen if s.startswith("info depth 18 ")][-1]
+    f = info.split()
+    print(f"Hash {h}: nodes {f[f.index('nodes') + 1]} hashfull {f[f.index('hashfull') + 1]} "
+          f"score {' '.join(f[f.index('score') + 1:f.index('score') + 3])} {best.split()[0]} {best.split()[1]} "
+          f"({len(lines)} option lines sent, 0 refused)")
+    p.stdin.write("quit\n")
+    p.stdin.flush()
+    p.wait(timeout=10)

@@ -1,0 +1,139 @@
+"""Fable 2026-11-23, debate: N8 (Neon) and RE N4 (Astra, Neon), MEASURE on one production round.
+(a) How many games of the round start from an opening position that another game of the round also started from,
+    and are such games the same game row for row? Optionally: how many openings also occur in another round.
+(b) Per GAME: at the first row with |score| >= 600 (>= 1000), did the side the score favours win in the end,
+    and does the score come back under 600 later in that game?
+(c) Rows with |score| >= 600 BEFORE the loop's filter and AFTER it: win / draw / loss for the favoured side.
+Reads the round(s); writes only under <new work folder> and <new out json>.
+
+    n8_games.py <config> <raw_selfplay.binpack> <filtered.plain> <new work folder> <new out json> [<another round's filtered.plain>]
+
+Scores come from the unpacked game record (the ORIGINAL score of every row); "kept" from filtered.plain (same rows,
+same order; a dropped row carries 32002 there). A game ends where the next row's ply is not higher. A row's result
+is seen from the side to move (as its score is): +1 that side won the game, 0 draw, -1 lost.
+Controls (known before the run): rows 16,005,930; kept 15,255,460; games by ply order 124,850; games crossing 600:
+79,914; crossing 1000: 73,933 (the cross-table run of 03:05 the same night).
+"""
+import hashlib
+import json
+import sys
+from collections import Counter
+from pathlib import Path
+
+sys.path.insert(0, "C:/nnue-lab/pipeline")
+from nnloop.common import load_config  # noqa: E402
+from nnloop.filterqc import tools_convert  # noqa: E402
+
+cfg_path, binpack, filtered, work, out = (Path(a) for a in sys.argv[1:6])
+other = Path(sys.argv[6]) if len(sys.argv) > 6 else None
+assert not out.exists() and not work.exists(), "give a new work folder and a new out file"
+work.mkdir(parents=True)
+KEYS = ("fen ", "move ", "score ", "ply ", "result ")
+
+
+def rows(path):
+    with open(path, "r", encoding="ascii", newline="\n") as f:
+        while True:
+            rec = [f.readline() for _ in range(6)]
+            if not rec[0]:
+                return
+            yield tuple(r[len(k):].rstrip() for r, k in zip(rec, KEYS))
+
+
+def opening_key(fen):
+    return " ".join(fen.split(" ")[:4])      # pieces, side to move, castling, en passant
+
+
+rebuilt = work / "rebuilt.plain"
+tools_convert(load_config(str(cfg_path)), binpack, rebuilt, work / "convert.log")
+
+n_rows = n_kept = 0
+openings = Counter()            # opening key -> games
+first_ply = Counter()           # ply of a game's first row
+game_hash = {}                  # opening key -> list of whole-game digests (only read for shared openings)
+cross = {t: {"games": 0, "favoured_won": 0, "draw": 0, "favoured_lost": 0, "games_later_under_600": 0} for t in (600, 1000)}
+band = {"before_filter": Counter(), "after_filter": Counter()}
+prev_ply = None
+g = None
+
+
+def close_game():
+    game_hash.setdefault(g["key"], []).append(g["h"].hexdigest())
+    for t in (600, 1000):
+        if g["ahead"][t] is not None:
+            c = cross[t]
+            c["games"] += 1
+            c[("favoured_lost", "draw", "favoured_won")[g["ahead"][t] + 1]] += 1
+            c["games_later_under_600"] += g["dip"][t]
+
+
+for ra, rf in zip(rows(rebuilt), rows(filtered)):
+    assert ra[0] == rf[0] and ra[3] == rf[3], (n_rows, ra, rf)
+    ply, score, result = int(ra[3]), int(ra[2]), int(ra[4])
+    assert result in (-1, 0, 1), ra
+    if prev_ply is None or ply <= prev_ply:
+        if g is not None:
+            close_game()
+        key = opening_key(ra[0])
+        openings[key] += 1
+        first_ply[ply] += 1
+        g = {"key": key, "h": hashlib.blake2b(digest_size=8), "ahead": {600: None, 1000: None}, "dip": {600: False, 1000: False}}
+    prev_ply = ply
+    n_rows += 1
+    g["h"].update(ra[0].encode("ascii"))
+    s = abs(score)
+    kept = rf[2] != "32002"
+    n_kept += kept
+    for t in (600, 1000):
+        if g["ahead"][t] is not None:
+            g["dip"][t] = g["dip"][t] or s < 600
+        elif s >= t:
+            g["ahead"][t] = result if score > 0 else -result
+    if s >= 600:
+        name = ("favoured_lost", "draw", "favoured_won")[(result if score > 0 else -result) + 1]
+        band["before_filter"][name] += 1
+        if kept:
+            band["after_filter"][name] += 1
+close_game()
+
+games = sum(openings.values())
+shared = {k: n for k, n in openings.items() if n > 1}
+pairs = sum(n * (n - 1) // 2 for n in shared.values())
+same_game_extra = 0             # games that repeat an earlier game of the same opening row for row
+for k in shared:
+    hs = game_hash[k]
+    same_game_extra += len(hs) - len(set(hs))
+sum_p2 = 2 * pairs / (games * (games - 1))
+res = {"rows": n_rows, "kept": n_kept, "games_by_ply_order": games,
+       "first_row_ply_counts": dict(sorted(first_ply.items())[:6]),
+       "openings": {"distinct": len(openings), "openings_used_by_more_than_one_game": len(shared),
+                    "games_on_a_shared_opening": sum(shared.values()),
+                    "games_that_repeat_an_earlier_opening": games - len(openings),
+                    "largest_group": max(openings.values()), "pairs": pairs,
+                    "games_equal_row_for_row_to_an_earlier_game": same_game_extra,
+                    "sum_p2_estimate_2pairs_over_n_n1": sum_p2,
+                    "first_order_share_repeating_an_earlier_opening": {
+                        "at_this_round_s_games": round((games - 1) / 2 * sum_p2, 6),
+                        "at_20_million_games": round((20e6 - 1) / 2 * sum_p2, 4),
+                        "at_40_million_games": round((40e6 - 1) / 2 * sum_p2, 4)}},
+       "first_crossing_per_game": cross,
+       "rows_abs_score_ge_600": {k: dict(v) for k, v in band.items()}}
+if other is not None:
+    seen = set()
+    prev = None
+    other_games = 0
+    for r in rows(other):
+        p = int(r[3])
+        if prev is None or p <= prev:
+            seen.add(opening_key(r[0]))
+            other_games += 1
+        prev = p
+    res["other_round"] = {"file": str(other), "games": other_games, "distinct_openings": len(seen),
+                          "this_round_s_games_on_an_opening_of_the_other": sum(n for k, n in openings.items() if k in seen)}
+controls = {"rows_16005930": n_rows == 16005930, "kept_15255460": n_kept == 15255460, "games_124850": games == 124850,
+            "crossing_600_79914": cross[600]["games"] == 79914, "crossing_1000_73933": cross[1000]["games"] == 73933}
+res["controls"] = controls
+res["CONTROLS_PASS"] = all(controls.values())
+out.write_text(json.dumps(res, indent=1), encoding="ascii")
+print(json.dumps(res, indent=1))
+rebuilt.unlink()

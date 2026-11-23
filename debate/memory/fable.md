@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: fable
 - Model: Claude Fable 5.2
 - Started: 2026-11-23T10:40:56Z (this PC's clock; it differs from the others' clocks by hours: order is by git log)
-- Last update: 2026-11-23T11:15:02Z
+- Last update: 2026-11-23T11:26:07Z
 - Phase: 2 debate (READY since this update; phase 3 from about 13:10Z on my clock, stop at 13:40Z)
 
 ## What I have read to the end (26 source files, 11,566 lines: all ticked)
@@ -68,21 +68,32 @@ Facts from the PC (not on the branch) that I used in answers
 - The tune's declaration (17 November): five deciding matches; liveness audit done before the tune (5 dead
   settings not tuned). I have NOT looked at the tune's current values (they stay unread until it ends).
 - The loop's gate plays at 50,000 nodes, the confirmation at 250,000; candidates of rounds 134 to 136 exist.
+- Self-play driver: seed per worker = config seed, round, worker, clock in ns; `ucinewgame` before every game;
+  8 uniformly random plies from the start position. Teacher: `b_full` (earlier kind of net), weight 0.2,
+  target = 0.8 x (0.75 x sigmoid(score) + 0.25 x result) + 0.2 x teacher; the hand-written evaluation's values
+  are used only by the teacher. No-teacher run of 16 November: 487-512-1001 at 250,000 nodes (rounds 1 to 21,
+  512 wide).
 
 ## Measurements I ran for the debate (raw files in debate/evidence/)
 - A1: round 136 through the packed record and back: 16,005,930 rows, 0 differences; planted change caught.
 - A4: 616966 / 595569 on the loop's program and on the older tree, switch off / on.
 - N4: cross-table of round 136 (all rows): 39.88 % of 4-to-8-piece rows at |score| >= 600; 22.58 % of kept rows
-  after a game's first 600; 11.21 % after a first 1000 (99.5 % never back under 600).
+  after a game's first 600; 11.21 % after a first 1000 (99.5 % of those rows at 600 or more).
+- N2 live pin: Hash 16 = nodes 375880, hashfull 156; Hash 32 = 375868, 78; on the loop's and the published exe.
+- N8 / N4 per game (round 136): 29 of 124,850 games repeat an opening, 16 whole copies; sum p^2 = 3.72e-9
+  (3.7 % repeats at 20 million games, first order); first 1000: favoured side wins 73,867 of 73,933 games;
+  600+ band: 665 loss rows before the filter, 0 after.
 
 ## Proposals and where they stand (see BOARD.md)
-- ACCEPTED: A1, A3, A4, A5, N1 (changed), N2, N3, N6. TO MEASURE AFTER THE DEBATE: A2, N4, N5, N7.
-- Mine: F1 (the 2,000-node "not weaker" checks as an SPRT between -3 and 0): OPEN, no reply yet.
+- ACCEPTED: A1, A3, A4, A5, N1 (changed), N2, N3, N6, N8 (bar of part a changed). TO MEASURE AFTER THE DEBATE:
+  A2, N4, N5, N7, N9.
+- Mine: F1 (the 2,000-node "not weaker" checks as an SPRT between -3 and 0): astra agrees with one amendment
+  (no boundary at the cap = inconclusive = not adopted), which I took; neon has not answered (asked directly).
 - I dropped two drafts (server build, net shape limit) because neon had posted the same points first (N2, N3);
   my additions went into my replies.
 
 ## What I still owe
-- An answer to every new message, by name, in git order. Astra owes me one answer (A3: what "deduplicated" means).
+- An answer to every new message, by name, in git order. Neon owes me one answer (F1).
 - The hourly summary for the owner (in BOARD.md's last section).
 - Phase 3: `debate/FINAL_PLAN.md` from about 13:10Z on my clock.
 
@@ -92,4 +103,4 @@ Facts from the PC (not on the branch) that I used in answers
   reading supports.
 
 ## Last shared commit read
-629b64d (neon: RE A5 and amended N2/N5/N6/N7), plus astra 84a13f6 from its own branch.
+shared 13b6117 and astra 3258406 (every message up to these two is read and answered).

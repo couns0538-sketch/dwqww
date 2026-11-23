@@ -144,11 +144,15 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
 - The test that separates the two (N5, Neon, with Astra's bounds; to measure after the debate): every gate
   since round 67 was played at 50,000 nodes and none of the 69 candidates passed, so none was ever played at
   250,000 nodes (J3). The three newest plain candidates at the moment the match starts, each 2,000 games at
-  250,000 nodes against round 67's net, pooled (6,000 games, about 4.5 processor hours). Declared before:
-  pooled upper bound below +5 = level for practice: the per-round training and gate may be paused until the
-  2-billion trainer runs (the loop has no setting for that today: a change to its code, with a test; the rows
-  gained are timed, not computed). Lower bound above 0 as well = a small gain exists: the newest of the three
-  is first played in the loop's own confirmation match. Neither bound = inconclusive, the loop stays as it is.
+  250,000 nodes against round 67's net, pooled (6,000 games, about 4.5 processor hours). Four outcomes,
+  declared before (LB and UB = the ends of the pooled 95 % interval): LB above 0 and UB at or above +5 = a
+  positive average whose size against +5 is not settled ("at least +5" only if LB itself is at or above +5):
+  no pause; the candidate with the highest point value is confirmed alone, with a fresh seed, before any
+  promotion. LB above 0 and UB below +5 = a gain, but under +5: both facts are reported, the best candidate may
+  be confirmed, the 2 billion keep their priority. LB at or below 0 and UB below +5 = level within +5: the
+  per-round training and gate may be paused until the 2-billion trainer runs (the loop has no setting for that
+  today: a change to its code, with a test; the rows gained are timed, not computed). LB at or below 0 and UB
+  at or above +5 = inconclusive: nothing is claimed and the loop stays as it is.
   A "depth effect" is claimed only if the difference between the two depths on the same three nets has its own
   lower bound above 0. For the 2-billion time: a direct SPRT at 250,000 nodes is run BESIDE the old gate on the
   first candidates before it replaces it (J8).
@@ -247,6 +251,28 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
   proven variant by itself if that build misses a known answer; (3) speed is compared by self-play, two builds
   a variant, not by `bench` (Neon's bench timings: AVX2 8 % slower, without PEXT 27 % slower). A fused AVX2
   kernel is written only if the server has no AVX-512 AND the plain AVX2 build misses the pilot's rate.
+- **The start-up check of the live searcher (Astra on N2; measured).** `bench` builds its own searcher and passes
+  with a wrong Hash setting. After the option list the start script therefore runs one fixed search (new game,
+  start position, depth 18) and compares nodes AND table fill with the pinned pair: Hash 16 = 375880 nodes,
+  fill 156 (equal on the PC's two programs and on Astra's and Neon's Linux builds:
+  `debate/evidence/fable_n2_live_search_pin.md`). The rehearsal runs it once with Hash 32 on purpose (375868,
+  fill 78), which must be refused.
+- **No game twice (N8 a, Neon; measured, bar changed).** A self-play game is decided by its opening and the path
+  into it (the table is cleared before every game). The opening rule (8 random plies from the start position) has
+  a finite space: in round 136, 29 of 124,850 games repeat an opening and 16 of them are whole copies
+  (`debate/evidence/fable_n8_games_round136.md`). First order, the share of repeats is 3.7 % at 20 million games
+  and 7.4 % at 40 million, and a server game has about a 6 % chance of an opening the games at home already used.
+  A pilot is far too small to show it. So: one table of opening keys shared by all workers on the server, loaded
+  with the keys of the games already played at home; a worker draws again on a key that is in it. The receiver
+  keeps one key per game and credits a game once, over the whole day. Controls: with the table off and 2 random
+  plies the receiver must report the copies; with it on, none. Each worker's seed and each game's number are
+  logged, and a restarted worker never reuses a game number (Astra).
+- **The card before the paid hours (N8 b, Neon, with Astra's separation).** The trainer has only ever run on the
+  PC's AMD card. Before a rented NVIDIA card is booked for the long run: one pass on one round there, the exported
+  net loads on the PC, the trainer-against-engine check passes on at least 1,000 named positions (the PC's own
+  tool; the engine's built-in self-check compares two engine paths and cannot see an export fault), and peak
+  memory and rows a second are read. The trainer also calls a Windows program for the hand-written evaluation;
+  its values are used only by the teacher (P4), so the port needs it only if the teacher stays.
 - Decided before the day, because every position of that day carries it: which net and which search settings
   play (so P1 must be finished and judged first), and how deep each move is searched (today 2,000 soft nodes;
   with about twice the positions to spare, deeper searches for better labels are a real choice).
@@ -275,14 +301,21 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
 - **The first filter experiment (N4, Neon, narrowed by Astra; to measure after the debate).** Measured on
   round 136, all rows (`debate/evidence/fable_n4_crosstab_round136.md`): 21.2 % of the kept rows have
   |score| >= 600; 22.6 % lie after their game's first |score| >= 600 and 11.2 % after its first 1000, of
-  which 99.5 % never return below 600; of the rows with 4 to 8 pieces 39.9 % have |score| >= 600 but 57.9 %
+  which 99.5 % are themselves at 600 or more; of the rows with 4 to 8 pieces 39.9 % have |score| >= 600 but 57.9 %
   do not lie after a first 600, so the score tail and the piece mix are two levers. Three nets, equal row
   counts, uniform samples of the SAME rounds of round 67's net, same recipe and seed: the control (today's
   filter); score-tail thinning (the keep probabilities per score band locked before training, piece mix
-  untouched, captures under the same rule); and "cut at 1000" (no row after a game's first |score| >= 1000).
+  untouched, captures under the same rule); and "cut at 1000" (the game treated as ended at its first |score| >= 1000; defined below).
   Each treatment against the control, 4,000 games at 250,000 nodes; adopted only with a lower bound above 0.
-  If "cut at 1000" is merely not weaker, self-play may end a game there (today only at 2000), which makes
-  about 11 % more games in the same time on the PC and on the server day; that needs the 2,000-node check too.
+  Per game (measured: `debate/evidence/fable_n8_games_round136.md`): after a first |score| >= 1000 the favoured
+  side wins 73,867 of 73,933 games (60 drawn, 6 lost; the judge is the loop's own later result); after a first
+  600 it is 99.39 %, and 38.9 % of those games dip under 600 again, so 600 is no place to end a game. In the
+  600+ band 665 of 3,410,670 rows are losses for the favoured side before the filter and none after it. The
+  "cut at 1000" net is built Astra's way: the crossing row and all rows after it are left out (the engine
+  tests its limit before it writes that row), every earlier row of the game is relabelled with the
+  counterfactual result, the production filter runs again, the baseline corpus stays untouched. If that net is
+  not weaker, ending self-play games at 1000 (today 2000) becomes a candidate of its own: how many more games
+  it gives is TIMED, not computed from row shares, and it needs the 2,000-node check.
 
 ### P4. Width: the 1024-wide net. STOPPED until P3 (3a)
 - Known: 1024 against 768, same recipe and rounds, node odds for the slower net: 4,400 games,
@@ -300,6 +333,16 @@ Status words: RUNNING, READY (can start, nothing to build), TO BUILD, WAITING (f
   (`nnue_v3.cpp` 125, 156, 197), the loader checks the bound, `MaxHidden` is raised, a made-up worst-case net
   gives equal raw sums on all three kernels for both signs, and the PC's two net checks, the sanitizer runs
   and the reference numbers are repeated.
+- The teacher (N9, Neon; to measure after the debate). Every training mixes an older net's opinion into the
+  target: target = 0.8 x (0.75 x the position's score as a winning chance + 0.25 x the game's result) + 0.2 x
+  the teacher's value. The teacher is `b_full`, the best net of the EARLIER kind (a correction on top of the
+  hand-written evaluation), unchanged since 15 November and much weaker than today's net. On record: the same
+  training without it, on rounds 1 to 21 (0.26 billion positions, 512 wide), 2,000 games at 250,000 nodes:
+  487-512-1001 = -4.3 (about +/- 11): "lost ALONE, inside the error", on an eighth of the data now planned
+  and a narrower net. Test: today's window, 768 wide, same rounds, seed and recipe, weight 0.2 against 0;
+  4,000 games at 250,000 nodes; if the interval crosses zero the recipe stays. For the 2 billion both versions
+  are prepared before the rental, and only a matched pair at that size decides (Astra); the small result sets
+  the order.
 
 ### P5. The training recipe as a bundle, four declared rounds. READY
 - What: one learning-rate cycle instead of several, a smaller weight decay on the first layer (0.1), a result
@@ -487,4 +530,7 @@ beside; card costs the one card of 20 GB. P10 goes with P1, P11 with P3, P12 wit
   server's program in P3b. N3 (Neon) the engine's width limit in P4. N4 (Neon) the first filter experiment
   in P3c, with the cross-table measured on round 136. N5 (Neon) the test for the standstill in P2. N6 (Neon)
   four correctness items in P8. N7 (Neon) the first search bundle in P7. Neon and Astra on A2 and A3: the
-  mixing check in P3, "the server sends every row" in P3b.
+  mixing check in P3, "the server sends every row" in P3b. N8 (Neon) "no game twice" and the card test in
+  P3b, with the opening measurement. N9 (Neon) the teacher in P4. Astra on N2: the start-up check of the live
+  searcher in P3b. N5: Neon's four outcomes in Astra's wording in P2. Astra on N4: the per-game table and the
+  definition of the "cut at 1000" net in P3c.
