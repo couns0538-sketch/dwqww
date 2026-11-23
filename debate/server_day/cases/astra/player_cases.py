@@ -10,6 +10,7 @@ import hashlib
 import io
 import json
 import lzma
+import os
 from pathlib import Path
 import queue
 import subprocess
@@ -164,6 +165,7 @@ def case12(args, work):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--scripts", required=True, type=Path)
+    parser.add_argument("--work-dir", type=Path, help="parent directory for the private case folder")
     parser.add_argument("--forge", type=Path)
     parser.add_argument("--net", type=Path)
     parser.add_argument("case", type=int, choices=range(8, 13))
@@ -174,8 +176,13 @@ def main():
     sys.path[:0] = [str(args.scripts / "run"), str(args.scripts / "home")]
     cases = {8: case8, 9: case9, 10: case10, 11: case11, 12: case12}
     try:
-        with tempfile.TemporaryDirectory() as directory:
-            accepted = cases[args.case](args, Path(directory))
+        if args.work_dir is not None:
+            args.work_dir.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix=f"forge-case-{args.case}-", dir=args.work_dir) as directory:
+            child_tmp = str(Path(directory).resolve())
+            with patch.dict(os.environ, {"TMP": child_tmp, "TEMP": child_tmp, "TMPDIR": child_tmp}):
+                sys.dont_write_bytecode = True
+                accepted = cases[args.case](args, Path(child_tmp))
     except (ImportError, OSError, RuntimeError, KeyError, subprocess.SubprocessError) as error:
         print("TEST INCOMPLETE", error)
         return 2

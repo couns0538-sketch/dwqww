@@ -11,9 +11,11 @@ import hashlib
 import importlib.util
 import json
 import lzma
+import os
 import subprocess
 import sys
 import tempfile
+from unittest.mock import patch
 from pathlib import Path
 
 
@@ -222,6 +224,7 @@ def interrupted_round(t):
 def main():
     args = argparse.ArgumentParser(description=__doc__)
     args.add_argument("--scripts", type=Path, required=True)
+    args.add_argument("--work-dir", type=Path, help="parent directory for the private case folder")
     args.add_argument("case", type=int, choices=(13, 14, 15, 16))
     a = args.parse_args()
     scripts = a.scripts.resolve()
@@ -239,8 +242,12 @@ def main():
             return 2
     cases = {13:inventory, 14:missing_before_ack, 15:changed_slot, 16:interrupted_round}
     try:
-        with tempfile.TemporaryDirectory(prefix="forge-transport-") as tmp:
-            ok, actual, expected = cases[a.case](Trial(scripts, Path(tmp)))
+        if a.work_dir is not None:
+            a.work_dir.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix=f"forge-case-{a.case}-", dir=a.work_dir) as tmp:
+            child_tmp = str(Path(tmp).resolve())
+            with patch.dict(os.environ, {"TMP": child_tmp, "TEMP": child_tmp, "TMPDIR": child_tmp}):
+                ok, actual, expected = cases[a.case](Trial(scripts, Path(child_tmp)))
     except (SetupError, OSError, ValueError, subprocess.TimeoutExpired) as e:
         print("PREREQUISITE or fixture setup failed:", e)
         return 2
