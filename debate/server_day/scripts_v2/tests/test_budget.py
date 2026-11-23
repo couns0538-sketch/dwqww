@@ -87,6 +87,31 @@ BASE, every case unless it says otherwise:
   B11 to B18 (2.5 point 4, Fable's B1 in Neon's form; B3), exit 2: c4_rows 1999999999.5; target_rows 2000000000.5;
       c4_rows true; reduced_target_rows 1546400000.5; cohort_games 125000.5; carry_in_rows 0.5 (before: UNQUALIFIED);
       target_rows written 2000000000.0; rounds_whole 5 with K = 1. M itself is the control that 2000000000 passes.
+Version 5 (the seats' nine points of 23 November; every case below fails on budget.py c7aab952):
+  F  the dispatch fence, D - g = 82,800 - (300 + 300) = 82,200 (Astra 161757Z 1, 162047Z). Target met:
+     F1 now 82,799: REACHED, no match, idle 1.0 (before: 2 new games). F2 now 82,200, exactly at the fence: no match,
+     idle 600.0 (before: 2,000 games). F3 now 82,199, one second before it: floor(1 x 12,000 / 7,200) = 1 pair of
+     "a", 0.6 s, idle 600.4. One row missing (C4 1,999,999,999, r 30,400): F4 now 82,200: SELF_PLAY, no match,
+     self-play 600.0, forecast 1,999,999,999 + 30,400 x 600 = 2,018,239,999 (before: 1,998 games). F5 now 82,199:
+     1 pair, self-play 600.4. F6 now 81,600: the spare is 1,199.99996 s but only 600 s lie before the fence:
+     floor(600 x 12,000 / 7,200) = 1,000 pairs = "a" whole, 600.0 s (before: 1,999 pairs, "a" and 1,998 of "b").
+  X, A3  STOP authorizes nothing (Astra 161757Z 2): self_play_s 0.0, matches_s 0.0, no forecast_c4_at_D_scenario;
+     X's full-run figure 34,400,000 + 10,000 x 75,600 = 790,400,000 stands as forecast_if_run_scenario.
+  T1 lease_end_s 86,399.96 (Astra 161757Z 3): D = 82,799.96 = 2069999/25, dispatch end 82,199.96 = 2054999/25;
+     cutoff_floor_s 82,799, dispatch_end_floor_s 82,199; D_s reads 82,800.0 (display). T0 = M: 82,800 and 82,200.
+  I  the inputs (Astra 162047Z): I1 names the sha256 of the three files as written; two pilots with the same
+     numbers and another note give two different results; the same input twice gives the same result; I2 without
+     a pilot: pilot_sha256 null.
+  J  json (Neon 162055Z 2), exit 2: J1 c4_rows twice (0, then 2,000,000,000; before: REACHED); J2 an extra key NaN;
+     J3 Infinity; J4 1e500 (before: each exit 0 with a token that is not json). J5: M's own output parses with a
+     reader that refuses those tokens.
+  L  longest_game_s 0 (Neon 3): L1 UNQUALIFIED, exit 6, names longest_game_s (before: matches). L2 with the target
+     met: REACHED and no match (no dispatch end can be named; Fable's choice).
+  Q  a match without a name (Neon 4), exit 2: "" and "  ".
+  P  in one process, as a guard that imports the tool would call it (Neon 1 and 4): P1 decide() on good files:
+     SELF_PLAY_AND_MATCHES; P2 the raw file overwritten, decide() again: UNQUALIFIED, "stale" (before: unchanged);
+     P3 the raw file restored but its opening refused (PermissionError): UNQUALIFIED, "unreadable" (before: the
+     error escaped decide()).
 """
 import copy
 import hashlib
@@ -197,7 +222,8 @@ case("O", 3, {"outcome": "OWNER_CHOICE", "r": 20000.0, "owner_choice": "reduced 
 case("F2", 3, {"outcome": "OWNER_CHOICE", "r": 13000.0, "r_from": "C4",
                "reduced": {"target_rows": 1546400000, "covered": False, "n_exact": 20000.0, "n_ceil": 20000}},
      pilot=with_(PILOT, c4_kept_rows_per_s=13000))
-case("X", 4, {"outcome": "STOP", "r": 10000.0, "r_from": "end_to_end", "matches": []},
+case("X", 4, {"outcome": "STOP", "r": 10000.0, "r_from": "end_to_end", "matches": [], "matches_s": 0.0,
+              "self_play_s": 0.0, "forecast_c4_at_D_scenario": None, "forecast_if_run_scenario": 790400000},
      pilot=with_(PILOT, cohort_seconds=1520))
 N1_STATE = with_(STATE, c4_rows=0)
 case("N1", 3, {"outcome": "OWNER_CHOICE", "n_exact": 26455.026455, "n_ceil": 26456, "r": 26455.0, "r_from": "C4",
@@ -237,6 +263,7 @@ case("A2", 5, {"outcome": "SHORT", "deficit_rows": 1, "left_s": 0.0}, state={"no
 case("A2b", 0, {"outcome": "REACHED", "left_s": 0.0, "matches": [], "self_play_s": 0.0, "idle_s": 0.0},
      state={"now_s": 82800, "c4_rows": 2000000000})
 case("A3", 4, {"outcome": "STOP", "r": 12500.0, "r_from": "end_to_end", "n_exact": 25000.001, "n_ceil": 25001,
+               "self_play_s": 0.0, "matches": [], "forecast_c4_at_D_scenario": None,
                "exact": {"r": "12500", "n": "25000001/1000", "floor": "25000001/2000",
                          "matches_from": "275000011/10000"}},
      state={"now_s": 81800, "c4_rows": 1974999999}, pilot=with_(PILOT, cohort_seconds=1216))
@@ -306,5 +333,144 @@ for name, kw in (("B1", {"plan": with_(PLAN, owner_choice=NO)}),
     rc, res = run(name, **kw)
     check(f"{name} exit", rc, 2)
     check(f"{name} names its error", "error" in res, True)
+
+# ------------------------------------------------------------------------------- version 5: the seats' nine points
+MET, ONE = 2000000000, 1999999999
+case("F1", 0, {"outcome": "REACHED", "left_s": 1.0, "dispatch_stop_s": 82200.0, "new_dispatch_s": 0.0, "matches": [],
+               "matches_s": 0.0, "self_play_s": 0.0, "idle_s": 1.0}, state={"now_s": 82799, "c4_rows": MET})
+case("F2", 0, {"outcome": "REACHED", "left_s": 600.0, "new_dispatch_s": 0.0, "matches": [], "matches_s": 0.0,
+               "self_play_s": 0.0, "idle_s": 600.0}, state={"now_s": 82200, "c4_rows": MET})
+case("F3", 0, {"outcome": "REACHED", "left_s": 601.0, "new_dispatch_s": 1.0, "matches": [["a", 2000, 2, 0.6]],
+               "matches_s": 0.6, "self_play_s": 0.0, "idle_s": 600.4}, state={"now_s": 82199, "c4_rows": MET})
+case("F4", 0, {"outcome": "SELF_PLAY", "left_s": 600.0, "new_dispatch_s": 0.0, "matches": [], "matches_s": 0.0,
+               "spare_s": 600.0, "self_play_s": 600.0, "forecast_c4_at_D_scenario": 2018239999,
+               "reason_has": "dispatch end"}, state={"now_s": 82200, "c4_rows": ONE})
+case("F5", 0, {"outcome": "SELF_PLAY_AND_MATCHES", "left_s": 601.0, "new_dispatch_s": 1.0,
+               "matches": [["a", 2000, 2, 0.6]], "matches_s": 0.6, "self_play_s": 600.4},
+     state={"now_s": 82199, "c4_rows": ONE})
+case("F6", 0, {"outcome": "SELF_PLAY_AND_MATCHES", "left_s": 1200.0, "new_dispatch_s": 600.0, "spare_s": 1200.0,
+               "matches": [["a", 2000, 2000, 600.0]], "matches_s": 600.0, "self_play_s": 600.0},
+     state={"now_s": 81600, "c4_rows": ONE})
+case("T0", 0, {"D_s": 82800.0, "cutoff_floor_s": 82800, "dispatch_end_floor_s": 82200, "new_dispatch_s": 75000.0,
+               "bounds_exact": {"D_s": "82800", "dispatch_end_s": "82200"}})
+case("T1", 0, {"outcome": "SELF_PLAY_AND_MATCHES", "D_s": 82800.0, "dispatch_stop_s": 82200.0,
+               "cutoff_floor_s": 82799, "dispatch_end_floor_s": 82199,
+               "bounds_exact": {"D_s": "2069999/25", "dispatch_end_s": "2054999/25"}},
+     plan=with_(PLAN, lease_end_s=Decimal("86399.96")))
+
+
+def sha_of(name, kind):
+    with open(os.path.join(out, f"{name}_{kind}.json"), "rb") as fh:
+        return hashlib.sha256(fh.read()).hexdigest()
+
+
+rc, res = run("I1")
+check("I1 inputs", res.get("inputs"), {"plan_sha256": sha_of("I1", "plan"), "state_sha256": sha_of("I1", "state"),
+                                       "pilot_sha256": sha_of("I1", "pilot")})
+rc, again = run("I1")
+check("I1 the same input twice: the same result", again == res and rc == 0, True)
+rc, res_a = run("Ia", pilot=with_(PILOT, note="cohort of run A"))
+rc, res_b = run("Ib", pilot=with_(PILOT, note="cohort of run B"))
+check("Ia, Ib equal numbers", {k: v for k, v in res_a.items() if k != "inputs"} ==
+      {k: v for k, v in res_b.items() if k != "inputs"} and res_a.get("outcome") == "SELF_PLAY_AND_MATCHES", True)
+check("Ia, Ib two pilots are two pieces of evidence", res_a != res_b and
+      (res_a.get("inputs") or {}).get("pilot_sha256") == sha_of("Ia", "pilot") and
+      (res_b.get("inputs") or {}).get("pilot_sha256") == sha_of("Ib", "pilot"), True)
+rc, res = run("I2", state=R_STATE, pilot=None)
+check("I2 inputs without a pilot", res.get("inputs"), {"plan_sha256": sha_of("I2", "plan"),
+                                                        "state_sha256": sha_of("I2", "state"), "pilot_sha256": None})
+
+
+def put(name, kind, obj, front=""):
+    """One input file as run() writes it; `front` is json text put directly behind the opening brace."""
+    if "sources" not in obj:
+        obj = sourced(kind, obj)
+    text = json.dumps(obj, default=lambda d: RawNumber(d)).replace('"@@NUM@@', "").replace('@@NUM@@"', "")
+    assert text.startswith("{")
+    p = os.path.join(out, f"{name}_{kind}.json")
+    with open(p, "w", encoding="utf-8") as fh:
+        fh.write("{" + front + text[1:])
+    return p
+
+
+def refuse(token):
+    raise ValueError(token)
+
+
+for name, front, shown in (("J1", '"c4_rows": 0, ', "c4_rows twice"), ("J2", '"extra": NaN, ', "NaN"),
+                           ("J3", '"extra": Infinity, ', "Infinity"), ("J4", '"huge": 1e500, ', "1e500")):
+    state = with_(STATE, c4_rows=MET) if name == "J1" else STATE
+    paths = [put(name, "plan", PLAN), put(name, "state", state, front), put(name, "pilot", PILOT)]
+    r = subprocess.run([sys.executable, "-I", "-B", tool, *paths], capture_output=True, text=True)
+    check(f"{name} {shown}: exit", r.returncode, 2)
+    try:
+        strict = json.loads(r.stdout, parse_constant=refuse)
+    except ValueError:
+        strict = None
+    check(f"{name} {shown}: one json error object", isinstance(strict, dict) and "error" in strict, True)
+paths = [put("J5", "plan", PLAN), put("J5", "state", STATE), put("J5", "pilot", PILOT)]
+r = subprocess.run([sys.executable, "-I", "-B", tool, *paths], capture_output=True, text=True)
+try:
+    strict = json.loads(r.stdout, parse_constant=refuse).get("outcome")
+except ValueError:
+    strict = None
+check("J5 control: the good output parses with the strict reader", (r.returncode, strict), (0, "SELF_PLAY_AND_MATCHES"))
+
+case("L1", 6, {"outcome": "UNQUALIFIED", "reason_has": "longest_game_s"}, pilot=with_(PILOT, longest_game_s=0))
+case("L2", 0, {"outcome": "REACHED", "matches": [], "matches_s": 0.0, "idle_s": 42800.0}, state=R_STATE,
+     pilot=with_(PILOT, longest_game_s=0))
+for name, q_ in (("Q1", [["", 2000]]), ("Q2", [["a", 2000], ["  ", 2000]])):
+    rc, res = run(name, plan=with_(PLAN, match_queue=q_))
+    check(f"{name} exit", rc, 2)
+    check(f"{name} names its error", "error" in res, True)
+
+# P: one process, several decisions
+import importlib.util  # noqa: E402
+
+spec = importlib.util.spec_from_file_location("budget_under_test", tool)
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+RAW2 = os.path.join(out, "raw_for_P.txt")
+GOOD = b"stand-in raw file of the cases P\n"
+with open(RAW2, "wb") as fh:
+    fh.write(GOOD)
+SRC2 = {"path": RAW2, "sha256": hashlib.sha256(GOOD).hexdigest()}
+objs = []
+for kind, obj in (("plan", PLAN), ("state", STATE), ("pilot", PILOT)):
+    got = mod.load(put("P", kind, dict(obj, sources={k: SRC2 for k in NEEDS[kind]})))
+    objs.append(got[0] if isinstance(got, tuple) else got)
+
+
+def decide_p():
+    try:
+        res = mod.decide(*objs)
+        return res.get("outcome"), res.get("reason", "")
+    except Exception as e:  # the answer of a tool that lets the error out
+        return f"{type(e).__name__} escaped decide()", ""
+
+
+check("P1 good files", decide_p()[0], "SELF_PLAY_AND_MATCHES")
+with open(RAW2, "wb") as fh:
+    fh.write(b"TAMPERED DATA!")
+o, why = decide_p()
+check("P2 the raw file changed between two decisions", (o, "stale" in why), ("UNQUALIFIED", True))
+with open(RAW2, "wb") as fh:
+    fh.write(GOOD)
+check("P2 control: restored, it passes again", decide_p()[0], "SELF_PLAY_AND_MATCHES")
+real_open = open
+
+
+def no_open(path, *a, **kw):
+    if os.path.abspath(path) == RAW2:
+        raise PermissionError(13, "planted: permission denied", RAW2)
+    return real_open(path, *a, **kw)
+
+
+mod.open = no_open
+o, why = decide_p()
+del mod.open
+check("P3 a raw file that cannot be read", (o, "unreadable" in why), ("UNQUALIFIED", True))
+check("P3 control: readable again, it passes", decide_p()[0], "SELF_PLAY_AND_MATCHES")
+
 print(f"{len(fails)} failed: {fails}" if fails else "ALL PASS")
 sys.exit(1 if fails else 0)

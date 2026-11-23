@@ -28,17 +28,21 @@ The kept share is the cohort's own, cohort_c4_rows / cohort_raw_rows; no other s
 Failure row 3 ("every input of the budget names its raw file; missing or stale: no start"): each file carries
 "sources": {key: {"path": absolute path, "sha256": hex}} for its measured keys (plan lease_end_s and closing_s, state
 c4_rows, every pilot key). A key that names no file, a path that is not absolute, a file that is missing, or a
-file whose bytes are no longer the ones its number was taken from (stale) is a finding: in the plan or the state it makes the outcome UNQUALIFIED
+file that cannot be read, or a
+file whose bytes are no longer the ones its number was taken from (stale; read afresh at every decision) is a finding: in the plan or the state it makes the outcome UNQUALIFIED
 before any row; in the pilot it is D3's UNQUALIFIED, and no match gets a share.
 
 Outcomes, in this order (D4):
   REACHED       C4 >= target: no row needed and no self-play dispatched (self_play_s 0, the rest idle_s: Astra's
-                boundary (a), 23 Nov); the declared match queue may use the time left (D11)
+                boundary (a), 23 Nov); the declared match queue may use the time left BEFORE THE DISPATCH END
+                (D11, D5: no new game of any kind at or after D - g; a pilot whose longest game is 0 gives none)
   SHORT         time used up with rows outstanding: the exact deficit
   UNQUALIFIED   D3's evidence is missing or not whole: nothing starts by script
   then r = min(end-to-end rate, every stage capacity), all in C4 rows a second ("the LOWER decides"), and
   n = (target - C4) / seconds left, the rate the FULL target needs:
-  STOP                   r < floor_fraction x n: stop in the first hour so the machine can be given back
+  STOP                   r < floor_fraction x n: stop in the first hour so the machine can be given back. It
+                         authorizes NOTHING: self_play_s 0, no matches, no forecast at D; what a full run would
+                         have reached stands apart as forecast_if_run_scenario
   OWNER_CHOICE           floor <= r < n: the owner's predeclared choice; a reduced target is shown with its own n
   SELF_PLAY              n <= r <= match_margin x n: self-play only; the margin r / n - 1 is reported (SETUP_PLAN
                          2.5: the door is strict, at exactly 1.10 n no match second exists)
@@ -47,9 +51,16 @@ Outcomes, in this order (D4):
                          queue lasting T is admitted only while r x (left - T) >= match_margin x deficit); the match
                          that does not fit whole gets the pairs that fit and the queue ends there. The outcome is
                          named by what is done: when no whole measured pair fits (the spare too short, a match rate
-                         of 0, an empty queue) it is SELF_PLAY, and spare_s reports the spare seconds.
+                         of 0, an empty queue) it is SELF_PLAY, and spare_s reports the spare seconds. The
+                         queue's time also ends at the dispatch end: pairs fit min(spare, D - g - now) seconds.
+Times for a control record: cutoff_floor_s and dispatch_end_floor_s are the exact bounds rounded DOWN to a whole
+second (never late); bounds_exact holds them as fractions. D_s, dispatch_stop_s, left_s and every other decimal
+figure are for reading only (rounded to the nearest). new_dispatch_s is the time left before the dispatch end.
+inputs names the sha256 of the exact bytes of each file read (plan, state, pilot; null where no pilot was given):
+two pilots with equal rates are two pieces of evidence. No path of this machine is in it.
 Prints one json object. Exit 0 REACHED, SELF_PLAY, SELF_PLAY_AND_MATCHES; 3 OWNER_CHOICE; 4 STOP; 5 SHORT;
 6 UNQUALIFIED; 2 bad input (a missing key, a wrong type or range: the plan is checked whole, whatever the outcome;
+a key that stands twice in one object, NaN, Infinity or a number beyond a float such as 1e500; a match without a name;
 2.5, Neon's form: a count of rows or games that is not a whole number, a bool included: target_rows,
 reduced_target_rows, c4_rows, carry_in_rows, cohort_games, cohort_raw_rows, cohort_c4_rows; rounds_whole above
 pilot_rounds_declared).
@@ -69,13 +80,12 @@ PILOT_KEYS = ("rounds_whole", "queues_empty_at_start", "carry_in_rows", "cohort_
               "cohort_c4_rows", "cohort_seconds", "games_per_h", "c1_raw_rows_per_s", "c2_raw_rows_per_s",
               "c3_games_per_s", "c4_kept_rows_per_s", "longest_game_s", "match_games_per_h")
 MEASURED = ("cohort_games", "cohort_raw_rows", "cohort_c4_rows", "cohort_seconds", "games_per_h",
-            "c1_raw_rows_per_s", "c2_raw_rows_per_s", "c3_games_per_s", "c4_kept_rows_per_s")
+            "c1_raw_rows_per_s", "c2_raw_rows_per_s", "c3_games_per_s", "c4_kept_rows_per_s", "longest_game_s")
 SOURCED = {"plan": ("lease_end_s", "closing_s"), "state": ("c4_rows",), "pilot": PILOT_KEYS}
 EXIT = {"REACHED": 0, "SELF_PLAY": 0, "SELF_PLAY_AND_MATCHES": 0, "OWNER_CHOICE": 3, "STOP": 4, "SHORT": 5,
         "UNQUALIFIED": 6}
 WHOLE = ("target_rows", "reduced_target_rows", "c4_rows", "carry_in_rows", "cohort_games", "cohort_raw_rows",
          "cohort_c4_rows")
-_SHA = {}
 
 
 def q(x, name):
@@ -96,17 +106,22 @@ def need(rows, left):
     return {"n_exact": num(rows / left, 6), "n_ceil": math.ceil(rows / left)}
 
 
-def sha256_of(path):
-    if path not in _SHA:
+def sha256_of(path, cache):
+    """The file's sha256, read once a DECISION (Neon 162055Z: a cache that outlives one call of decide() lets a raw
+    file that changed between two calls pass). None when the file cannot be read."""
+    if path not in cache:
         h = hashlib.sha256()
-        with open(path, "rb") as fh:
-            for block in iter(lambda: fh.read(1 << 20), b""):
-                h.update(block)
-        _SHA[path] = h.hexdigest()
-    return _SHA[path]
+        try:
+            with open(path, "rb") as fh:
+                for block in iter(lambda: fh.read(1 << 20), b""):
+                    h.update(block)
+            cache[path] = h.hexdigest()
+        except OSError:
+            cache[path] = None
+    return cache[path]
 
 
-def unsourced(obj, where):
+def unsourced(obj, where, cache):
     """Failure row 3: each measured key names its raw file, and the file still holds the bytes it was taken from."""
     src, bad = obj.get("sources"), []
     for k in SOURCED[where]:
@@ -117,7 +132,9 @@ def unsourced(obj, where):
             bad.append(f"{where}.{k}: the raw file's path is not absolute ({s['path']})")
         elif not os.path.isfile(s["path"]):
             bad.append(f"{where}.{k}: raw file missing ({s['path']})")
-        elif sha256_of(s["path"]) != s["sha256"].lower():
+        elif sha256_of(s["path"], cache) is None:
+            bad.append(f"{where}.{k}: raw file unreadable ({s['path']})")
+        elif sha256_of(s["path"], cache) != s["sha256"].lower():
             bad.append(f"{where}.{k}: raw file changed since the number was taken (stale: {s['path']})")
     return bad
 
@@ -163,8 +180,9 @@ def decide(plan, state, pilot=None):
     if reduced is not None and not 0 < q(reduced, "reduced_target_rows") < target:
         raise ValueError("plan: reduced_target_rows must lie between 0 and target_rows")
     if not isinstance(queue, list) or not all(isinstance(m, list) and len(m) == 2 and isinstance(m[0], str)
-                                              and type(m[1]) is int and m[1] > 0 and m[1] % 2 == 0 for m in queue):
-        raise ValueError("plan: match_queue is [[name, even number of games > 0], ...]")
+                                              and m[0].strip() and type(m[1]) is int and m[1] > 0 and m[1] % 2 == 0
+                                              for m in queue):
+        raise ValueError("plan: match_queue is [[a name, even number of games > 0], ...]")
     now, c4 = q(state["now_s"], "now_s"), q(state["c4_rows"], "c4_rows")
     excl = q(state.get("exclusive_s", 0), "exclusive_s")
     P = None
@@ -176,21 +194,31 @@ def decide(plan, state, pilot=None):
             raise ValueError("pilot: more kept rows than raw rows")
         if P["rounds_whole"] > K:
             raise ValueError("pilot: rounds_whole is above the plan's pilot_rounds_declared")
-    found = unsourced(plan, "plan") + unsourced(state, "state")
-    pfound = unsourced(pilot, "pilot") if pilot is not None else []
+    cache = {}                                  # one decision reads every raw file afresh
+    found = unsourced(plan, "plan", cache) + unsourced(state, "state", cache)
+    pfound = unsourced(pilot, "pilot", cache) if pilot is not None else []
     D = min(Fraction(23 * 3600), lease_end - max(Fraction(3600), closing))
     left = D - now - excl
     deficit = max(Fraction(0), target - c4)
+    stop_new = D - P["longest_game_s"] - gm if P else None      # D5: no NEW game at or after this second
+    new_s = max(Fraction(0), stop_new - now - excl) if P else Fraction(0)
     res = {"outcome": None, "reason": "", "c4_rows": int(c4), "deficit_rows": int(deficit), "D_s": num(D, 1),
-           "dispatch_stop_s": num(D - P["longest_game_s"] - gm, 1) if P else None, "left_s": num(left, 1),
+           "dispatch_stop_s": num(stop_new, 1) if P else None, "left_s": num(left, 1),
+           # Astra 161757Z 3: the decimals above are for reading; a control record takes these whole seconds,
+           # rounded DOWN from the exact bounds (never 40 ms late), or the exact fractions
+           "cutoff_floor_s": math.floor(D), "dispatch_end_floor_s": math.floor(stop_new) if P else None,
+           "new_dispatch_s": num(new_s, 1) if P else None,
+           "bounds_exact": {"D_s": str(D), "dispatch_end_s": str(stop_new) if P else None},
            "other_counts": {k: v for k, v in state.items() if k not in ("now_s", "c4_rows", "exclusive_s", "sources")}}
     if found:
         res.update(outcome="UNQUALIFIED", reason="failure row 3: " + "; ".join(found) + "; nothing starts by script")
         return res
     if deficit == 0:
-        res.update(outcome="REACHED", reason="C4 holds the target: no row needed; the match queue may use the time left")
+        res.update(outcome="REACHED", reason="C4 holds the target: no row needed; the match queue may use the time "
+                                             "left before the dispatch end")
         spare = max(left, Fraction(0))
-        matches = fill(queue, spare, P["match_games_per_h"] if P and not pfound else 0)
+        rate = P["match_games_per_h"] if P and not pfound and P["longest_game_s"] > 0 else 0
+        matches = fill(queue, min(spare, new_s), rate)   # Astra 161757Z 1: no new pair at or after the dispatch end
         res = finish(res, matches, spare, None, c4)
         # Astra's boundary (a), 23 Nov: once the target is durable no self-play is dispatched; the rest is idle
         res.update(self_play_s=0.0, idle_s=num(spare - sum((m[3] for m in matches), Fraction(0)), 1))
@@ -229,8 +257,11 @@ def decide(plan, state, pilot=None):
                margin=num(r / n - 1, 6),       # the decision uses these exact values, never the rounded ones above
                exact={"r": str(r), "n": str(n), "floor": str(floor_f * n), "matches_from": str(margin * n)})
     if r < floor_f * n:
-        res.update(outcome="STOP", reason="r is under the floor: stop in the first hour so the machine can be given back")
-        return finish(res, [], left, r, c4)
+        # Astra 161757Z 2: STOP authorizes no play at all; the figure of a full run is named as what it is
+        res.update(outcome="STOP", reason="r is under the floor: stop in the first hour so the machine can be given "
+                                          "back; no self-play and no match is authorized",
+                   matches=[], matches_s=0.0, self_play_s=0.0, forecast_if_run_scenario=int(c4 + r * left))
+        return res
     if r < n:
         res.update(outcome="OWNER_CHOICE", reason="floor <= r < n: the owner's predeclared choice, no improvising",
                    owner_choice=choice["name"])
@@ -242,29 +273,61 @@ def decide(plan, state, pilot=None):
         res.update(outcome="SELF_PLAY", reason="n <= r <= match_margin x n: self-play only")
         return finish(res, [], left, r, c4)
     spare = left - margin * deficit / r         # 2.5: the margin that opened the door stays self-play's reserve
-    matches = fill(queue, spare, P["match_games_per_h"])
+    matches = fill(queue, min(spare, new_s), P["match_games_per_h"])    # and no new pair after the dispatch end
     res["spare_s"] = num(spare, 3)
     if not matches:                             # 2.5: named by what is done
-        res.update(outcome="SELF_PLAY", reason="r > match_margin x n and no whole measured pair fits the spare (too "
-                                               "short, no match rate, or an empty queue): self-play only")
+        res.update(outcome="SELF_PLAY", reason="r > match_margin x n and no whole measured pair fits the spare before "
+                                               "the dispatch end (too short, no match rate, an empty queue, or the "
+                                               "dispatch end has come): self-play only")
         return finish(res, [], left, r, c4)
     res.update(outcome="SELF_PLAY_AND_MATCHES",
                reason="r > match_margin x n: the declared queue takes the spare above the margin in complete pairs")
     return finish(res, matches, left, r, c4)
 
 
+def _no_constant(name):
+    raise ValueError(f"json: {name} is not a number this tool takes")
+
+
+def _decimal(text):
+    d = Decimal(text)
+    if not math.isfinite(float(d)):             # 1e500 is a number in json and Infinity as a float
+        raise ValueError(f"json: {text} is not a number this tool takes")
+    return d
+
+
+def _no_duplicates(pairs):
+    d = {}
+    for k, v in pairs:
+        if k in d:
+            raise ValueError(f"json: the key {k!r} stands twice")
+        d[k] = v
+    return d
+
+
 def load(path):
-    with open(path, encoding="utf-8") as fh:
-        return json.load(fh, parse_float=Decimal)
+    """(the parsed object, the sha256 of the exact bytes it was parsed from). Neon 162055Z 2: a key that stands
+    twice, NaN and Infinity are bad input, never silently one of the two values."""
+    with open(path, "rb") as fh:
+        data = fh.read()
+    obj = json.loads(data.decode("utf-8"), parse_float=_decimal, parse_constant=_no_constant,
+                     object_pairs_hook=_no_duplicates)
+    return obj, hashlib.sha256(data).hexdigest()
 
 
 if __name__ == "__main__":
     try:
         if len(sys.argv) not in (3, 4):
             raise ValueError("usage: budget.py <plan.json> <state.json> [<pilot.json>]")
-        out = decide(load(sys.argv[1]), load(sys.argv[2]), load(sys.argv[3]) if len(sys.argv) == 4 else None)
+        (plan_, hp), (state_, hs) = load(sys.argv[1]), load(sys.argv[2])
+        pilot_, hpi = load(sys.argv[3]) if len(sys.argv) == 4 else (None, None)
+        out = decide(plan_, state_, pilot_)
+        # Astra 162047Z: the result names the exact bytes it was computed from (two pilots with equal rates are two
+        # pieces of evidence); no path of this machine is in it, and a pilot that was not given has no sha256
+        out["inputs"] = {"plan_sha256": hp, "state_sha256": hs, "pilot_sha256": hpi}
+        text = json.dumps(out, default=float, allow_nan=False)     # a number that is not finite is bad input too
     except (OSError, ValueError, KeyError, IndexError, TypeError, AttributeError, ArithmeticError) as e:
         print(json.dumps({"error": f"{type(e).__name__}: {e}"}))
         sys.exit(2)
-    print(json.dumps(out, default=float))
+    print(text)
     sys.exit(EXIT[out["outcome"]])
