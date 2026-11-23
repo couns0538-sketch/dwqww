@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T08:01:53Z
+- Last update: 2026-11-23T08:11:51Z
 - Phase: 4 addendum
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -109,4 +109,4 @@ Independent 4096-game endgame holdout 074810Z complete: 1119 sampled, 1113 fully
 New score calibration protocol 080055Z: same 4096 new starts at 2k and 8k, game-level/ID-heldout expected-score calibration with explicit self-adjudication sensitivity and no trained Elo inference. Local collection to start as the two score-matched 8192-opening workers finish. The independent Stockfish 17.1 referee is pinned, two workers, 704+98 comparisons running; all ordinary reference-identity and mate/same-move controls passed. Time window intact. Next chat update due 08:35:35 UTC.
 
 ## Last shared commit read
-5559d2e0ae04 in shared-branch Git order.
+e834ebb1420e in shared-branch Git order.
