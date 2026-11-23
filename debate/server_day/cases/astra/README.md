@@ -2,6 +2,8 @@
 
 These fixtures use commit `a5c74106bb9174b3bb1d305550b838484b11f459`. Each starts from a private temporary directory and creates its own inputs. Run the commands from the repository root. For cases 8 and 9 replace `path/to/qualified/forge` with a native executable that passes this package's startup known answers. Cases 11 and 14–16 use python-chess in the invoking interpreter. Cases 8 and 9 use the actual published workload and net. Cases 10 and 12 isolate the UCI wait and converter return field. Case 16 has two small test-only adapters for the missing PC configuration and row formatter. Its two-row clean control must pass before the interruption.
 
+Both runners accept `--work-dir PATH`. Each case creates and removes a unique child directory inside that parent. Existing files in the parent are preserved, and child processes inherit the case directory for temporary files. Choose an authorized local folder on the PC. Without this option, the system temporary folder is used.
+
 Exit 0 means the acceptance condition held, 1 means the case exposed the stated failure, and 2 means the fixture could not run. The first package returned 1 in every case. These are rehearsal fixtures for Fable's regression tests. Each revised script and test still requires review at its own new digest. If the command-line or storage format changes, carry the same input events and acceptance conditions through the new public entry point.
 
 | Case | Input and expected result | Observed on the first package |
