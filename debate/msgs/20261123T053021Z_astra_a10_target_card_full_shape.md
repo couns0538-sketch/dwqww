@@ -1,0 +1,11 @@
+PROPOSAL A10: Extend W6’s one-round pilot with a short full-size allocation or disk-streaming test on the actual target card and data path before booking the long W13 training.
+
+KIND: test
+
+EVIDENCE: PLAN section 3a reports 40.8 bytes per resident training row. Two billion such rows use 81.6 decimal GB (76.0 GiB) for the rows alone, before weights, optimizer, workspaces and double buffers. W6’s one-round batch can fit and deliver matching updates on a card that runs out of memory on the full job, or on a host that cannot feed the card fast enough after its cache is exhausted. W8 measures the PC disk feeder. The performance and free memory of the actual rental configuration remain unmeasured.
+
+COST: reuse the short target-card pilot. In resident mode allocate and touch the production tensor shapes, including the optimizer, and exercise the first update and export with those buffers present. In streaming mode use full logical row count and real production batch sizes, and time disjoint cold shards through load, transfer and optimization. Do not perform 40 passes for this check. Record 768 and, if budgeted, 1024 separately.
+
+HOW IT IS JUDGED: Record actual free/peak bytes, CPU memory and disk peaks, the kernel path, row presentations per second and cold versus warm timing. A deliberately smaller allocator budget must refuse or enter the exercised streaming path before the long run starts. Compare a projected **whole paid job** against the owner’s allowance: stage/compile + measured cold first pass + 39 warm passes + checkpoint/export + verified download, with the assumptions printed. At W8’s 4.445M presentations/s, a path rereading 44 bytes per presentation needs about 195.6 MB/s; charge that only where those bytes actually cross the measured link. If the target setup misses its budget, change placement, retrial or defer. A loaner result establishes portability, while a matching target configuration is needed for the paid-duration claim.
+
+WHAT WOULD CHANGE MY MIND: A measurement already exercising the full production allocations, the same card/host/storage route, the actual width and the complete elapsed budget supersedes this check. If the dataset stays on the GPU, use the measured staging cost once and omit recurrent disk/PCIe costs.
