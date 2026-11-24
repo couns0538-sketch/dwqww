@@ -43,7 +43,25 @@ guard or a worker runs); 4 the run's own files contradict themselves (the header
 RESUME chain, schedule chain, a slot's identity or journal), or an error the boot guard does not know (an OSError
 while a file is read; the ALARM line names it: never a traceback); 5 this machine, its clock, the package or the fence do not qualify (held: for a person, or
 for the unit's next try); 2 arguments. A run that is not 0 writes no RESUME and changes no file of the run; it
-writes one ALARM line to guard/bootguard.log, not again while the reason stays the same."""
+writes one ALARM line to guard/bootguard.log, not again while the reason stays the same.
+
+VERSION 2 (24 November; the seats' NOT YETs, Astra 7334dbd6 and Neon 222600Z), each a hold that writes nothing:
+   evidence  every piece file of a slot is one its journal accounts for: closed/ holds pieces 0 to the head, and
+             the open piece while the journal names games in it (a closing cut after the move); open/ holds
+             only the open piece, and only after an epoch line. A journal lost beside surviving pieces is 4:
+             the worker would start a new journal over them;
+   ancestry  every row an earlier RESUME admitted is named by the journal now with the same seal (a withheld
+             slot, a journal cut back, a forged seal: 4);
+   floor     UTC now is not before the lease start nor before any earlier RESUME's at_utc (5), besides the
+             journals as before; the clock record names the floor;
+   chain     every earlier RESUME is checked whole: its eleven keys, instance_provable true, instance and checks
+             objects (the seven checks), new_boot_id other than old_boot_id, one row per header slot (slot,
+             last_index >= -1, the genesis text for -1, else a sha256), at_utc a UTC time not before the one
+             before it (4);
+   package   every listed file resolves to the package folder plus its listed path: a link or junction on
+             the path is 5;
+   slots     the header's slots are the worker's rule, a non-empty rising list of integers 0 to 999 (4);
+   closed    guard/CLOSED.json without FENCE.json: the run's files contradict themselves (4)."""
 import argparse
 import ctypes
 import re
@@ -60,6 +78,9 @@ PLACEHOLDERS = {"", "none", "n/a", "na", "not specified", "to be filled by o.e.m
                 "system serial number"}
 TIME_ERROR = 5                          # adjtimex(2): the clock is not synchronised
 CHECKS = ("boot", "chains", "clock", "fence", "hashes", "instance", "lease")
+RESUME_KEYS = ["at_utc", "checks", "instance", "instance_provable", "n", "new_boot_id", "old_boot_id", "prev",
+               "run_fingerprint", "schema", "slots"]
+PIECE = re.compile(r"p([0-9]{6})\.(raw|seal\.json)")
 
 
 def T(t) -> str:
@@ -149,8 +170,9 @@ class BootGuard:
                 f.write(f"[{T(time.time())}] {body}\n")
         self.say(f"ALARM bootguard: {body}")
 
-    def resumes(self, fp: str, boot0: str) -> list:
-        """The RESUME chain as the worker reads it (1.3): [(name, bytes, record)]; a break is exit 4."""
+    def resumes(self, fp: str, boot0: str, slots: list) -> list:
+        """The RESUME chain as the worker reads it (1.3), each RESUME checked whole (version 2): [(name, bytes,
+        record, at_utc in seconds)]; a break is exit 4."""
         names = [p.name for p in self.root.glob("RESUME.*.json")]
         if any(not re.fullmatch(r"RESUME\.[1-9][0-9]{0,2}\.json", x) for x in names):
             raise Held(4, f"a RESUME file name outside the grammar: {sorted(names)[:5]}")
@@ -170,9 +192,45 @@ class BootGuard:
                     or r.get("old_boot_id") != (boot0 if k == 1 else out[-1][2]["new_boot_id"]):
                 raise Held(4, f"{p.name}: not RESUME {k} of this run (schema, n, run_fingerprint, prev, old_boot_id, "
                               f"new_boot_id)")
-            out.append((p.name, data, r))
+            if sorted(r) != RESUME_KEYS:
+                raise Held(4, f"{p.name}: its keys are not the eleven of a RESUME (1.3 [2.3])")
+            if r["instance_provable"] is not True:
+                raise Held(4, f"{p.name}: its instance_provable is not true")
+            if not isinstance(r["instance"], dict):
+                raise Held(4, f"{p.name}: its instance is not an object")
+            if not isinstance(r["checks"], dict) or sorted(r["checks"]) != list(CHECKS):
+                raise Held(4, f"{p.name}: its checks are not the seven ({', '.join(CHECKS)})")
+            if r["new_boot_id"] == r["old_boot_id"]:
+                raise Held(4, f"{p.name}: its new_boot_id is its old_boot_id")
+            if not self.rows_ok(r["slots"], slots, fp):
+                raise Held(4, f"{p.name}: its slots are not one row per header slot (slot, last_index >= -1, the "
+                              f"genesis text for -1, else a sha256)")
+            at = W.utc(r["at_utc"], f"{p.name} at_utc")
+            if out and at < out[-1][3]:
+                raise Held(4, f"{p.name}: its at_utc {r['at_utc']} is before {out[-1][0]}'s")
+            out.append((p.name, data, r, at))
             prev = data
         return out
+
+    @staticmethod
+    def rows_ok(rows, slots: list, fp: str) -> bool:
+        """One row per header slot in the header's order: slot, last_index >= -1, last_seal the genesis text for
+        -1, else a sha256 (the rows the boot guard itself writes)."""
+        if not isinstance(rows, list) or len(rows) != len(slots):
+            return False
+        for x, s in zip(rows, slots):
+            if not isinstance(x, dict) or sorted(x) != ["last_index", "last_seal", "slot"] \
+                    or type(x["slot"]) is not int or x["slot"] != s \
+                    or type(x["last_index"]) is not int or x["last_index"] < -1:
+                return False
+            seal = x["last_seal"]
+            if x["last_index"] == -1:
+                ok = seal == f"genesis:{fp}:w{s:03d}"
+            else:
+                ok = isinstance(seal, str) and W.HEX64.fullmatch(seal) is not None
+            if not ok:
+                return False
+        return True
 
     def package(self, h: dict) -> dict:
         lst = Path(self.a.package_list)
@@ -197,12 +255,52 @@ class BootGuard:
             f = lst.parent / m[2]
             if not f.is_file() or f.is_symlink() or file_sha256(f) != m[1]:
                 raise Held(5, f"the package file {m[2]} is not there or not the bytes its hash list names")
+            if f.resolve() != lst.parent.resolve() / m[2]:
+                raise Held(5, f"the package file {m[2]} lies behind a link or junction ({f.resolve()}): held "
+                              f"for a person (Neon 222600Z)")
         if not any(ln.endswith("  plan.json") for ln in body[:-1]):
             raise Held(5, "the package's hash list names no plan.json: the owner's policy is not a file of the "
                           "package (FORMATS 1.2, D6)")
         return {"package": h["package"], "package_files": len(body) - 1}
 
-    def slot_row(self, h: dict, fp: str, k: int) -> tuple:
+    @staticmethod
+    def evidence(w) -> None:
+        """Every piece file of the slot is one its journal accounts for (Astra 7334dbd6, case 1): closed/ holds
+        pieces 0 to the head, and the open piece O while the journal names games in it (a closing cut after the
+        move, which the worker finishes); open/ holds only p<O>.raw, and only after an epoch line (a game written,
+        not journalled, which the worker cuts). Other names (conflict and .tmp files) are the worker's own."""
+        o, named = w.last_index + 1, bool(w.open_games)
+        for sub in ("closed", "open"):
+            d = w.dir / sub
+            for f in (sorted(d.iterdir()) if d.is_dir() else []):
+                m = PIECE.fullmatch(f.name)
+                if not m:
+                    continue
+                i = int(m[1])
+                if sub == "closed":
+                    ok = i <= w.last_index or (i == o and named)
+                else:
+                    ok = i == o and m[2] == "raw"
+                    ok = ok and w.epoch > 0
+                if not ok:
+                    raise Held(4, f"{w.name}/{sub}/{f.name} is not accounted for by the journal (head "
+                                  f"{w.last_index}, {w.epoch} epoch lines): kept as it is for a person (Astra "
+                                  f"7334dbd6)")
+
+    @staticmethod
+    def ancestry(w, chain, pos: int) -> None:
+        """Every row an earlier RESUME admitted for this slot is named by the journal now with the same seal
+        (Astra 7334dbd6, case 2). seal_sha holds exactly the pieces 0 to the head, so a head behind an admitted
+        one holds as well."""
+        for name, _, r, _ in chain:
+            row = r["slots"][pos]
+            if row["last_index"] >= 0 and w.seal_sha.get(row["last_index"]) != row["last_seal"]:
+                raise Held(4, f"{w.name}: {name} admitted piece {row['last_index']} with seal "
+                              f"{row['last_seal'][:12]}; the journal now ends at piece {w.last_index}"
+                              + ("" if w.last_index < row["last_index"] else " and names another seal for it")
+                              + ": held for a person (Astra 7334dbd6)")
+
+    def slot_row(self, h: dict, fp: str, k: int, chain=()) -> tuple:
         """The worker's own reading of slot k: (row, D in force as written, schedules)."""
         a = self.a
         ns = SimpleNamespace(root=a.root, exe=a.exe, net=a.net, manifest=a.manifest, known_startup=a.known_startup,
@@ -215,6 +313,8 @@ class BootGuard:
             w.check_identity(canon({"run": h["run"], "run_fingerprint": fp, "schema": 2, "slot": k}))
             w.load_schedules(start=True)
             w.read_journal()
+            self.evidence(w)
+            self.ancestry(w, chain, h["slots"].index(k))
         finally:
             if lock is not None:
                 lock.release()
@@ -251,11 +351,15 @@ class BootGuard:
             raise Held(4, f"RUN.json lacks {', '.join(miss)}")
         if h["schema"] != 2 or not isinstance(h["boot_id"], str) or not isinstance(h["slots"], list):
             raise Held(4, "RUN.json: schema 2, a boot_id and the slots are needed")
+        s = h["slots"]
+        if not (s and all(type(x) is int and 0 <= x <= 999 for x in s) and all(x < y for x, y in zip(s, s[1:]))):
+            raise Held(4, "RUN.json: its slots are not a non-empty rising list of integers 0 to 999 (the worker's "
+                          "rule)")
         boot = self.rd.boot()
         if boot == h["boot_id"]:
             self.say(f"bootguard: the header's boot ({boot}); nothing to do")
             return 0
-        chain = self.resumes(fp, h["boot_id"])
+        chain = self.resumes(fp, h["boot_id"], h["slots"])
         if chain and chain[-1][2]["new_boot_id"] == boot:
             self.say(f"bootguard: {chain[-1][0]} admits this boot ({boot}) already; nothing to do")
             return 0
@@ -271,6 +375,9 @@ class BootGuard:
         checks["boot"] = {"header_boot_id": h["boot_id"], "new_boot_id": boot, "resumes_before": len(chain)}
         if (self.root / "FENCE.json").exists():
             raise Held(5, "FENCE.json exists: no RESUME after the fence (1.3); held for a person")
+        if (self.gdir / "CLOSED.json").exists():
+            raise Held(4, "guard/CLOSED.json exists and FENCE.json does not: the run's files contradict themselves "
+                          "(Neon 222600Z); held for a person")
         checks["fence"] = "absent"
         now_inst = read_instance(Path(a.etc), Path(a.dmi))
         why = differs(h.get("instance"), now_inst) if h.get("instance_provable") is True \
@@ -287,7 +394,7 @@ class BootGuard:
         checks["hashes"] = hashes
         rows, d_text, top = [], None, -1
         for k in h["slots"]:
-            row, d_text, top = self.slot_row(h, fp, k)
+            row, d_text, top = self.slot_row(h, fp, k, chain)
             rows.append(row)
         checks["chains"] = {"slots": len(rows), "verified": "every slot, by the worker's own reading"}
         checks["lease"] = {"d_in_force_utc": d_text, "hard_cutoff_utc": h["hard_cutoff_utc"],
@@ -307,8 +414,18 @@ class BootGuard:
         now = self.rd.utc()
         if now < newest:
             raise Held(5, f"UTC now ({T(now)}) is before the newest journal time ({T(newest)}, {newest_name})")
-        checks["clock"] = {"newest_journal": newest_name, "newest_journal_utc": T(newest) if newest_name else None,
-                           "synchronised": True, "utc": T(now)}
+        floor, floor_name = W.utc(h["lease_start_utc"], "RUN.json lease_start_utc"), "the lease start"
+        for name, _, _, at in chain:
+            if at > floor:
+                floor, floor_name = at, f"{name}'s at_utc"
+        if now < floor:
+            raise Held(5, f"UTC now ({T(now)}) is before {floor_name} ({T(floor)}): the clock went back (Neon "
+                          f"222600Z); held until it is right")
+        if newest > floor:
+            floor, floor_name = newest, newest_name
+        checks["clock"] = {"floor": floor_name, "floor_utc": T(floor), "newest_journal": newest_name,
+                           "newest_journal_utc": T(newest) if newest_name else None, "synchronised": True,
+                           "utc": T(now)}
         n = len(chain) + 1
         if n > 999:
             raise Held(4, "the RESUME grammar ends at 999")

@@ -2,7 +2,7 @@
 (tmp/opus_scratch/bootguard/KNOWN_ANSWERS_by_opus.md on the PC; FORMATS.md 1.1, 1.3, 1.8.1; SETUP_PLAN D5, D15).
 
     test_bootguard.py <run/bootguard.py> <a NEW folder> exe=<engine> net=<net> pkg=<package folder with its
-                      MANIFEST.sha256> [only=U,B,E] [plantN]
+                      MANIFEST.sha256> [only=U,B,E,V] [plantN]
 
 The run folder is copied; a plant is applied to the copy's bootguard.py only. The REAL worker (with the real engine)
 makes the day's files; a test wrapper gives the worker a planted boot id (worker.boot_id replaced, nothing else).
@@ -38,6 +38,20 @@ B  each on a copy of the phase A state, boot-b unless named: B1 boot-a: 0, no RE
    T1 a run whose slots never started, board serial null on both sides: RESUME.1 with genesis rows. T2 the same with
    the header's instance_provable false: 5. T3 the header's hardware values both null: 5.
 
+V  version 2 (24 November; known answers tmp/opus_scratch/bootguard_v2/KNOWN_ANSWERS_bootguard_v2_by_opus.md on the PC,
+   written before the code, with its CHANGED section of 02:30). R1 = phase A + RESUME.1 by the guard under boot-b.
+   Holds (exit, what the alarm names; RESUMEs as before, no .tmp, every file unchanged but the alarm log):
+   V1 w000's journal removed beside its pieces: 4 (w000/closed/p000000.raw). V2 R1, w000 withheld, boot-c: 4 (w000,
+   RESUME.1). V4 R1, w000's journal cut before its last closed line: 4. V5 R1, slot 1's admitted seal forged: 4.
+   V6 a stray closed piece in w001: 4. V7 a stale open/p000000.raw in w000: 4. V7c w001 with no journal and no closed
+   piece, only open/p000000.raw: 4. V8 the package's run folder a junction (Windows) or link (Linux): 5. V9 slots []:
+   4. V10 guard/CLOSED.json without FENCE.json: 4. V11 RESUME.1 written at newest + 3600, boot-c at newest + 1800: 5.
+   V12 a fresh run, UTC 100 s before the lease start: 5. V13a to V13i R1 with RESUME.1 rewritten (a forged genesis,
+   instance_provable false, at_utc "yesterday", old_boot_id boot-z, new = old boot, an extra key, instance null, no
+   `clock` check) and V13d a hand-made RESUME.2 50 s before RESUME.1: 4. V14 a journal 7,200 s ahead, UTC newest +
+   3,600: 5 (the journal; plant5's case). Admitted controls: V3 R1 intact, boot-c (RESUME.2 rows [h0, h1, genesis]);
+   V7b the open piece with bytes not journalled (RESUME.1 rows [h0, h1, genesis]); V11b boot-c at newest + 3610.
+
 PLANTS (each must make the test fail; the check expected to fail is named):
   plant1 machine ids not compared (U3, B2)          plant2 null on one side not a difference (U3 header-null case)
   plant3 null on both sides a difference (U3, T1)   plant4 no wait for synchronisation (B6)
@@ -51,6 +65,15 @@ PLANTS (each must make the test fail; the check expected to fail is named):
   plant19 the digest line not checked (U4)          plant20 the header's keys not checked (B19)
   plant21 no catch-all: a traceback (B20)           plant22 old_boot_id not compared in the chain (B21)
   plant23 plan.json not required in the list (U6)
+  plant24 closed/ rule gone (V1, V6)                plant25 open/ index rule gone (V7)
+  plant26 open/ epoch rule gone (V7c)               plant27 the ancestry check gone (V2, V4, V5)
+  plant28 earlier RESUMEs out of the floor (V11)     plant29 the lease start out of the floor (V12)
+  plant30 a RESUME's keys not checked (V13g)         plant31 its instance_provable not checked (V13b)
+  plant32 its instance not checked (V13h)            plant33 its checks not checked (V13i)
+  plant34 new = old boot not refused (V13f)          plant35 its rows not checked (V13a)
+  plant36 its at_utc not parsed (V13c, V13d)         plant37 its at_utc order not checked (V13d)
+  plant38 package paths not resolved (V8)            plant39 the slots rule gone (V9)
+  plant40 CLOSED.json not looked at (V10)
 """
 import hashlib
 import json
@@ -64,7 +87,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 if len(sys.argv) < 3:
-    print("usage: test_bootguard.py <run/bootguard.py> <a NEW folder> exe=.. net=.. pkg=.. [only=U,B,E] [plantN]")
+    print("usage: test_bootguard.py <run/bootguard.py> <a NEW folder> exe=.. net=.. pkg=.. [only=U,B,E,V] [plantN]")
     sys.exit(2)
 BG_PATH, WORK = Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve()
 OPTS, PLANT = {}, None
@@ -76,7 +99,7 @@ for x in sys.argv[3:]:
     else:
         print(f"STOP: not understood: {x}")
         sys.exit(2)
-ONLY = set(OPTS.get("only", "U,B,E").split(","))
+ONLY = set(OPTS.get("only", "U,B,E,V").split(","))
 if not all(k in OPTS for k in ("exe", "net", "pkg")):
     print("STOP: exe=, net= and pkg= are needed (the real worker makes the day's files)")
     sys.exit(2)
@@ -117,6 +140,26 @@ PLANTS = {
                 '        except ZeroDivisionError as e:\n'),
     "plant22": ('                    or r.get("old_boot_id") != (boot0 if k == 1 else out[-1][2]["new_boot_id"]):\n',
                 '                    or False:\n'),
+    "plant24": ('                    ok = i <= w.last_index or (i == o and named)\n', '                    ok = True\n'),
+    "plant25": ('                    ok = i == o and m[2] == "raw"\n', '                    ok = True\n'),
+    "plant26": ('                    ok = ok and w.epoch > 0\n', '                    pass\n'),
+    "plant27": ('            if row["last_index"] >= 0 and w.seal_sha.get(row["last_index"]) != row["last_seal"]:\n',
+                '            if False:\n'),
+    "plant28": ('            if at > floor:\n', '            if False:\n'),
+    "plant29": ('W.utc(h["lease_start_utc"], "RUN.json lease_start_utc"), "the lease start"', '0.0, "the lease start"'),
+    "plant30": ('            if sorted(r) != RESUME_KEYS:\n', '            if False:\n'),
+    "plant31": ('            if r["instance_provable"] is not True:\n', '            if False:\n'),
+    "plant32": ('            if not isinstance(r["instance"], dict):\n', '            if False:\n'),
+    "plant33": ('            if not isinstance(r["checks"], dict) or sorted(r["checks"]) != list(CHECKS):\n',
+                '            if False:\n'),
+    "plant34": ('            if r["new_boot_id"] == r["old_boot_id"]:\n', '            if False:\n'),
+    "plant35": ('            if not self.rows_ok(r["slots"], slots, fp):\n', '            if False:\n'),
+    "plant36": ('            at = W.utc(r["at_utc"], f"{p.name} at_utc")\n', '            at = 0.0\n'),
+    "plant37": ('            if out and at < out[-1][3]:\n', '            if False:\n'),
+    "plant38": ('            if f.resolve() != lst.parent.resolve() / m[2]:\n', '            if False:\n'),
+    "plant39": ('        if not (s and all(type(x) is int and 0 <= x <= 999 for x in s) and all(x < y for x, y in '
+                'zip(s, s[1:]))):\n', '        if False:\n'),
+    "plant40": ('        if (self.gdir / "CLOSED.json").exists():\n', '        if False:\n'),
 }
 if PLANT:
     if PLANT not in PLANTS:
@@ -572,9 +615,155 @@ def part_b():
     held_case("T3 the header's hardware values both null", t, lambda: bg(t, "boot-b", inst="noserial"), 5)
 
 
+# ---- part V: version 2 (Astra 7334dbd6, Neon 222600Z) ---------------------------------------------------------
+def held_v(name, root, fn, want, words):
+    """A hold of version 2: the exit, the alarm naming `words`, the RESUMEs as before, no .tmp, every journal and
+    every file of the root unchanged but the alarm log."""
+    before, every, rs = snap(root), whole(root), resumes(root)
+    code = safe(fn)
+    log = root / "guard" / "bootguard.log"
+    last = log.read_bytes().decode("ascii", "replace").rstrip("\n").rsplit("\n", 1)[-1] if log.exists() else ""
+    check(f"{name}: exit {want} naming {', '.join(words)}, RESUMEs as before, no .tmp",
+          (code, "named" if all(w in last for w in words) else last[-200:], resumes(root),
+           sorted(p.name for p in root.glob("*.tmp"))), (want, "named", rs, []))
+    check(f"{name}: every journal unchanged", snap(root) == before, True)
+    check(f"{name}: every file of the root unchanged but the alarm log", changed(every, whole(root)),
+          ["guard/bootguard.log"])
+
+
+def admitted_v(name, root, fn, new_resume, rows=None):
+    every = whole(root)
+    check(f"{name}: exit 0, every file of the root unchanged but the new {new_resume}",
+          (safe(fn), changed(every, whole(root))), (0, [new_resume]))
+    if rows is not None:
+        r = json.loads((root / new_resume).read_bytes()) if (root / new_resume).exists() else {}
+        check(f"{name}: {new_resume}'s rows", r.get("slots"), rows)
+
+
+def case_of(src, name):
+    c = WORK / name
+    shutil.copytree(WORK / src, c)
+    return c
+
+
+def rewrite(root, k, fn):
+    """RESUME.k rewritten canonically after fn(record) changed it."""
+    p = root / f"RESUME.{k}.json"
+    r = json.loads(p.read_bytes())
+    fn(r)
+    p.write_bytes(W.canon(r))
+
+
+def dir_link(link: Path, target: Path) -> None:
+    """A folder link inside the test's own folder: a junction on Windows (no rights needed), a symlink on Linux."""
+    if sys.platform == "win32":
+        import _winapi
+        _winapi.CreateJunction(str(target), str(link))
+    else:
+        os.symlink(target, link, target_is_directory=True)
+
+
+def part_v():
+    h0, h1, g2 = STATE["h0"], STATE["h1"], STATE["g2"]
+    r1 = case_of("state_a", "state_r1")
+    check("V0 state R1: the guard under boot-b writes RESUME.1", (safe(lambda: bg(r1, "boot-b")), resumes(r1)),
+          (0, ["RESUME.1.json"]))
+    c = case("v1")
+    (c / "w000" / "journal.txt").unlink()
+    held_v("V1 w000's journal removed beside its pieces", c, lambda: bg(c, "boot-b"), 4, ("w000/closed/p000000.raw",))
+    c = case_of("state_r1", "v2")
+    shutil.rmtree(c / "w000")
+    held_v("V2 R1, w000 withheld, boot-c", c, lambda: bg(c, "boot-c"), 4, ("w000", "RESUME.1"))
+    c = case_of("state_r1", "v3")
+    admitted_v("V3 control: R1 intact, boot-c", c, lambda: bg(c, "boot-c"), "RESUME.2.json", [h0, h1, g2])
+    c = case_of("state_r1", "v4")
+    j = c / "w000" / "journal.txt"
+    lines = j.read_bytes().split(b"\n")[:-1]
+    cut = max(i for i, ln in enumerate(lines) if json.loads(ln)["t"] == "closed")
+    j.write_bytes(b"".join(ln + b"\n" for ln in lines[:cut]))
+    held_v("V4 R1, w000's journal cut before its last closed line", c, lambda: bg(c, "boot-c"), 4, ("w000", "RESUME.1"))
+    c = case_of("state_r1", "v5")
+    rewrite(c, 1, lambda r: r["slots"][1].update(last_seal="ab" * 32))
+    held_v("V5 R1, slot 1's admitted seal forged", c, lambda: bg(c, "boot-c"), 4, ("w001", "RESUME.1", "another seal"))
+    c = case("v6")
+    stray = f"p{h1['last_index'] + 5:06d}.raw"
+    shutil.copyfile(c / "w001" / "closed" / "p000000.raw", c / "w001" / "closed" / stray)
+    held_v("V6 a stray closed piece in w001", c, lambda: bg(c, "boot-b"), 4, (f"w001/closed/{stray}",))
+    c = case("v7")
+    shutil.copyfile(c / "w000" / "closed" / "p000000.raw", c / "w000" / "open" / "p000000.raw")
+    held_v("V7 a stale open/p000000.raw in w000", c, lambda: bg(c, "boot-b"), 4, ("w000/open/p000000.raw",))
+    c = case("v7b")
+    (c / "w000" / "open" / f"p{h0['last_index'] + 1:06d}.raw").write_bytes(b"game written, not journalled\n")
+    admitted_v("V7b control: the open piece with bytes not journalled", c, lambda: bg(c, "boot-b"), "RESUME.1.json",
+               [h0, h1, g2])
+    c = case("v7c")
+    (c / "w001" / "journal.txt").unlink()
+    for f in (c / "w001" / "closed").iterdir():
+        f.unlink()
+    (c / "w001" / "open" / "p000000.raw").write_bytes(b"game bytes\n")
+    held_v("V7c w001: no journal, no closed piece, only open/p000000.raw", c, lambda: bg(c, "boot-b"), 4,
+           ("w001/open/p000000.raw",))
+    c = case("v8")
+    pk, away = WORK / "pkg8", WORK / "pkg8_run_elsewhere"
+    shutil.copytree(PKG, pk)
+    (pk / "run").rename(away)
+    dir_link(pk / "run", away)
+    true("V8 setup: pkg8/run is a link to a folder with the same bytes",
+         (pk / "run" / "worker.py").read_bytes() == (PKG / "run" / "worker.py").read_bytes()
+         and (pk / "run").resolve() == away.resolve(), (pk / "run").resolve())
+    held_v("V8 a junction (Windows) or link (Linux) inside the package", c,
+           lambda: bg(c, "boot-b", pkg_list=pk / "MANIFEST.sha256"), 5, ("run/", "link or junction"))
+    t = new_run("v9", [])
+    held_v("V9 a header with slots []", t, lambda: bg(t, "boot-b"), 4, ("slots",))
+    c = case("v10")
+    (c / "guard").mkdir(exist_ok=True)
+    (c / "guard" / "CLOSED.json").write_bytes(b"{}\n")
+    held_v("V10 guard/CLOSED.json without FENCE.json", c, lambda: bg(c, "boot-b"), 4, ("CLOSED.json",))
+    for name, later in (("v11", 1800), ("v11b", 3610)):
+        c = case(name)
+        newest = max(p.stat().st_mtime for p in c.glob("w*/journal.txt"))
+        check(f"{name.upper()} setup: RESUME.1 written at UTC newest + 3600",
+              safe(lambda: bg(c, "boot-b", utc=lambda: newest + 3600)), 0)
+        if later < 3600:
+            held_v("V11 boot-c at newest + 1800, before RESUME.1's at_utc", c,
+                   lambda: bg(c, "boot-c", utc=lambda: newest + later), 5, ("RESUME.1.json's at_utc",))
+        else:
+            admitted_v("V11b control: boot-c at newest + 3610", c, lambda: bg(c, "boot-c", utc=lambda: newest + later),
+                       "RESUME.2.json")
+    t = new_run("v12", [5, 6])
+    ls = W.utc(json.loads((t / "RUN.json").read_bytes())["lease_start_utc"], "the test's lease start")
+    held_v("V12 a fresh run, UTC 100 s before the lease start", t, lambda: bg(t, "boot-b", utc=lambda: ls - 100), 5,
+           ("the lease start",))
+    for name, fn, words in (
+            ("V13a slot 2's genesis forged as 64 zeros", lambda r: r["slots"][2].update(last_seal="0" * 64), ("slots",)),
+            ("V13b instance_provable false", lambda r: r.update(instance_provable=False), ("instance_provable",)),
+            ("V13c at_utc yesterday", lambda r: r.update(at_utc="yesterday"), ("at_utc",)),
+            ("V13e old_boot_id boot-z", lambda r: r.update(old_boot_id="boot-z"), ("old_boot_id",)),
+            ("V13f new_boot_id = old_boot_id", lambda r: r.update(new_boot_id="boot-a"), ("new_boot_id is its old",)),
+            ("V13g an extra key", lambda r: r.update(note="x"), ("eleven",)),
+            ("V13h instance null", lambda r: r.update(instance=None), ("instance is not",)),
+            ("V13i no clock check", lambda r: r["checks"].pop("clock"), ("seven",))):
+        c = case_of("state_r1", name.split()[0].lower())
+        rewrite(c, 1, fn)
+        held_v(f"{name} in RESUME.1, boot-c", c, lambda: bg(c, "boot-c"), 4, ("RESUME.1.json",) + words)
+    c = case_of("state_r1", "v13d")
+    r1b = (c / "RESUME.1.json").read_bytes()
+    r1r = json.loads(r1b)
+    r2 = dict(r1r, n=2, prev=sha(r1b), old_boot_id="boot-b", new_boot_id="boot-c",
+              at_utc=T(W.utc(r1r["at_utc"], "RESUME.1 at_utc") - 50))
+    (c / "RESUME.2.json").write_bytes(W.canon(r2))
+    held_v("V13d a hand-made RESUME.2 50 s before RESUME.1, boot-d", c, lambda: bg(c, "boot-d"), 4,
+           ("RESUME.2.json", "at_utc"))
+    c = case("v14")
+    newest = max(p.stat().st_mtime for p in c.glob("w*/journal.txt"))
+    os.utime(c / "w000" / "journal.txt", (newest + 7200, newest + 7200))
+    held_v("V14 a journal 7,200 s ahead, UTC newest + 3,600", c, lambda: bg(c, "boot-b", utc=lambda: newest + 3600),
+           5, ("newest journal",))
+
+
 try:
-    for part, fn in (("U", part_u), ("A", phase_a), ("E", part_e), ("B", part_b)):
-        if part in ONLY or (part == "A" and ONLY & {"E", "B"}):
+    for part, fn in (("U", part_u), ("A", phase_a), ("E", part_e), ("B", part_b), ("V", part_v)):
+        if part in ONLY or (part == "A" and ONLY & {"E", "B", "V"}):
             try:
                 fn()
             except Exception as e:  # noqa: BLE001   one failed check, its traceback printed, the next part runs
