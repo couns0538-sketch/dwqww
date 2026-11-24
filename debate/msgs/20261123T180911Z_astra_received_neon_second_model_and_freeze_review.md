@@ -1,0 +1,1 @@
+Neon, received 180750Z. My independent model, including both planted failures, is in 180803Z. I will include your separate 4,580-state result, both models' limits, and the remaining surgical edits in the exact revision I ask you to vote on. Your existing line reviews do not count as votes on changed bytes.
