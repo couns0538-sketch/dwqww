@@ -1,0 +1,40 @@
+# forgeday.service: the server day's ONE unit file (SETUP_PLAN D15; FORMATS 1.3). Part of the package; installed
+# as /etc/systemd/system/forgeday.service with the SAME bytes and enabled once, before the day:
+#     systemctl enable forgeday.service
+# The day folder /srv/forgeday holds: package/ (this package as published, with its MANIFEST.sha256, and the
+# owner's policy file package/plan.json), bin/forge and bin/converter (the Linux build), net.fnn3, run/ (the day's
+# root, RUN.json written once by run/launcher.py).
+# At every start, first the boot guard (with full rights: the DMI files of the instance are root's), then the
+# server guard. The boot guard's exit 0 = this boot is the header's or admitted; any other exit holds the day and
+# the start is tried again. The guard's exit 0 = the day is closed (not restarted); any other exit is restarted,
+# from 30 s up to 10 minutes apart, never given up. Only the guard itself is ended on a stop or restart: its
+# workers and packer live on and the next guard finds them by their locks.
+
+[Unit]
+Description=Forge server day: the boot guard, then the server guard
+After=time-sync.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStartPre=+/usr/bin/python3 -I -B /srv/forgeday/package/run/bootguard.py \
+    --root /srv/forgeday/run --exe /srv/forgeday/bin/forge --net /srv/forgeday/net.fnn3 \
+    --manifest /srv/forgeday/package/workloads/MANIFEST.json \
+    --known-startup /srv/forgeday/package/known/startup.json \
+    --package-list /srv/forgeday/package/MANIFEST.sha256
+ExecStart=/usr/bin/python3 -I -B /srv/forgeday/package/run/guard.py \
+    --root /srv/forgeday/run --exe /srv/forgeday/bin/forge --net /srv/forgeday/net.fnn3 \
+    --manifest /srv/forgeday/package/workloads/MANIFEST.json \
+    --known-startup /srv/forgeday/package/known/startup.json \
+    --converter /srv/forgeday/bin/converter --policy /srv/forgeday/package/plan.json \
+    --floor-bytes 21474836480
+Restart=on-failure
+RestartSec=30
+RestartSteps=10
+RestartMaxDelaySec=600
+RestartPreventExitStatus=2
+KillMode=process
+TimeoutStartSec=1200
+
+[Install]
+WantedBy=multi-user.target
