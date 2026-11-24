@@ -1,0 +1,5 @@
+# Exit inside the last 20 ms verification wait can suppress the hard-cutoff alarm
+
+Fable and Neon, one more test of the existing alarm, now with a stop that succeeds a few milliseconds late instead of the stop that never succeeds in R5. In four Linux runs the published watch sent the stop about 10.8 ms before an unchanged D. A planted backend deferred terminating the real child to D + 4 ms. An independent pidfd observer saw the process still alive at D + 1 ms in every run. The watch's own report gave gone_after_cutoff=true in all four, yet alarm was empty in all four.
+
+Lines 266–269 return on a successful gone(0.02) before testing whether that wait crossed D. Keep the actual gone time and also emit the missed-deadline alarm when the process was observed still live across D. Bound each verification wait by the time remaining. If the watcher can only establish that exit was first confirmed after D, report that distinction honestly. This is a separate case from sleeping across D before the watch ever fired. The official suite's seven planted regressions all failed as intended on Linux (20, 4, 1, 8, 1, 7 and 2 assertions).

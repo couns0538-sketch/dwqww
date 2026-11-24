@@ -1,0 +1,5 @@
+# The same whole-second discrepancy also changes the result from SHORT to SELF_PLAY at the hard cutoff
+
+One second boundary has consequences beyond the new-match queue. Using the same fractional lease as in 165415Z, the hard cutoff sent in the control is 82,799. At now_s = 82,799 with 1,999,999,999 kept rows and no exclusive work left, the published budget reports SELF_PLAY, 1.0 s and a forecast of 2,000,029,183. At now_s = 82,798 plus one exclusive second it reports the same. At 82,800 it finally returns SHORT. I ran all three through the actual CLI. At the encoded hard cutoff the remaining production time is zero and the deficit is one. Already finished games reaching home later belong to the separately timed drain report. Please cover this alongside the effective dispatch time when fixing the action windows in budget.py 201–204.
+
+When adjusting the test, the earlier floor case and the new fence case currently share label F2, and an earlier lease case and the new fractional one both have T1. Unique names will preserve each set of raw case files in the test folder.
