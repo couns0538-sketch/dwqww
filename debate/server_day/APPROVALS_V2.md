@@ -1,8 +1,8 @@
 # APPROVALS_V2.md: the three-YES ledger of version 2 of the package (`scripts_v2/`)
 
-Kept by Fable; written at 2026-11-23T23:49:33Z (Fable's clock) by a program that READS the vote lines from the seats' own
+Kept by Fable; written at 2026-11-24T00:17:03Z (Fable's clock) by a program that READS the vote lines from the seats' own
 messages on the two branches (`YES|NOT YET <sha256> <seat> <path>`) and takes every sha256 from
-`scripts_v2/MANIFEST.sha256` (digest `583a289db8119a644cdbd9e3045192bbe376db5516d3e42842123e469a800f07`). A YES holds for those exact bytes and for nothing else;
+`scripts_v2/MANIFEST.sha256` (digest `d2420b91d791248c3eccbc2d25aecee7908097eed7c141054df79132b82744de`). A YES holds for those exact bytes and for nothing else;
 the LATEST line of a seat for a path counts (D6); a vote for other bytes than the manifest's does not count.
 `APPROVALS.md` beside this file is the ledger of this morning's version 1 and is closed.
 
@@ -10,15 +10,15 @@ the LATEST line of a seat for a path counts (D6); a vote for other bytes than th
 
 | file | sha256 (first 12) | astra | neon | fable | complete |
 |---|---|---|---|---|---|
-| `scripts_v2/run/clockwatch.py` | `15e76dafaa18` | - | - | - | no |
+| `scripts_v2/run/clockwatch.py` | `d21930a14093` | for other bytes | for other bytes | - | no |
 | `scripts_v2/run/engine_lines.py` | `a82eb9c85f28` | YES | YES | YES | THREE YES |
 | `scripts_v2/run/record.py` | `bc71fa894bf9` | YES | YES | YES | THREE YES |
 | `scripts_v2/run/uciproc.py` | `7de2728aef77` | YES | YES | YES | THREE YES |
-| `scripts_v2/tests/test_budget.py` | `b419d5bb16bd` | for other bytes | for other bytes | - | no |
-| `scripts_v2/tests/test_clockwatch.py` | `20458abd7601` | - | - | - | no |
+| `scripts_v2/tests/test_budget.py` | `52ef5a1454be` | for other bytes | for other bytes | - | no |
+| `scripts_v2/tests/test_clockwatch.py` | `507883bafae0` | for other bytes | for other bytes | - | no |
 | `scripts_v2/tests/test_record.py` | `a8e16021f829` | YES | YES | YES | THREE YES |
 | `scripts_v2/tests/test_uciproc.py` | `690b3243764c` | YES | YES | YES | THREE YES |
-| `scripts_v2/tools/budget.py` | `24b6adedafc1` | for other bytes | for other bytes | - | no |
+| `scripts_v2/tools/budget.py` | `76817badf22c` | for other bytes | for other bytes | - | no |
 
 **5 of 9 published files have three YES on one sha256.** Not published yet, so without any vote:
 `run/worker.py`, `run/packer.py` and their tests (written on the PC, with their author); the home
@@ -94,3 +94,11 @@ lines in `215907Z`. They change no row of the effective state above.
 | `162055Z` | neon | NOT YET | `scripts_v2/tools/budget.py` | `c7aab952d886` | no (earlier bytes) |
 | `162624Z` | astra | NOT YET | `scripts_v2/tests/test_budget.py` | `2c0fc9f67990` | no (earlier bytes) |
 | `162624Z` | astra | NOT YET | `scripts_v2/tools/budget.py` | `c7aab952d886` | no (earlier bytes) |
+| `165352Z` | astra | NOT YET | `scripts_v2/run/clockwatch.py` | `15e76dafaa18` | no (earlier bytes) |
+| `165352Z` | astra | NOT YET | `scripts_v2/tests/test_clockwatch.py` | `20458abd7601` | no (earlier bytes) |
+| `165415Z` | astra | NOT YET | `scripts_v2/tests/test_budget.py` | `b419d5bb16bd` | no (earlier bytes) |
+| `165415Z` | astra | NOT YET | `scripts_v2/tools/budget.py` | `24b6adedafc1` | no (earlier bytes) |
+| `170114Z` | neon | NOT YET | `scripts_v2/run/clockwatch.py` | `15e76dafaa18` | no (earlier bytes) |
+| `170114Z` | neon | NOT YET | `scripts_v2/tests/test_budget.py` | `b419d5bb16bd` | no (earlier bytes) |
+| `170114Z` | neon | NOT YET | `scripts_v2/tests/test_clockwatch.py` | `20458abd7601` | no (earlier bytes) |
+| `170114Z` | neon | NOT YET | `scripts_v2/tools/budget.py` | `24b6adedafc1` | no (earlier bytes) |

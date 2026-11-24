@@ -34,10 +34,30 @@ R  the watch on a real child process (python spinning; steady = the system's, UT
   R4  UTC jumps 3,600 s alone after 0.4 s: fired "clock", hold() true.
   R5  a stop that does nothing: fired, the child still there at D -> alarm, no "gone" reading, the watch ends.
   R6  the wait ends by itself (close at 0.3 s, trigger at 0.7): never fires, the child lives on past D.
-  R7  D tightened during the wait (30 s -> 1.0 s, seen at 0.3 s): the child gone before the new D.
+  R7  D tightened during the wait (30 s -> 1.2 s, read at 0.5 s, 0.2 s before its trigger): the child gone before
+      the new D, not late.
   R8  a tighter D found late (seen at 0.5 s, D was 0.2 s): stopped at once, recorded late with the real time.
   R9  a later D offered during the wait: refused, the child gone before the first D.
   R10 the child ends by itself: the watch sees it and ends without firing.
+  Version 2 (Astra 165352Z):
+  R11 a tighter D found AFTER its trigger and BEFORE D (30 s -> 0.9 s with an allowance of 0.7: the trigger was at
+      0.2, the schedule is read at 0.5): stopped at once, gone before D, no alarm; late and late_discovery true,
+      decided_after_cutoff and gone_after_cutoff false. (R1: all four false. R8: late and decided_after_cutoff.)
+  R12 a schedule read that stalls (every read sleeps 3 s), D at 0.8, allowance 0.3: the child is gone before D,
+      and close() returns in under a second with reader_stalled true.
+  Version 4 (Astra 170921Z):
+  R16 another thread tightens D through the bounds while the watch sleeps a LONG look (look 1.0 s; 30 s -> 0.8 s,
+      set at 0.2 s, 0.4 s before its trigger with an allowance of 0.2): the child is gone before the new D and
+      the record is not late (a watch that is not woken sleeps to 1.0 s).
+  Version 3 (Astra 165616Z, Neon 170114Z):
+  R14 the stop works at once, but the handle needs 0.45 s to answer "gone" (D 1.0 s, allowance 0.3): the test's
+      own wait sees the child end before D; the watch can first confirm it after D: gone_after_cutoff true, the
+      gone reading kept, and the alarm says "first confirmed gone after D".
+  K16 a bound of NaN or infinity, a hold limit of NaN or below 0, an infinite allowance or look: each refused
+      with ValueError, and no bound is taken.
+  R13 a hold at the dispatch end while D is still ahead (dispatch end 1 s, D 16 s, UTC jumps 12 s alone at 0.3 s)
+      and a stop that does nothing, allowance 0.4: the alarm says "one allowance after the decision" and the
+      watch has ended by itself two seconds after the start (a watch that follows D sits until D, 4 s).
 """
 import importlib.util
 import os
@@ -62,6 +82,20 @@ PLANTS = {
     # plant5: the alarm is never raised (the verify loop itself still ends: a plant must fail the test, not hang it)
     "plant6": ("            if old is None or utc_s <= old:\n", "            if True:\n"),             # D may move later
     "plant7": ("        with self._lock:\n            self._closed = True\n", "        with self._lock:\n            pass\n"),
+    "plant8": ("                vd = b.judge(self.dispatch_end)[0] if b.get(self.dispatch_end) is not None else OPEN\n",
+               "                self.refresh() if self.refresh is not None else None\n"
+               "                vd = b.judge(self.dispatch_end)[0] if b.get(self.dispatch_end) is not None else OPEN\n"),
+    # plant8: the schedule read back on the timer's path
+    "plant9": ("            over = d_come if at_d else (d_come or b.clocks.mono() >= grace_end)\n",
+               "            over = d_come if vd == OPEN else (b.clocks.mono() >= grace_end)\n"),   # a hold follows D
+    "plant13": ("                wake = list(self._wakers) if (old is None or utc_s < old) else []\n",
+                "                wake = []\n"),                 # a tightened bound wakes nobody
+    "plant11": ('                if past_d or (not at_d and rec["gone"][1] > grace_end):\n',
+                '                if False:\n'),                # an exit first confirmed after D is no alarm
+    "plant12": ("        if isinstance(utc_s, bool) or not math.isfinite(float(utc_s)):\n",
+                "        if False:\n"),                        # a bound of NaN or infinity is taken
+    "plant10": ('               "late": after_d or found_late, "late_discovery": found_late,',
+                '               "late": after_d, "late_discovery": found_late,'),        # late only when D has come
 }
 if plant is not None:
     old, new = PLANTS[plant]
@@ -180,7 +214,33 @@ class NoStop:
         return self.h.gone(timeout)
 
 
-def real(d_after, allowance, look=0.25, acts=(), noop=False, plan=(), limit=None, settle=0.0):
+class SlowSee:
+    """The stop works at once; the answer "gone" takes `delay` seconds to arrive."""
+    how = "planted"
+
+    def __init__(self, h, delay):
+        self.h, self.delay = h, delay
+
+    def stop(self):
+        return self.h.stop()
+
+    def gone(self, timeout=0.0):
+        if self.h.gone(timeout):
+            time.sleep(self.delay)
+            return True
+        return False
+
+
+def raises(f):
+    try:
+        f()
+    except ValueError:
+        return True
+    return False
+
+
+def real(d_after, allowance, look=0.25, acts=(), noop=False, plan=(), limit=None, settle=0.0, slow=0.0, disp=0.05,
+         wrap=None):
     """One child and one watch. acts: (seconds after the start, "utc"|"boot"|"close"|"kill", value) done by this
     thread; plan: (seconds, new D in seconds after the start) done by the watch's refresh. Returns a dict."""
     p = subprocess.Popen(CHILD)
@@ -191,14 +251,17 @@ def real(d_after, allowance, look=0.25, acts=(), noop=False, plan=(), limit=None
     b = cw.Bounds(clocks)
     u0, m0 = b.anchor[0], b.anchor[1]
     b.set("cutoff", u0 + d_after)
-    b.set("dispatch_end", u0 + 0.05)
+    b.set("dispatch_end", u0 + disp)
     todo = list(plan)
 
     def refresh():
+        if slow:
+            time.sleep(slow)
         while todo and time.monotonic() - m0 >= todo[0][0]:
             b.set("cutoff", u0 + todo.pop(0)[1])
 
-    w = cw.Watch(NoStop(h) if noop else h, b, allowance_s=allowance, look_s=look, refresh=refresh)
+    w = cw.Watch(wrap(h) if wrap else (NoStop(h) if noop else h), b, allowance_s=allowance, look_s=look,
+                 refresh=refresh)
     w.__enter__()
     limit = limit if limit is not None else d_after + 1.0
     t_exit, closed = None, False
@@ -218,16 +281,21 @@ def real(d_after, allowance, look=0.25, acts=(), noop=False, plan=(), limit=None
             closed = True
         elif what == "kill":
             p.kill()
+        elif what == "set":
+            b.set("cutoff", u0 + val)
     if settle:
         time.sleep(settle)
+    ended = not w._t.is_alive()
+    t_close = time.monotonic()
     if not closed:
         w.close()
+    t_close = time.monotonic() - t_close
     alive = p.poll() is None
     if alive:
         p.kill()
     p.wait()
     h.close()
-    return {"w": w, "b": b, "t_exit": t_exit, "alive": alive, "u0": u0}
+    return {"w": w, "b": b, "t_exit": t_exit, "alive": alive, "u0": u0, "ended": ended, "close_s": t_close}
 
 
 def before(name, x, limit):
@@ -239,6 +307,8 @@ check("R1 fired", r["w"].fired, "cutoff")
 before("R1 gone before D (the test's own wait)", r["t_exit"], 1.2)
 true("R1 not before the trigger", r["t_exit"] is not None and r["t_exit"] >= 0.65, repr(r["t_exit"]))
 check("R1 late", r["w"].record and r["w"].record["late"], False)
+check("R1 late_discovery, decided_after_cutoff", r["w"].record and (r["w"].record["late_discovery"],
+                                                               r["w"].record["decided_after_cutoff"]), (False, False))
 check("R1 alarm", r["w"].alarm, None)
 true("R1 gone reading", bool(r["w"].record and r["w"].record["gone"]), "the watch found it gone")
 check("R1 gone after D", r["w"].record and r["w"].record["gone_after_cutoff"], False)
@@ -270,14 +340,17 @@ r = real(1.0, 0.3, acts=[(0.3, "close", None)], limit=1.4)
 check("R6 fired", r["w"].fired, None)
 check("R6 the child lived on", r["alive"], True)
 
-r = real(30.0, 0.5, plan=[(0.3, 1.0)], limit=3.0)
+r = real(30.0, 0.5, plan=[(0.3, 1.2)], limit=3.0)
 check("R7 fired", r["w"].fired, "cutoff")
-before("R7 gone before the new D", r["t_exit"], 1.0)
+before("R7 gone before the new D", r["t_exit"], 1.2)
+check("R7 late, late_discovery", r["w"].record and (r["w"].record["late"], r["w"].record["late_discovery"]),
+      (False, False))
 check("R7 late", r["w"].record and r["w"].record["late"], False)
 
 r = real(30.0, 0.5, plan=[(0.5, 0.2)], limit=3.0)
 check("R8 fired", r["w"].fired, "cutoff")
 check("R8 late", r["w"].record and r["w"].record["late"], True)
+check("R8 decided_after_cutoff", r["w"].record and r["w"].record["decided_after_cutoff"], True)
 true("R8 the real time of the decision is kept", bool(r["w"].record) and r["w"].record["decided"][0] - r["u0"] >= 0.5,
      repr(r["w"].record and r["w"].record["decided"][0] - r["u0"]))
 true("R8 left to D is negative", bool(r["w"].record) and r["w"].record["left_to_cutoff_s"] < 0,
@@ -292,6 +365,55 @@ true("R9 the later D was refused", len(r["b"].refused) == 1, repr(r["b"].refused
 r = real(5.0, 0.5, acts=[(0.2, "kill", None)], limit=2.0, settle=0.6)
 check("R10 fired", r["w"].fired, None)
 check("R10 seen gone", r["w"].seen_gone, True)
+
+r = real(30.0, 0.7, plan=[(0.4, 0.9)], limit=3.0)
+check("R11 fired", r["w"].fired, "cutoff")
+before("R11 gone before D", r["t_exit"], 0.9)
+rec = r["w"].record or {}
+check("R11 late, late_discovery", (rec.get("late"), rec.get("late_discovery")), (True, True))
+check("R11 decided_after_cutoff, gone_after_cutoff", (rec.get("decided_after_cutoff"), rec.get("gone_after_cutoff")),
+      (False, False))
+check("R11 alarm", r["w"].alarm, None)
+true("R11 behind its trigger", rec.get("left_to_trigger_s", 1.0) < -0.1, repr(rec.get("left_to_trigger_s")))
+
+r = real(0.8, 0.3, slow=3.0, limit=2.0)
+check("R12 fired", r["w"].fired, "cutoff")
+before("R12 gone before D although every schedule read stalls", r["t_exit"], 0.8)
+true("R12 close() does not wait for the stalled read", r["close_s"] < 1.0, repr(r["close_s"]))
+check("R12 reader_stalled", r["w"].reader_stalled, True)
+
+r = real(16.0, 0.4, acts=[(0.3, "utc", 12.0)], noop=True, limit=2.0, disp=1.0)
+check("R13 fired", r["w"].fired, "clock")
+check("R13 the watch has ended by itself", r["ended"], True)
+true("R13 alarm one allowance after the decision", r["w"].alarm is not None
+     and "one allowance after the decision" in r["w"].alarm, repr(r["w"].alarm))
+
+r = real(1.0, 0.3, wrap=lambda h: SlowSee(h, 0.45), limit=2.0)
+check("R14 fired", r["w"].fired, "cutoff")
+before("R14 the child itself ended before D (the test's own wait)", r["t_exit"], 1.0)
+rec = r["w"].record or {}
+check("R14 gone_after_cutoff", rec.get("gone_after_cutoff"), True)
+true("R14 the gone reading is kept", bool(rec.get("gone")), repr(rec.get("gone")))
+true("R14 alarm: first confirmed gone after D", r["w"].alarm is not None
+     and "first confirmed gone after D" in r["w"].alarm, repr(r["w"].alarm))
+
+r = real(30.0, 0.2, look=1.0, acts=[(0.2, "set", 0.8)], limit=2.0)
+check("R16 fired", r["w"].fired, "cutoff")
+before("R16 gone before the D another thread set while the watch slept", r["t_exit"], 0.8)
+rec = r["w"].record or {}
+check("R16 late, late_discovery", (rec.get("late"), rec.get("late_discovery")), (False, False))
+check("R16 alarm", r["w"].alarm, None)
+
+bq = cw.Bounds()
+check("K16 a NaN bound is refused", raises(lambda: bq.set("cutoff", float("nan"))), True)
+check("K16 an infinite bound is refused", raises(lambda: bq.set("cutoff", float("inf"))), True)
+check("K16 no bound was taken", bq.get("cutoff"), None)
+check("K16 a NaN hold limit is refused", raises(lambda: cw.Bounds(hold_s=float("nan"))), True)
+check("K16 a negative hold limit is refused", raises(lambda: cw.Bounds(hold_s=-1.0)), True)
+check("K16 a finite bound is taken", bq.set("cutoff", bq.anchor[0] + 100.0), True)
+check("K16 an infinite allowance is refused", raises(lambda: cw.Watch(None, bq, allowance_s=float("inf"))), True)
+check("K16 an infinite look is refused", raises(lambda: cw.Watch(None, bq, look_s=float("inf"))), True)
+check("K16 finite values are taken", raises(lambda: cw.Watch(None, bq, allowance_s=2.0, look_s=0.25)), False)
 
 print("ALL PASS" if not fails else f"{len(fails)} failed: {fails}")
 sys.exit(1 if fails else 0)

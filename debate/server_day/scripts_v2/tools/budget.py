@@ -53,9 +53,14 @@ Outcomes, in this order (D4):
                          named by what is done: when no whole measured pair fits (the spare too short, a match rate
                          of 0, an empty queue) it is SELF_PLAY, and spare_s reports the spare seconds. The
                          queue's time also ends at the dispatch end: pairs fit min(spare, D - g - now) seconds.
-Times for a control record: cutoff_floor_s and dispatch_end_floor_s are the exact bounds rounded DOWN to a whole
-second (never late); bounds_exact holds them as fractions. D_s, dispatch_stop_s, left_s and every other decimal
-figure are for reading only (rounded to the nearest). new_dispatch_s is the time left before the dispatch end.
+Times: the control record carries WHOLE seconds, so the tool decides with the whole seconds it will carry: D is the
+exact bound rounded DOWN, the dispatch end is D - g rounded DOWN, and left, the spare, the queue's time and SHORT
+all follow from these two (at the encoded cutoff the time left is 0, at the encoded dispatch end no pair is new).
+cutoff_floor_s and dispatch_end_floor_s are those two as integers; D_s and dispatch_stop_s show the same values;
+bounds_exact keeps the exact source bounds as fractions, for the record only. new_dispatch_s is the time left
+before the dispatch end. A finding of failure row 3 names the key and the kind of failure; the paths behind the
+findings stand under local_only, which never leaves the home machine. A nonzero exclusive_s names its raw file
+under state.sources like every measured key (failure row 3); an omitted or zero one needs none.
 inputs names the sha256 of the exact bytes of each file read (plan, state, pilot; null where no pilot was given):
 two pilots with equal rates are two pieces of evidence. No path of this machine is in it.
 Prints one json object. Exit 0 REACHED, SELF_PLAY, SELF_PLAY_AND_MATCHES; 3 OWNER_CHOICE; 4 STOP; 5 SHORT;
@@ -121,21 +126,30 @@ def sha256_of(path, cache):
     return cache[path]
 
 
-def unsourced(obj, where, cache):
-    """Failure row 3: each measured key names its raw file, and the file still holds the bytes it was taken from."""
+def unsourced(obj, where, cache, local):
+    """Failure row 3: each measured key names its raw file, and the file still holds the bytes it was taken from.
+    The findings name the key and the kind of failure; the path goes to `local` only (Astra 165415Z: a report
+    packed for the server carries no path of the home machine)."""
     src, bad = obj.get("sources"), []
-    for k in SOURCED[where]:
+    keys = SOURCED[where]
+    if where == "state" and obj.get("exclusive_s") not in (None, 0):
+        keys = keys + ("exclusive_s",)          # Astra 165715Z: a nonzero exclusive time names its raw file too
+    for k in keys:
         s = src.get(k) if isinstance(src, dict) else None
         if not (isinstance(s, dict) and isinstance(s.get("path"), str) and isinstance(s.get("sha256"), str)):
-            bad.append(f"{where}.{k}: no raw file named")
+            what = "no raw file named"
         elif not os.path.isabs(s["path"]):
-            bad.append(f"{where}.{k}: the raw file's path is not absolute ({s['path']})")
+            what = "the raw file's path is not absolute"
         elif not os.path.isfile(s["path"]):
-            bad.append(f"{where}.{k}: raw file missing ({s['path']})")
+            what = "raw file missing"
         elif sha256_of(s["path"], cache) is None:
-            bad.append(f"{where}.{k}: raw file unreadable ({s['path']})")
+            what = "raw file unreadable"
         elif sha256_of(s["path"], cache) != s["sha256"].lower():
-            bad.append(f"{where}.{k}: raw file changed since the number was taken (stale: {s['path']})")
+            what = "raw file changed since the number was taken (stale)"
+        else:
+            continue
+        bad.append(f"{where}.{k}: {what}")
+        local.append([f"{where}.{k}", what, s.get("path") if isinstance(s, dict) else None])
     return bad
 
 
@@ -194,22 +208,28 @@ def decide(plan, state, pilot=None):
             raise ValueError("pilot: more kept rows than raw rows")
         if P["rounds_whole"] > K:
             raise ValueError("pilot: rounds_whole is above the plan's pilot_rounds_declared")
-    cache = {}                                  # one decision reads every raw file afresh
-    found = unsourced(plan, "plan", cache) + unsourced(state, "state", cache)
-    pfound = unsourced(pilot, "pilot", cache) if pilot is not None else []
-    D = min(Fraction(23 * 3600), lease_end - max(Fraction(3600), closing))
+    cache, local = {}, []                       # one decision reads every raw file afresh
+    found = unsourced(plan, "plan", cache, local) + unsourced(state, "state", cache, local)
+    pfound = unsourced(pilot, "pilot", cache, local) if pilot is not None else []
+    D_exact = min(Fraction(23 * 3600), lease_end - max(Fraction(3600), closing))
+    # Astra 165415Z, 165505Z: the control carries WHOLE seconds, so every window below is computed from the whole
+    # seconds it will carry (the exact bounds rounded DOWN), never from a fraction the machine is not given
+    D = Fraction(math.floor(D_exact))
     left = D - now - excl
     deficit = max(Fraction(0), target - c4)
-    stop_new = D - P["longest_game_s"] - gm if P else None      # D5: no NEW game at or after this second
+    stop_exact = D_exact - P["longest_game_s"] - gm if P else None
+    stop_new = Fraction(math.floor(D - P["longest_game_s"] - gm)) if P else None    # D5: no NEW game at or after it
     new_s = max(Fraction(0), stop_new - now - excl) if P else Fraction(0)
     res = {"outcome": None, "reason": "", "c4_rows": int(c4), "deficit_rows": int(deficit), "D_s": num(D, 1),
            "dispatch_stop_s": num(stop_new, 1) if P else None, "left_s": num(left, 1),
-           # Astra 161757Z 3: the decimals above are for reading; a control record takes these whole seconds,
-           # rounded DOWN from the exact bounds (never 40 ms late), or the exact fractions
-           "cutoff_floor_s": math.floor(D), "dispatch_end_floor_s": math.floor(stop_new) if P else None,
+           # the same two whole seconds as integers, for the control record; bounds_exact keeps the exact source
+           # bounds for the record of where they came from (never sent as a bound)
+           "cutoff_floor_s": int(D), "dispatch_end_floor_s": int(stop_new) if P else None,
            "new_dispatch_s": num(new_s, 1) if P else None,
-           "bounds_exact": {"D_s": str(D), "dispatch_end_s": str(stop_new) if P else None},
+           "bounds_exact": {"D_s": str(D_exact), "dispatch_end_s": str(stop_exact) if P else None},
            "other_counts": {k: v for k, v in state.items() if k not in ("now_s", "c4_rows", "exclusive_s", "sources")}}
+    if local:                                   # stays on the home machine: the paths behind the findings
+        res["local_only"] = {"raw_files": local}
     if found:
         res.update(outcome="UNQUALIFIED", reason="failure row 3: " + "; ".join(found) + "; nothing starts by script")
         return res

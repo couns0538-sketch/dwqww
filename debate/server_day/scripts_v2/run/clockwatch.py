@@ -28,13 +28,26 @@ Firing ends the native process, THAT PROCESS ALONE (never a process group: the e
 through a handle a reused process number cannot confuse; it never touches the driver's pipes. It then verifies
 that the process is gone. The allowance covers the whole way from the trigger to the confirmed exit, so each wait
 of the watch ends at the earlier of the regular look and the trigger of the bound in force. A tighter D whose
-trigger has already passed is acted on at once and recorded as it happened (`late`, the readings of the decision).
-A process that is still there when D comes (or one allowance after a decision made when D had already come, or in
-a hold) is `alarm`: the caller writes the alarm and leaves with exit code 8. An error inside the watch ends the
-process too (`fired` "error", `error` set): a wait is never left unwatched without a word.
-`refresh` is the caller's: it reads a newer valid schedule and calls B.set; its errors are kept in refresh_errors
-and the bounds in force go on holding.
+trigger has already passed is acted on at once and recorded as it happened, the kinds kept apart (Astra 165352Z 3):
+`late_discovery` (the trigger had passed when this bound was first judged), `decided_after_cutoff` (D itself had
+come at the decision), `late` (either of the two), `gone_after_cutoff` (the exit was confirmed after D); each with
+the clock readings. A process that is still there when D comes is `alarm`; in a hold, and after a decision made
+when D had already come, the limit is one allowance after the decision, and D where D comes first (Astra 2). The
+caller writes the alarm and leaves with exit code 8. An exit that the watch could first CONFIRM after its limit
+is an alarm too and says so in its own words ("first confirmed gone after D"), with the reading of the
+confirmation: the watch does not claim the process was there at D, and does not write the stop as on time
+(Astra 165616Z). No wait of the watch's own is asked to cross its limit. A bound, the hold limit, the allowance
+and the look are finite numbers or they are refused (Neon 170114Z). An error inside the watch ends the process
+too (`fired` "error", `error` set): a wait is never left unwatched without a word.
+`refresh` is the caller's: it reads a newer valid schedule and calls B.set. It runs in a thread of its own, NEVER
+on the timer's path (Astra 1): a read that is slow or stalls cannot delay the stop for a bound already in force;
+a bound it tightens is judged at once, and so is a bound tightened by ANY other thread through B.set (Astra
+170921Z: the bounds wake every watch that sleeps under them; a change that races the start of a wait is seen,
+because the wait's event is cleared only after it returns and the bound is judged again after that). close()
+returns without waiting for a stalled read (`reader_stalled`). Its
+errors are kept in refresh_errors and the bounds in force go on holding.
 """
+import math
 import os
 import select
 import signal
@@ -76,23 +89,41 @@ class Bounds:
 
     def __init__(self, clocks=None, hold_s=10.0):
         self.clocks = clocks if clocks is not None else Clocks()
+        if isinstance(hold_s, bool) or not math.isfinite(float(hold_s)) or hold_s < 0:
+            raise ValueError("hold_s is a finite number of seconds, not negative; got %r" % (hold_s,))
         self.hold_s = hold_s
         self.anchor = self.clocks.read()
         self._lock = threading.Lock()
         self._b = {}
         self._latch = {}
         self.refused = []           # (name, the bound kept, the later bound offered)
+        self._seen_open = {}        # (name, lead) -> the bound last judged OPEN with that lead
+        self._wakers = []           # the events of the watches that sleep under these bounds
 
     def set(self, name, utc_s):
         """Take a bound; never a later one than the bound in force. True when the offered bound is now in force."""
+        if isinstance(utc_s, bool) or not math.isfinite(float(utc_s)):
+            raise ValueError("a bound is a finite number of seconds; got %r" % (utc_s,))
         utc_s = float(utc_s)
         with self._lock:
             old = self._b.get(name)
             if old is None or utc_s <= old:
                 self._b[name] = utc_s
-                return True
-            self.refused.append((name, old, utc_s))
-            return False
+                wake = list(self._wakers) if (old is None or utc_s < old) else []
+            else:
+                self.refused.append((name, old, utc_s))
+                return False
+        for ev in wake:                 # a watch asleep under the old bound judges the new one at once
+            ev.set()
+        return True
+
+    def wake_on_change(self, event, on=True):
+        """A watch gives its event: set whenever a bound is first taken or tightened, from whatever thread."""
+        with self._lock:
+            if on and event not in self._wakers:
+                self._wakers.append(event)
+            elif not on and event in self._wakers:
+                self._wakers.remove(event)
 
     def get(self, name):
         with self._lock:
@@ -122,7 +153,15 @@ class Bounds:
                 ahead = r[0] - (a[0] + run)
                 v = HOLD if (utc_alone and ahead > self.hold_s) else COME
                 self._latch[key] = v
+            if v is None:
+                self._seen_open[key] = self._b[name]
             return (v if v is not None else OPEN), left, r
+
+    def found_late(self, name, lead=0.0):
+        """True when the bound in force was never judged OPEN with this lead: its trigger had already passed when
+        it was first judged (a tighter bound that was found late, or a program that began after the trigger)."""
+        with self._lock:
+            return self._seen_open.get((name, lead)) != self._b.get(name)
 
     def steady_cutoff(self, name="cutoff", lead=0.0):
         """The steady-clock time a wait may last to: now plus the least time left by any clock (now, once passed)."""
@@ -162,6 +201,10 @@ class ProcHandle:
         """True when the process has ended; waits at most `timeout` seconds for that."""
         timeout = max(0.0, timeout)
         if self.fd is not None:
+            if hasattr(select, "poll"):             # no limit on the descriptor's number (select ends at 1,024)
+                po = select.poll()
+                po.register(self.fd, select.POLLIN)
+                return bool(po.poll(int(timeout * 1000)))
             return bool(select.select([self.fd], [], [], timeout)[0])
         end = time.monotonic() + timeout
         while True:
@@ -182,8 +225,9 @@ class Watch:
                  dispatch_end="dispatch_end"):
         if bounds.get(cutoff) is None:
             raise ValueError("the watch needs the bound %r" % cutoff)
-        if not (allowance_s >= 0 and look_s > 0):
-            raise ValueError("allowance_s >= 0 and look_s > 0")
+        if not (math.isfinite(float(allowance_s)) and math.isfinite(float(look_s))
+                and allowance_s >= 0 and look_s > 0):
+            raise ValueError("allowance_s >= 0 and look_s > 0, both finite")
         self.handle, self.bounds, self.refresh = handle, bounds, refresh
         self.allowance_s, self.look_s = float(allowance_s), float(look_s)
         self.cutoff, self.dispatch_end = cutoff, dispatch_end
@@ -193,13 +237,20 @@ class Watch:
         self.error = None           # text: an error inside the watch itself
         self.seen_gone = False      # the process ended by itself while the watch looked
         self.refresh_errors = []
+        self.reader_stalled = False  # close() did not wait for a schedule read that had not returned
         self._closed = False
         self._lock = threading.Lock()
         self._wake = threading.Event()
+        self._stop_read = threading.Event()
         self._t = threading.Thread(target=self._run, name="clockwatch", daemon=True)
+        self._r = (threading.Thread(target=self._read, name="clockwatch-read", daemon=True)
+                   if refresh is not None else None)
 
     def __enter__(self):
+        self.bounds.wake_on_change(self._wake)
         self._t.start()
+        if self._r is not None:
+            self._r.start()
         return self
 
     def __exit__(self, *exc):
@@ -211,8 +262,27 @@ class Watch:
         with self._lock:
             self._closed = True
         self._wake.set()
+        self._stop_read.set()
         if self._t.ident is not None:
             self._t.join()
+        self.bounds.wake_on_change(self._wake, False)
+        if self._r is not None and self._r.ident is not None:
+            self._r.join(min(self.look_s, 0.25))
+            self.reader_stalled = self._r.is_alive()
+
+    def _read(self):
+        """The schedule reader: apart from the timer, so that no read can delay a stop."""
+        while True:
+            with self._lock:
+                if self._closed or self.fired is not None:
+                    return
+            try:
+                self.refresh()
+            except Exception as e:
+                self.refresh_errors.append(repr(e))
+            self._wake.set()                        # a bound that was tightened is judged at once
+            if self._stop_read.wait(self.look_s):
+                return
 
     def _run(self):
         try:
@@ -224,11 +294,6 @@ class Watch:
                 if self.handle.gone():
                     self.seen_gone = True
                     return
-                if self.refresh is not None:
-                    try:
-                        self.refresh()
-                    except Exception as e:
-                        self.refresh_errors.append(repr(e))
                 vd = b.judge(self.dispatch_end)[0] if b.get(self.dispatch_end) is not None else OPEN
                 vt, left_t, r = b.judge(self.cutoff, lead=self.allowance_s)
                 reason = "clock" if HOLD in (vd, vt) else ("cutoff" if vt == COME else None)
@@ -236,6 +301,7 @@ class Watch:
                     self._fire(reason, r, left_t)
                     return
                 self._wake.wait(min(self.look_s, left_t))
+                self._wake.clear()
         except BaseException as e:
             self.error = repr(e)
             try:
@@ -254,23 +320,36 @@ class Watch:
             self.fired = reason
         b, h = self.bounds, self.handle
         vd, left_d, _ = b.judge(self.cutoff)
+        after_d = vd == COME                        # D itself had come when the watch decided
+        found_late = reason == "cutoff" and b.found_late(self.cutoff, self.allowance_s)
         rec = {"reason": reason, "decided": r, "left_to_trigger_s": left_t, "left_to_cutoff_s": left_d,
-               "late": vd == COME, "how": getattr(h, "how", "?"), "stop_error": None, "stopped": None, "gone": None,
+               "late": after_d or found_late, "late_discovery": found_late, "decided_after_cutoff": after_d,
+               "how": getattr(h, "how", "?"), "stop_error": None, "stopped": None, "gone": None,
                "gone_after_cutoff": None}
         self.record = rec
         rec["stop_error"] = h.stop()
         rec["stopped"] = b.clocks.read()
-        by_clock = vd == OPEN                       # D is still ahead: the process must be gone when D comes
-        grace_end = b.clocks.mono() + self.allowance_s
+        at_d = reason == "cutoff" and vd == OPEN    # an ordinary stop before D: gone when D comes
+        grace_end = r[1] + self.allowance_s         # one allowance after the DECISION's own reading
         while True:
-            if h.gone(0.02):
+            room = b.judge(self.cutoff)[1] if vd == OPEN else float("inf")
+            if not at_d:
+                room = min(room, grace_end - b.clocks.mono())
+            if h.gone(min(0.02, max(0.0, room))):   # no wait of the watch's own is asked to cross its limit
                 rec["gone"] = b.clocks.read()
                 rec["gone_after_cutoff"] = b.judge(self.cutoff, reading=rec["gone"])[0] == COME
+                past_d = vd == OPEN and rec["gone_after_cutoff"]
+                if past_d or (not at_d and rec["gone"][1] > grace_end):
+                    self.alarm = ("the native process was first confirmed gone %s; stop sent at %s, confirmed at "
+                                  "%s, reason %s"
+                                  % ("after D" if past_d else "more than one allowance after the decision",
+                                     reading_text(rec["stopped"]), reading_text(rec["gone"]), reason))
                 return
-            over = (b.judge(self.cutoff)[0] != OPEN) if by_clock else (b.clocks.mono() >= grace_end)
+            d_come = vd == OPEN and b.judge(self.cutoff)[0] != OPEN
+            over = d_come if at_d else (d_come or b.clocks.mono() >= grace_end)
             if over:
                 self.alarm = ("the native process is still there %s; stop sent at %s, reason %s"
-                              % ("at D" if by_clock else "one allowance after the decision",
+                              % ("at D" if d_come else "one allowance after the decision",
                                  reading_text(rec["stopped"]), reason))
                 return
             err = h.stop()
@@ -283,8 +362,10 @@ class Watch:
         out = []
         rec = self.record
         if rec is not None:
-            out.append("watch decision reason=%s late=%s left_to_cutoff_s=%.6f %s"
-                       % (rec["reason"], rec["late"], rec["left_to_cutoff_s"], reading_text(rec["decided"])))
+            out.append("watch decision reason=%s late=%s late_discovery=%s decided_after_cutoff=%s "
+                       "left_to_trigger_s=%.6f left_to_cutoff_s=%.6f %s"
+                       % (rec["reason"], rec["late"], rec["late_discovery"], rec["decided_after_cutoff"],
+                          rec["left_to_trigger_s"], rec["left_to_cutoff_s"], reading_text(rec["decided"])))
             if rec["stopped"] is not None:
                 out.append("watch stop sent how=%s error=%s %s"
                            % (rec["how"], rec["stop_error"], reading_text(rec["stopped"])))

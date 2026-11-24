@@ -98,7 +98,17 @@ Version 5 (the seats' nine points of 23 November; every case below fails on budg
   X, A3  STOP authorizes nothing (Astra 161757Z 2): self_play_s 0.0, matches_s 0.0, no forecast_c4_at_D_scenario;
      X's full-run figure 34,400,000 + 10,000 x 75,600 = 790,400,000 stands as forecast_if_run_scenario.
   T1 lease_end_s 86,399.96 (Astra 161757Z 3): D = 82,799.96 = 2069999/25, dispatch end 82,199.96 = 2054999/25;
-     cutoff_floor_s 82,799, dispatch_end_floor_s 82,199; D_s reads 82,800.0 (display). T0 = M: 82,800 and 82,200.
+     cutoff_floor_s 82,799, dispatch_end_floor_s 82,199. TS0 = M: 82,800 and 82,200.
+  Version 6 (Astra 165415Z, 165505Z): every window is computed from the whole seconds the control carries. With
+     that lease D is 82,799 and the dispatch end 82,199: D_s 82,799.0, dispatch_stop_s 82,199.0, left 75,599.0.
+     W1 target met, now 82,199: no match (before: one pair). W2 one row missing, now 82,199: SELF_PLAY, no match.
+     W3 target met, now 82,198: one second is left, floor(1 x 12,000 / 7,200) = 1 pair (before: three pairs, 1.8 s).
+     W4 now 82,199.1: no match. W5 now 82,198.1 and one exclusive second: no match. W6 one row missing, now 82,799:
+     SHORT, deficit 1, left 0.0 (before: SELF_PLAY with one second). W7 now 82,798 and one exclusive second: SHORT.
+     W8 now 82,798: SELF_PLAY, left 1.0, forecast 1,999,999,999 + 30,400 = 2,000,030,399.
+     The fence cases are named FD1 to FD6 and the times TS0, TS1 (F2 and T1 are older cases: every case keeps its
+     own files in the test folder). Y: a finding of failure row 3 names no path: the reason holds no part of the
+     test folder's path, and local_only names the file.
   I  the inputs (Astra 162047Z): I1 names the sha256 of the three files as written; two pilots with the same
      numbers and another note give two different results; the same input twice gives the same result; I2 without
      a pilot: pilot_sha256 null.
@@ -162,6 +172,8 @@ def with_(base, **kw):
 def sourced(kind, obj, drop=(), **over):
     """obj with failure row 3's sources: every measured key names RAW, except `drop`; `over` replaces entries."""
     s = {k: SRC for k in NEEDS[kind] if k not in drop}
+    if kind == "state" and obj.get("exclusive_s") not in (None, 0) and "exclusive_s" not in drop:
+        s["exclusive_s"] = SRC                  # version 7: a nonzero exclusive time names its raw file
     s.update(over)
     return dict(obj, sources=s)
 
@@ -336,27 +348,57 @@ for name, kw in (("B1", {"plan": with_(PLAN, owner_choice=NO)}),
 
 # ------------------------------------------------------------------------------- version 5: the seats' nine points
 MET, ONE = 2000000000, 1999999999
-case("F1", 0, {"outcome": "REACHED", "left_s": 1.0, "dispatch_stop_s": 82200.0, "new_dispatch_s": 0.0, "matches": [],
+case("FD1", 0, {"outcome": "REACHED", "left_s": 1.0, "dispatch_stop_s": 82200.0, "new_dispatch_s": 0.0, "matches": [],
                "matches_s": 0.0, "self_play_s": 0.0, "idle_s": 1.0}, state={"now_s": 82799, "c4_rows": MET})
-case("F2", 0, {"outcome": "REACHED", "left_s": 600.0, "new_dispatch_s": 0.0, "matches": [], "matches_s": 0.0,
+case("FD2", 0, {"outcome": "REACHED", "left_s": 600.0, "new_dispatch_s": 0.0, "matches": [], "matches_s": 0.0,
                "self_play_s": 0.0, "idle_s": 600.0}, state={"now_s": 82200, "c4_rows": MET})
-case("F3", 0, {"outcome": "REACHED", "left_s": 601.0, "new_dispatch_s": 1.0, "matches": [["a", 2000, 2, 0.6]],
+case("FD3", 0, {"outcome": "REACHED", "left_s": 601.0, "new_dispatch_s": 1.0, "matches": [["a", 2000, 2, 0.6]],
                "matches_s": 0.6, "self_play_s": 0.0, "idle_s": 600.4}, state={"now_s": 82199, "c4_rows": MET})
-case("F4", 0, {"outcome": "SELF_PLAY", "left_s": 600.0, "new_dispatch_s": 0.0, "matches": [], "matches_s": 0.0,
+case("FD4", 0, {"outcome": "SELF_PLAY", "left_s": 600.0, "new_dispatch_s": 0.0, "matches": [], "matches_s": 0.0,
                "spare_s": 600.0, "self_play_s": 600.0, "forecast_c4_at_D_scenario": 2018239999,
                "reason_has": "dispatch end"}, state={"now_s": 82200, "c4_rows": ONE})
-case("F5", 0, {"outcome": "SELF_PLAY_AND_MATCHES", "left_s": 601.0, "new_dispatch_s": 1.0,
+case("FD5", 0, {"outcome": "SELF_PLAY_AND_MATCHES", "left_s": 601.0, "new_dispatch_s": 1.0,
                "matches": [["a", 2000, 2, 0.6]], "matches_s": 0.6, "self_play_s": 600.4},
      state={"now_s": 82199, "c4_rows": ONE})
-case("F6", 0, {"outcome": "SELF_PLAY_AND_MATCHES", "left_s": 1200.0, "new_dispatch_s": 600.0, "spare_s": 1200.0,
+case("FD6", 0, {"outcome": "SELF_PLAY_AND_MATCHES", "left_s": 1200.0, "new_dispatch_s": 600.0, "spare_s": 1200.0,
                "matches": [["a", 2000, 2000, 600.0]], "matches_s": 600.0, "self_play_s": 600.0},
      state={"now_s": 81600, "c4_rows": ONE})
-case("T0", 0, {"D_s": 82800.0, "cutoff_floor_s": 82800, "dispatch_end_floor_s": 82200, "new_dispatch_s": 75000.0,
+case("TS0", 0, {"D_s": 82800.0, "cutoff_floor_s": 82800, "dispatch_end_floor_s": 82200, "new_dispatch_s": 75000.0,
                "bounds_exact": {"D_s": "82800", "dispatch_end_s": "82200"}})
-case("T1", 0, {"outcome": "SELF_PLAY_AND_MATCHES", "D_s": 82800.0, "dispatch_stop_s": 82200.0,
-               "cutoff_floor_s": 82799, "dispatch_end_floor_s": 82199,
-               "bounds_exact": {"D_s": "2069999/25", "dispatch_end_s": "2054999/25"}},
-     plan=with_(PLAN, lease_end_s=Decimal("86399.96")))
+FRAC = with_(PLAN, lease_end_s=Decimal("86399.96"))
+case("TS1", 0, {"outcome": "SELF_PLAY_AND_MATCHES", "D_s": 82799.0, "dispatch_stop_s": 82199.0, "left_s": 75599.0,
+                "cutoff_floor_s": 82799, "dispatch_end_floor_s": 82199,
+                "bounds_exact": {"D_s": "2069999/25", "dispatch_end_s": "2054999/25"}}, plan=FRAC)
+case("W1", 0, {"outcome": "REACHED", "left_s": 600.0, "new_dispatch_s": 0.0, "matches": [], "matches_s": 0.0,
+               "idle_s": 600.0}, plan=FRAC, state={"now_s": 82199, "c4_rows": MET})
+case("W2", 0, {"outcome": "SELF_PLAY", "left_s": 600.0, "new_dispatch_s": 0.0, "matches": [], "matches_s": 0.0},
+     plan=FRAC, state={"now_s": 82199, "c4_rows": ONE})
+case("W3", 0, {"outcome": "REACHED", "left_s": 601.0, "new_dispatch_s": 1.0, "matches": [["a", 2000, 2, 0.6]],
+               "matches_s": 0.6}, plan=FRAC, state={"now_s": 82198, "c4_rows": MET})
+case("W4", 0, {"outcome": "REACHED", "new_dispatch_s": 0.0, "matches": []}, plan=FRAC,
+     state={"now_s": Decimal("82199.1"), "c4_rows": MET})
+case("W5", 0, {"outcome": "REACHED", "new_dispatch_s": 0.0, "matches": []}, plan=FRAC,
+     state={"now_s": Decimal("82198.1"), "c4_rows": MET, "exclusive_s": 1})
+case("W6", 5, {"outcome": "SHORT", "deficit_rows": 1, "left_s": 0.0}, plan=FRAC, state={"now_s": 82799, "c4_rows": ONE})
+case("W7", 5, {"outcome": "SHORT", "deficit_rows": 1, "left_s": 0.0}, plan=FRAC,
+     state={"now_s": 82798, "c4_rows": ONE, "exclusive_s": 1})
+case("W8", 0, {"outcome": "SELF_PLAY", "left_s": 1.0, "matches": [], "forecast_c4_at_D_scenario": 2000030399},
+     plan=FRAC, state={"now_s": 82798, "c4_rows": ONE})
+GONE = os.path.join(out, "a_raw_file_that_is_not_there.txt")
+rc, res = run("Y", state=dict(STATE, sources={"c4_rows": {"path": GONE, "sha256": "0" * 64}}))
+check("Y exit, outcome", (rc, res.get("outcome")), (6, "UNQUALIFIED"))
+check("Y the reason names the key and the kind", "state.c4_rows: raw file missing" in res.get("reason", ""), True)
+check("Y the reason holds no path", os.path.basename(out) in res.get("reason", "x" + os.path.basename(out)), False)
+check("Y local_only names the file", (res.get("local_only") or {}).get("raw_files"),
+      [["state.c4_rows", "raw file missing", GONE]])
+# Version 7 (Astra 165715Z): M with 75,000 exclusive seconds decides STOP with 600 s left; without a raw file named
+# for that number the answer is UNQUALIFIED; a zero needs no source.
+rc, res = run("E1", state=dict(STATE, exclusive_s=75000, sources={"c4_rows": SRC}))
+check("E1 exit, outcome", (rc, res.get("outcome")), (6, "UNQUALIFIED"))
+check("E1 the reason names the key", "state.exclusive_s: no raw file named" in res.get("reason", ""), True)
+case("E2", 4, {"outcome": "STOP", "left_s": 600.0}, state=dict(STATE, exclusive_s=75000))
+case("E3", 0, {"outcome": "SELF_PLAY_AND_MATCHES", "left_s": 75600.0},
+     state=dict(STATE, exclusive_s=0, sources={"c4_rows": SRC}))
 
 
 def sha_of(name, kind):
