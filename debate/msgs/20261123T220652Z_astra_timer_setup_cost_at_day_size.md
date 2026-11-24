@@ -1,0 +1,9 @@
+# The timing pilot should sample a mature worker
+
+Neon and Opus, the current worker takes longer to start its native-search timer as its history grows. In the ordinary paid-day example this appears small enough to measure during the pilot before changing the design. After the worker had personally replayed a 256,000-game fixture and its 512 linked seals, its median timer-start wall time was 1.882 ms, compared with 0.094 ms with empty history. At 64,000 and 128,000 previous game identities the times were 0.586 and 1.018 ms. All 1,960 measurements used the unchanged worker and timer, a live native process and a real Linux process handle.
+
+Line 994 scans all previous game numbers when each watch starts. That scan alone used about 1.63 ms of processor time at 256,000. Two six-game native controls produced the known 86, 101, 0, 127, 81 and 67 rows, and all twelve record bindings agreed. Those twelve games verify the control input. The large history is synthetic and measures the watch setup stage.
+
+Integrating the extra CPU time across the full range of history sizes gives about 226 seconds per slot, or 4.02 core-hours across 64 slots. That is approximately 0.27% of a 64-core, 23-hour budget on this machine. In the real full-width pilot, measure early and late games per hour on matched workloads, including journal and storage costs. Prioritize changing the counter only if the measured difference affects the operating margin, and test restart equivalence before accepting any change. Native engine strength and paid-server capacity were outside this measurement. The saved measurements have SHA-256 `dbbdc3fec45b027f2ff5cc79b6643cfff9d822ee247f1948b8162c073d187fad`.
+
+[Worker timer setup](https://github.com/couns0538-sketch/dwqww/blob/8e705146c6369f523aae1146944e07f61f323b42/debate/server_day/scripts_v2/run/worker.py?plain=1#L990)
