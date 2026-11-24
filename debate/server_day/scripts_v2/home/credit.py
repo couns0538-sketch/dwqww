@@ -73,6 +73,18 @@ tmp/opus_scratch/credit_v2/KNOWN_ANSWERS_credit_v2_by_opus.md on the PC):
  C6 the C1 pieces of slot k whose kept seal names round r are exactly the range seal's [first_index, through_index]
    (none for an empty range): else HOLDS naming the first one outside. With credit lists in stage/, the table is
    first opened READ-ONLY and must hold a decided round: else STOP 4, and nothing is written.
+VERSION 3 (Opus 2026-11-24; FORMATS 2.3 [2.2]: a `partial` publication needs the home guard's DRAIN.json; known
+answers written before the code, tmp/opus_scratch/drain/KNOWN_ANSWERS_drain_by_opus.md on the PC): with THIS run's
+home/DRAIN.json at home (home/drain.py writes it; its reader read_drain) nothing more comes, so a round no longer
+waits for what is not at home: a range seal not at home makes every id of its row "missing" (no piece of the row is
+used, range_seals {slot, sha256 null}, 0 games and rows in); a piece of a range that is not in C1 is left out (its
+ids "missing"); the range seal's first_prev_seal and through_seal are checked when their pieces are in C1, its sums
+only when every piece is. The round is then decided "partial" (2.3: it credits nothing). Still WAITS: a C1 piece
+without its verdict, a schedule gap, a range seal under a newer schedule, a conflict record; still HOLDS: a broken
+chain. DRAIN.json is read only when a round would otherwise wait; one that is not the home guard's record HOLDS that
+round; another run's counts as none. Without a drain of this run, version 3 is version 2, also against a loop that
+loses a piece: a range's sums are skipped only for a piece the DRAIN left out (24 Nov 08:02: a first version 3 skipped
+them whenever a piece was absent, and test_credit's plant 11 then decided rounds where version 2 ALARMS).
 """
 import argparse
 import json
@@ -86,6 +98,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "run"))
 sys.path.insert(0, str(HERE))
 from custody import HEX64, Home  # noqa: E402
+from drain import read_drain  # noqa: E402   v3: the one reader of the home guard's DRAIN.json
 from record import RecordError, id_parts  # noqa: E402
 from content import GAME_KEYS, VERDICT_KEYS  # noqa: E402   C2: the keys of the program that writes the verdicts
 from worker import NOT_COMPLETE, STATES, Stop, canon, create_only, parse_canon, sha256_bytes  # noqa: E402
@@ -108,6 +121,10 @@ class Holds(Exception):
     """Home's evidence contradicts itself: an alarm, nothing is decided."""
 
 
+class NotAtHome(Waits):
+    """v3: a range seal that is not at home (after this run's drain: missing, not awaited)."""
+
+
 def is_int(*xs) -> bool:
     return all(type(x) is int for x in xs)
 
@@ -124,6 +141,7 @@ class Rounds:
         self.stage = home / "stage"
         self.db = self.stage / "credited.sqlite"
         self._chains, self._conflicts, self._broken, self._rounds_of, self.short = {}, None, {}, {}, {}
+        self._drain = None
 
     # ---- what home holds ------------------------------------------------------------------------------------------
     def rows(self) -> dict:
@@ -261,7 +279,7 @@ class Rounds:
         name = f"r{r:04d}.w{k:03d}.seal.json"
         p = self.H.wire / "ranges" / (name + ".zz")
         if not p.exists():
-            raise Waits(f"the range seal {name} is not at home")
+            raise NotAtHome(f"the range seal {name} is not at home")
         try:
             b = zlib.decompress(p.read_bytes())
             s = parse_canon(b, name)
@@ -318,6 +336,17 @@ class Rounds:
              f"{name}: first_index {s['first_index']} is below -1")
         return sha256_bytes(b), s
 
+    def drained(self) -> bool:
+        """v3: THIS run's DRAIN.json is at home; read once a pass, only when a round would otherwise wait. A file
+        that is not the home guard's record HOLDS the round; another run's counts as none."""
+        if self._drain is None:
+            try:
+                got = read_drain(self.home, self.fp)
+            except ValueError as e:
+                raise Holds(f"home/DRAIN.json: {e}") from None
+            self._drain = got is not None and got[1]["run_fingerprint"] == self.fp
+        return self._drain
+
     def release(self, r: int, rows: dict) -> list:
         """Every slot of round r: (k, range seal sha256, range seal, [(index, kept seal, verdict)]); else Waits or
         Holds with the reason."""
@@ -325,34 +354,48 @@ class Rounds:
         for (k, rr), (first, last) in sorted(rows.items()):
             if rr != r:
                 continue
-            sha, s = self.range_seal(k, r, first, last)
+            try:
+                sha, s = self.range_seal(k, r, first, last)
+            except NotAtHome:
+                if not self.drained():
+                    raise
+                # v3, drained: the absent range seal reads as an empty one of the row, so every id is "missing"
+                out.append((k, None, {"first": first, "last": last, "games": 0, "rows": 0,
+                                      "dispositions": {"not_done": [], "never_dispatched_first": None}}, []))
+                continue
             c1 = self.chain(k)
             outside = [i for i in self._rounds_of[k].get(r, []) if not s["first_index"] <= i <= s["through_index"]]
             if outside:
                 raise Holds(f"r{r:04d}.w{k:03d}: C1 holds w{k:03d}/p{outside[0]:06d} of round {r} outside its range "
                             f"seal's pieces [{s['first_index']}, {s['through_index']}]")
-            pieces = []
+            pieces, left_out = [], 0
             if s["first_index"] >= 0:
                 for i in range(s["first_index"], s["through_index"] + 1):
                     if i not in c1:
                         if k in self._broken:
                             raise Holds(self._broken[k][1])
+                        if self.drained():
+                            left_out += 1
+                            continue                    # v3: nothing more comes; its ids are "missing"
                         raise Waits(f"w{k:03d}/p{i:06d} of round {r} is not in custody's chain (C1) yet")
                     v = self.verdict(k, i)
                     if v is None:
                         raise Waits(f"w{k:03d}/p{i:06d} of round {r} has no content verdict yet")
                     self.check_verdict(k, i, c1[i], v)
                     pieces.append((i, c1[i], v))
-                first_prev = c1[s["first_index"]]["prev_seal"]
-                need(first_prev == s["first_prev_seal"], f"r{r:04d}.w{k:03d}: first_prev_seal is not the seal before "
-                                                         f"p{s['first_index']:06d} at home ({first_prev})")
-                need(c1[s["through_index"]]["sha256"] == s["through_seal"],
-                     f"r{r:04d}.w{k:03d}: through_seal {s['through_seal']} is not the kept seal of "
-                     f"p{s['through_index']:06d} at home ({c1[s['through_index']]['sha256']})")
+                if s["first_index"] in c1:              # v3: after a drain a piece of the range may be absent
+                    first_prev = c1[s["first_index"]]["prev_seal"]
+                    need(first_prev == s["first_prev_seal"], f"r{r:04d}.w{k:03d}: first_prev_seal is not the seal "
+                                                             f"before p{s['first_index']:06d} at home ({first_prev})")
+                if s["through_index"] in c1:
+                    need(c1[s["through_index"]]["sha256"] == s["through_seal"],
+                         f"r{r:04d}.w{k:03d}: through_seal {s['through_seal']} is not the kept seal of "
+                         f"p{s['through_index']:06d} at home ({c1[s['through_index']]['sha256']})")
                 need(all(p[1]["round"] == r for p in pieces), f"r{r:04d}.w{k:03d}: a piece of another round in its range")
-                need([s["games"], s["rows"], s["raw_bytes"]] ==
-                     [sum(p[1][x] for p in pieces) for x in ("games", "rows", "raw_bytes")],
-                     f"r{r:04d}.w{k:03d}: games, rows or raw_bytes are not the sums of its pieces' seals")
+                if not left_out:                        # v3: only a piece the DRAIN left out skips the sums (v2's guard)
+                    need([s["games"], s["rows"], s["raw_bytes"]] ==
+                         [sum(p[1][x] for p in pieces) for x in ("games", "rows", "raw_bytes")],
+                         f"r{r:04d}.w{k:03d}: games, rows or raw_bytes are not the sums of its pieces' seals")
             else:
                 need(s["first_prev_seal"] is None and s["through_seal"] is None and
                      (s["games"], s["rows"], s["raw_bytes"]) == (0, 0, 0), f"r{r:04d}.w{k:03d}: a range without a "
@@ -499,7 +542,7 @@ class Rounds:
 
     def one_pass(self) -> int:
         self.H.check_records()                          # C3, C4: STOP 3 or 4 before anything is decided or written
-        self._chains, self._conflicts, self._broken, self._rounds_of = {}, None, {}, {}
+        self._chains, self._conflicts, self._broken, self._rounds_of, self._drain = {}, None, {}, {}, None
         t, waits, holds = dict(decided=0, complete=0, partial=0, games=0, rows=0), "none", 0
         try:
             rows = self.rows()                          # C5: the schedule files at home
