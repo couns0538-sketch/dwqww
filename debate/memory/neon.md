@@ -1,25 +1,33 @@
-# Neon Memory (Server Day + 8h Continuation Debate)
+# Neon Memory (8h Continuation — Phase 1: Engine Plan & Later Stages)
 
-Updated: 2026-11-23T17:12:40Z (UTC).
-Active branch: `debate/server-plan-20261123` (fetch `origin/debate/server-plan-20261123-astra` too; Astra edits after `17:25Z`).
+Updated: 2026-11-23T17:36:11Z (UTC).
+Active branch: `debate/server-plan-20261123` (Astra edits `debate/engine_plan/ENGINE_PLAN_8H.md` on `origin/debate/server-plan-20261123-astra`).
 
-## Owner-Confirmed 8h Continuation Schedule (`232555Z`, confirmed directly by owner to Astra `162834Z`)
-- **Now – `17:25Z` (~12m remaining with Fable):** Fable leaves at `17:25Z` (`FABLE OUT`). Watching for Fable's patched `clockwatch.py` + `budget.py` v6 drops and `FABLE OUT` ledger.
-- **Hours 1–4 (`17:25Z` – `21:25Z`): Engine plan & later stages.** Astra edits, Neon reviews/verifies with evidence & `forge6.5` branch measurements. Deliverable: `debate/engine_plan/ENGINE_PLAN_8H.md` + `AGREE <sha256> neon ENGINE_PLAN_8H.md` (Fable checks once at `21:55Z`).
-- **Hours 5–8 (`21:25Z` – `01:25Z` Nov 24): Server-day plan.** Vote (`YES`/`NOT YET`) on Opus's `scripts_v2/` drops (`<stamp>_opus_<subject>.md`), write/verify exact specs + hand-computed test cases under `debate/server_day/specs/`, write ordered rehearsal & measurements, and finalize plain-words `debate/server_day/FINAL_FOR_THE_OWNER.md` + exact-byte `AGREE` (Fable checks once at `01:55Z`). Deliver final plain-words summary to user at `01:25Z`.
-- **Strict rules:** Only touch files under `debate/` (never `source/`); nothing personal/secret; update memory ~every 10 minutes; plain pushes only.
+## Phase & Schedule (`232555Z`, `FABLE OUT` `001806Z`)
+- **Phase 0 COMPLETE (`17:25Z`):** `FORMATS.md` 2.9 (`ac566296`), `SETUP_PLAN.md` 2.7 (`4100b2a5`), 7/9 `scripts_v2/` files (`engine_lines`, `uciproc`, `test_uciproc`, `record`, `test_record`, `budget` v7 `76817bad`, `test_budget` `52ef5a14`) all **3/3 YES**. 2/9 (`clockwatch` v4 `d21930a1`, `test_clockwatch` `507883ba`) **NOT YET** -> Opus.
+- **ACTIVE NOW — Phase 1 (Hours 1–4, `17:25Z` – `21:25Z`): ENGINE PLAN & LATER STAGES.**
+  - Deliverable by `21:25Z`: `debate/engine_plan/ENGINE_PLAN_8H.md` (edited by Astra) + `AGREE <sha256> neon ENGINE_PLAN_8H.md`. Fable checks once at `21:55Z`.
+- **UP NEXT — Phase 2 (Hours 5–8, `21:25Z` – `01:25Z` Nov 24): SERVER-DAY PLAN.**
+  - Opus drops, `debate/server_day/specs/` (`171134Z`, `171332Z`, `172109Z` + all unwritten programs), ordered rehearsal + measurements (`171712Z`, `172415Z`), `FINAL_FOR_THE_OWNER.md` + `AGREE` by `01:25Z`.
+- **Strict rules:** Only touch `debate/` (never `source/`); nothing personal/secret; update memory ~every 10 minutes; plain pushes only.
 
-## Current Agreed Documents & `scripts_v2/` Ledger (Manifest `583a289d...`)
-- **`FORMATS.md` 2.9** (`ac566296`): **3/3 AGREED**. **`SETUP_PLAN.md` 2.7** (`4100b2a5`): **3/3 AGREED**.
-- **5 files with 3/3 `YES`:** `run/engine_lines.py` (`a82eb9c8`), `run/uciproc.py` (`7de2728a`), `tests/test_uciproc.py` (`690b3243`), `run/record.py` (`bc71fa89`), `tests/test_record.py` (`a8e16021`).
-- **4 files voted `NOT YET` by BOTH Astra (`165352Z`–`170243Z`, `170921Z`) and Neon (`170114Z`):**
-  - `run/clockwatch.py` (`15e76daf`) & `tests/test_clockwatch.py` (`20458abd`): native Linux `pidfd` + `CLOCK_BOOTTIME` + zombie readability + Forge integration + 68/68 + 7/7 mutations PASS. Blocking fixes needed: (1) `by_clock = reason == "cutoff" and vd == OPEN` (hold at `dispatch_end` hung up to `D`), (2) late exit inside `h.gone(0.02)` after `D` must still alarm + bound wait to time left, (3) `select.poll()` for `pidfd >= 1024`, (4) judge existing bounds before non-blocking `refresh` + accepted cross-thread tightening wakes sleeping `Watch` without lost wakeup (`170921Z`), (5) `late` flag on tightened trigger (`left_t < 0`), (6) `math.isfinite` checks on `Bounds.set` / `Watch.__init__`.
-  - `tools/budget.py` v5 (`24b6aded`) & `tests/test_budget.py` v5 (`b419d5bb`): 379/379 PASS, 9 prior defects fixed. Blocking fixes needed: (1) compute action windows (`left`, `new_s`) from `cutoff_floor_s`/`dispatch_end_floor_s` (exact fractional kept in `bounds_exact`), (2) omit local paths from `UNQUALIFIED` `reason`, (3) source check for nonzero `exclusive_s`, (4) deduplicate `F2`/`T1` test labels.
-  - **Builder spec note (`171134Z` confirmed by Neon arithmetic):** On `OWNER_CHOICE` (exit 3), `budget.py` prints `self_play_s = left` even if policy is `stop` or uncovered reduced target (`r=20000`, `left=80000` -> `n=25000`, `forecast=1.6B`; `1.5B -> n=18750 covered`, `1.7B -> n=21250 uncovered, 100M shortfall`); home control builder must branch strictly on hashed machine-readable policy and fail closed on unknown/uncovered actions.
-- **Read-only Phase 1 prep completed:** Fetched `origin/forge6.5` (`fe3d86afee`), read `README.txt`, `LOOP_OPTIONS.txt`, `FINAL_PLAN.md` (R1–R6, W1–W16, addendum `A16`–`A26`, `N17`–`N23`), `clock_plan.hpp`, `tm_finish.hpp`, `tm_node_share.hpp`, `uci_clock.hpp`, `nnue_v3.hpp`, `search.hpp`.
-- **Cached Linux Forge binary (outside repo):** `/tmp/neon_forge_bin/forge_avx2` (`8c934216...`).
+## Exact `Forge 6.5` Live Test Harness (Outside Repo)
+- Source: `/tmp/neon_forge65_src/source/` (`origin/forge6.5` `fe3d86afee`), net: `forge65_net.fnn3`.
+- Binary: `/tmp/neon_forge65_exact/forge` (`-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1`, AVX-512), verified **bit-exact** to `origin/forge6.5:README.txt` (`bench 11 = 226187`, `bench 13 = 616966`, 24 `loop/LOOP_OPTIONS.txt` settings).
 
-## Next actions
-1. Push `17:12Z` memory refresh; watch for Fable's patches and `17:25Z` `FABLE OUT`.
-2. If Fable publishes patched `clockwatch.py` / `budget.py` before `17:25Z`, audit + run Linux tests + vote immediately!
-3. At `17:25Z` (`FABLE OUT`), transition immediately with Astra to Phase 1 (`17:25Z` – `21:25Z`: `debate/engine_plan/ENGINE_PLAN_8H.md`).
+## Phase 1 Progress & Findings (`173611Z`)
+- **Reviewed Astra `a7e106ef60` (`proposed_game_disjoint_training_validation`):** AGREED as a later-stage diagnostic with two tightenings: (1) target-neutrality rule (different training targets must be evaluated on a third neutral target, never one arm's own labels), (2) 3-level overlap report (same-game=0, exact `board+turn`, opening-ID/book-prefix) + deduplicated-position metric.
+- **Clean 9-topic division:** Astra = opening-gate sensitivity, yardstick ceilings (`N20`+), labels/validation independence (`A19`+); Neon = `L-TM`, `L-SEARCH`, `L-SMP`, `L-WIN`, `L-TB`, `L-GEN`.
+- **`L-TM` (live proof beyond `N19`):**
+  1. `TmNodeShare` (`search.cpp:3185–3211`) fires from depth 1 (`startpos` `60+0.6`: `soft 3176 -> 4478 depth 1`) and breaks both bounds (`1-legal-move` `10+0.1` `soft=529`, floor `238ms`, stopped at `128ms` = `24%` of soft; high end up to `5.25x soft`).
+  2. `moves_to_go > 0` (`clock_plan.hpp:37–41`) ignores all 4 `Tm*` allocation options (`wtime=2000, winc=1000, mtg=1, TmHardPercent=20, TmIncrementPercent=0`: ran `854ms` vs `<=398ms` cap).
+  3. `TmFallingEvalPercent` (`search.cpp:3181–3184`) suppresses extension on `-Mate` (`!is_mate_score`) and misses multi-ply drift.
+  4. All 10 `Tm*` tunables untuned on clock -> clock-SPSA after fixes.
+- **`L-SEARCH` (live proof beyond `N22`):** 22 dormant switches in `search.cpp:100–230` (+ `FORGE_PAWN_HISTORY`). Swept d10 (`13.4k`) -> d13 (`49.7k`) -> d15 (`128.2k`) on 20 openings (and 20 switches on 40 openings d10/d13): `LmrSignedCorrection` `0/20 -> 1/20 -> 6/20`; `NullThreatVerify` `3/20 -> 11/20 -> 18/20`; `CaptureFutilityBase=120` `0.9996 -> 0.9768 -> 0.8789` (`-12.1%`); `LmrLateParentRelief` flips `+1.9% -> -2.5%`; overlaps `ThreatHistory`+`HistRework=2` (`+19.7%` nodes at d13) and `SoundMatePruning`+`MateAlphaGuard` (`+10.3%`).
+- **`L-SMP` (live proof beyond `N18`):** `TranspositionTable::lock_stripe` (`search.cpp:438`) executes global `stripes_dirty_.store(true, seq_cst)` on EVERY TT probe/store for `Threads > 1` + mutex + `exclusive_requested_` `seq_cst` load; `bench` ignores `Threads`. Live `go movetime 2000` (`Hash=64`, 4 positions): `T1=2.051M` (d24.00) -> `T2=3.565M` (`86.9%`/th, d25.75) -> `T4=6.775M` (`82.6%`/th, d25.75, +0 depth gain); `20x d12`: `T1=68ms`, `T2=92ms` (35% slower!), `T4=66ms` (`2.70x` nodes).
+
+## Immediate Next Actions
+1. Commit & push `173611Z` + memory update.
+2. Run live `Forge 6.5` `selfgame` measurements for **`L-GEN`** (`uci.cpp:448–560` termination mix, 1-ply `evallimit` false-resignation/flip rate, trajectory/position uniqueness) and **`L-TB`** (`<=5`-piece / `<=6`-piece prevalence & endgame conversion error rates).
+3. Run exact storage/IO/card-hour/staleness modeling for **`L-WIN`** (`2B -> 4B -> 10B+` positions, single-card I/O vs DDP compute trigger, multi-gen eviction).
+4. Monitor Astra's branch for replies & `debate/engine_plan/ENGINE_PLAN_8H.md` outline/drafts; review/challenge every section thoroughly.
