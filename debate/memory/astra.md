@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T22:19:44Z
+- Last update: 2026-11-23T23:00:22Z
 - Phase: server-day planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T221944Z
+20261123T230022Z
 
 # Current schedule
 
@@ -301,3 +301,39 @@ All seven complete server correctness workloads have been rerun on three native 
 The local home inventory check with 32,766 already-recorded pieces took 1.78 s and 80 MiB before the compressed terminal arrived, then 3.07 s and 320 MiB with it. It reread zero game payloads. A separate real admission of 32,768 small synthetic pieces proved that a single missing member could connect another 2,048 already-held pieces and create just one receipt (221358Z). A private Linux lifetime prototype ended all ten busy native engines after the parent exited and preserved the known six-game records. The released double-process-loss case still needs a production repair and full service test (221416Z).
 
 The initial real seed-rule rehearsals progressed through sealed records, compressed fallback, official custody and independent rules replay. The four-slot run accounted for 4,000 assigned identities, including 3,999 completed self-games and one opening that ended before a self-game, with 517,196 raw rows. Last source seal at 237.404 s, fully flushed home-landing custody at 237.926 s and independent replay complete at 242.586 s. These results measure the local fallback route. The Windows correction/filter pipeline and paid capacity remain open. Neon's exact owner-report vote on f26fb1f9 and separate specification review remain pending. Next are the duplicate-filter counting control, the remaining seeded runs and new script revisions.
+
+### 22:30 UTC. Current home reader, restore, peer votes and kept counts
+
+Opus published the first official home content reader and its test at shared 8a7c0eb8. I read every line and tested the exact files. It checked 22 genuine compressed fallback pieces containing 10,998 completed self-games and two openings that ended before self-play. All 1,415,159 raw rows and all 11,000 per-game index entries agreed with the independent rules replay. Five serial runs totaled 63.221 seconds, or 22,384 raw rows per second on one local Linux process. Opus reported 12,047 rows per second on one occupied home PC core. These measurements end before correction, filtering and durable kept output.
+
+I voted NOT YET on both new files in 222809Z, verified at 186600fd. After restoring a valid older database and leaving the later verdicts intact, the unchanged reader reported 1,000 accepted games with only 500 games left in its duplicate/conflict index. A clean rebuild from both receipts restored all 1,000. A separate home-directory reuse mixed two genuine runs and reported 257,243 rows for a run with 255,135. The static fixture is byte-identical to my 13 known game records. Opus checked the original configuration against the missing provenance hash. I approved those two static inputs in 222736Z, bringing my static votes to all 19. Those votes do not approve the executable package.
+
+The current paid package contains 29 programs, tests and the service, of which seven have three exact YES votes. My current votes are 11 YES and 18 NOT YET. Neon independently reread and voted NOT YET on the launcher, reboot checker, terminal inventory, home control builder and all four tests (222600Z on 8c7a5464). His totals are 11 YES, 8 NOT YET and 10 unreviewed on these bytes. Fable has seven YES and 22 awaiting a vote. Neon's exact owner-summary and 14-file specification votes are still pending.
+
+In 222355Z I recorded five complete native local custody rehearsals, including a 30.1-second simulated home outage. In 222445Z I verified that the actual PC filter can serialize two rows but keep one. The five fresh sets had at least 37,077 duplicate position occurrences among their 1,415,159 raw rows. A separate loopback transfer resumed a valid partial without resending it, recovered a lost acknowledgment with no duplicate credit and requested exactly one full member again after an older partial was damaged. No paid capacity or durable C4 has been demonstrated. Next are the multi-process home check, complete budget evidence, the revised owner document for Neon's review and new implementation reviews.
+
+### 22:40 UTC. Every published script now has Astra and Neon decisions
+
+The owner received the scheduled 22:35 UTC report. Since that report, Neon published ten further precise NOT YET votes at shared 9e7a3560, message 223800Z. Astra and Neon have now each reviewed all 29 current programs, tests and the Linux service. Each has eleven YES and eighteen NOT YET. Fable has seven YES and no current decision for the other twenty-two. Seven files have all three approvals. Neon independently verified the stale content index and cross-run verdict problem. He also found an earlier run’s receipt could leave a permanent refused verdict in the new run. His agreement on testing disjoint checker lanes on the PC is a design decision. The real PC C3/C4 pilot remains open.
+
+The owner document was updated at 62188e7b, exact bytes c8a6c150f4a4c2dc24bec9bf589a3ca4bca9d8b8ab28ea9832a626aadf11c072. Astra's exact agreement and request to Neon are in 223057Z. Neon’s subsequent ten votes have a separate immutable message. His exact owner-document and specification decisions have not yet arrived.
+
+Eighteen local tests recovered identical per-piece verdicts and all 4,000 SQLite entries with one, two or four disjoint checker processes. Rates were 23,150, 45,385 and 82,346 raw rows/s. They covered the same 517,196 positions each time. A fresh fixed-list control supplied genuinely equal rows under eighteen distinct IDs. Twelve ordinary and 32 interrupted collection tests always chose the same earliest eligible game for each of five families. Ten duplicate games and three distinct zero-row games remained separately accounted. The 462 unique source rows await the actual final filter. No production checker or publisher bytes changed.
+
+Two separate genuine run directories also survived three orders of old/new machine evidence, with identical individual results in each. With the original host permanently unreachable, only its 500 observed games and 65,125 rows were checked while the replacement accounted for all of its own 2,000 games and 255,135 rows. Source loss cannot establish the old unoffered tail’s byte count. An isolated real 600-second checker outage is now running while official home custody accepts additional pieces. The next native piece-size comparison will measure how much completed work remains on the source before home receives it. The paid package and full-route rental capacity remain unqualified.
+
+### 22:50 UTC. Actual ten-minute checker outage, offline recovery and review links
+
+The current releases still have seven three-seat approvals. At 224650Z I linked all 65 individual Astra, Neon and Fable decisions against the exact release's 29 files. The independent correction check at 224359Z reproduced all three published round-137 winners. Of 3,000 genuine three- to five-man final boards, the 116 available local tables answered 2,991. A missing dependency left nine unknown. Of 1,184 answered native draws, 93 had a decisive table result. The official corrector and its counted output still need rehearsal.
+
+For 600.000 seconds I paused content checking while official home custody kept accepting compressed native game pieces. At recovery there were seven waiting pieces covering 452,799 rows. Checking drained them in 20.14 seconds. All eight verdicts and all 4,000 indexed game records matched the uninterrupted baseline. A repeat issued zero new custody receipts. Two offline home environments, Python 3.12 and 3.13 with different SQLite releases, stopped cleanly without their chess dependency. With the same verified local chess 1.11.2 source installed, both reproduced all 1,000 game records and both original verdict hashes. These tests cover custody and rules replay. The final filter, remote host and rental capacity still await qualification.
+
+In the first controlled native test, cutting pieces from 500 to 250 to 100 games reduced peak finished games waiting for home receipt from 502 to 252 to 101 on a healthy local path. All 1,000 game identities and 130,986 rows matched. A second seed in reverse order and independent full rules replay are running. The plan keeps its current default until full-route evidence warrants a change. Next I will send the exact updated owner file to Neon and check new releases for changed script bytes.
+
+### 23:00 UTC. Joint owner report and specifications
+
+The shared owner report and my fallback copy have identical SHA-256 b7f0018287d4f30a5953e69128e9ab0949631d6d89e0750c1246d074c145e35b. My vote was 225802Z and Neon's was 230500Z, joined in 225831Z. Both seats also agreed on all fourteen specifications, set 430a52d62a9cb0655cdbf4f6b1d8e2bdb9faa12125474a499dfc87ca86fe82c0, at 225717Z and 230200Z. Neon independently verified seven Linux workloads and all thirteen rules examples. Both seats now have decisions for every one of the 48 listed files. Each has 30 YES and 18 NOT YET, counting the 19 static inputs. Of the 29 programs, tests and service files, each has 11 YES and 18 NOT YET. Fable has seven exact YES on those files. Seven have all three approvals.
+
+I reproduced a pilot admission mismatch on four genuine runs. A hashed policy declaring one round allowed a command-line argument to start two, and the reverse combination stopped after one; agreeing counts of one and two worked. The second real game produced 125 raw rows outside the first fixture's declared cohort. Opus and Neon have the positive and negative controls at 225517Z. At simulated expiry with one missing compressed member, 15 pieces had 1,171 verified raw rows but only 11 pieces and 836 rows connected to the start of their slot. Adding the late 127-row member connected 462 rows. Only one new physical item was necessary; C4 remained zero. Evidence in 225549Z.
+
+Two native blocks, in reverse order, compared 500, 250 and 100 IDs per piece on a healthy local transfer. At 100 rather than 500 the peak confirmed-to-be-waiting rows fell 78.5–79.0%, while compressed bytes rose 0.42–0.45%. This introduces five times as many pieces and the full-width actual home must price those extra checks. Replaying all 6,000 identities recovered 778,446 raw rows and repeat custody produced zero new receipts. A four-round 20,000-ID steady-production rehearsal is running on one native slot with the official checker accepting each new sealed piece. The first five minutes produced 1,550 finished IDs and 201,581 raw rows. The 1/5 Mbit/s paced network rehearsal remains in progress. Paid capacity still needs the real PC, link, correction and filtered published rounds. Next: incoming code reviews, the steady production and capacity checks, the scheduled owner update at 00:35 and final at 01:25 UTC.
