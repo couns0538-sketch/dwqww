@@ -34,6 +34,15 @@ from `bytes` (A); 6 packed_bytes with the seal member (A); 7 every slot with a j
 id's why always "cutoff" (B); 9 the fingerprint over less than the body (A); 10 a schedule's prev not checked (R8);
 11 another TERMINAL.jsonl accepted (R10); 12 the .zz never written (A, R11); 13 through_seal not checked (R5); 14 an
 offer outside the chain not refused (R9); 15 no {"n":0} record (N); 16 a dispatch_unknown id with a line (R14).
+VERSION 2 (Opus 2026-11-24; KNOWN_ANSWERS_terminal_v2_by_opus.md on the PC, with its CHANGED section of 03:36), part V:
+T-A VA1 to VA5 (the ranges against the schedule each seal names; VA4 a seal read from its wire copy), VL (a schedule the
+guard's own new_schedule writes after slot 1 ended: exit 0 and a note), VL2, VL3 (a later schedule shortens a row a
+slot sealed: exit 0), VS1, VS2 (A0, the worker's check_rows); T-B VB1 to VB4; T-C VC1 to VC5b with VC4b; T-D VD1, VD2;
+T-F VF1 (control VF1c), VF2, VF3; T-E VE1 (control VE1c), VE2. PLANTS 17 to 44, each must fail its named case: 17 A1
+(VA1), 18 A2 (VA2), 19 A3 (VA3, VA3b, VL2), 20 the wire copy not read (VA4), 21 A5 (VA5), 22 to 25 B1 to B4 (VB1 to
+VB4), 26 to 29 C1 to C4 (VC1 to VC4), 30 C5a (VC5a), 31 C5b (VC5b), 32 D1 (VD1), 33 D2 (VD2), 34 to 36 F1 to F3 (VF1
+to VF3), 37 E1 (VE1), 38 E2 (VE2), 39 C4's null branch (VC4b), 40 A3 against the FINAL schedule (VL), 41 L always 0
+(VL2), 42 A1 and A2 against the FINAL schedule (VL3), 43 A0 on the schedules (VS1), 44 A0 on the pilot ranges (VS2).
 """
 import hashlib
 import json
@@ -83,6 +92,40 @@ PLANTS = {
     "plant15": ('        lines.append(canon({"n": 0, "t": "schedule"}))\n', '        pass\n'),
     "plant16": ('            need(not mine, f"{name}: {g} is dispatch_unknown and has a journal line")\n',
                 '            pass\n'),
+    # version 2 (part V): one exact replacement each
+    "plant17": ('need(row, f"{what}: no range', 'need(True, f"{what}: no range'),
+    "plant18": ('need(canon({x: rs.get(x) for x in ROWF}) == canon({x: row.get(x) for x in ROWF}),', 'need(True,'),
+    "plant19": ('need(want["round"] in sealed,', 'need(True,'),
+    "plant20": (r'rpat = re.compile(rf"r([0-9]{{4}})\.{name}\.seal\.json(?:\.zz)?")',
+                r'rpat = re.compile(rf"r([0-9]{{4}})\.{name}\.seal\.json")'),
+    "plant21": ('need(not plain.exists() or not twin.exists() or same_zz(twin, b),', 'need(True,'),
+    "plant22": ('            need(fi == -1\n', '            need(True\n'),
+    "plant23": ('                 and rs.get("first_prev_seal") is None\n', '                 and True\n'),
+    "plant24": ('                 and rs.get("through_seal") is None, f', '                 and True, f'),
+    "plant25": ('need(d["done"] + d["noselfgame"] == 0,', 'need(True,'),
+    "plant26": ('need(all(d[st] >= 0 for st in STATES),', 'need(True,'),
+    "plant27": ('need(sum(d[st] for st in STATES) == rs["last"] - rs["first"] + 1,', 'need(True,'),
+    "plant28": ('need(all(d[st] == sum(p[1] == st for p in nd) for st in', 'need(all(True for st in'),
+    "plant29": ('(type(ndf) is int and d["never_dispatched"] == rs["last"] - ndf + 1)', 'True'),
+    "plant30": ('need(part is not None and part[:2] == (run, k) and rs["first"] <= part[2] <= rs["last"],',
+                'need(part is not None,'),
+    "plant31": ('need(all(x < y for x, y in zip(ctr, ctr[1:])),', 'need(True,'),
+    "plant32": (r'OFFER = re.compile(r"p([0-9]{6})\.offer\.json(?:\.zz)?")',
+                r'OFFER = re.compile(r"p([0-9]{6})\.offer\.json")'),
+    "plant33": ('    if bad:', '    if False:'),
+    "plant34": ('need(type(h.get("schema")) is int and h["schema"] == 2,', 'need(True,'),
+    "plant35": ('need(sorted(f) == FENCE_KEYS,', 'need(True,'),
+    "plant36": ('need(type(f.get("schema")) is int and f["schema"] == 2,', 'need(True,'),
+    "plant37": ('need(f1 > t0,', 'need(True,'),
+    "plant38": ('        if miss:', '        if False:'),
+    "plant39": ('need(ndf is None if', 'need(True if'),
+    "plant40": ('scheds[L]', 'scheds[-1]'),
+    "plant41": ('L = max(named, default=0)', 'L = 0'),
+    "plant42": ('rows = scheds[s] if', 'rows = scheds[-1] if'),
+    "plant43": ('scheds.append(check_rows(s.get("ranges"), h["slots"], n, f"SCHEDULE.{n}.json"))',
+                'scheds.append(s.get("ranges"))'),
+    "plant44": ('scheds = [check_rows(h.get("pilot_ranges"), h["slots"], 0, "RUN.json pilot_ranges")]',
+                'scheds = [h.get("pilot_ranges")]'),
 }
 RUN = WORK / "run"
 shutil.copytree(SRC.parent, RUN, ignore=shutil.ignore_patterns("__pycache__"))
@@ -94,6 +137,7 @@ if PLANT:
     print(f"PLANT {PLANT} applied to the copy's terminal.py")
 sys.path.insert(0, str(RUN))
 import worker as W  # noqa: E402
+import guard as G  # noqa: E402   part V: SCHEDULE.2 of VL is made by the guard's own new_schedule
 
 RESULTS = []
 
@@ -291,6 +335,7 @@ def fixtures():
         return
     k = copy(a, "k_base")                               # slot 1 ended, slot 2 untouched; K's fence goes below
     (k / "FENCE.json").unlink()
+    STATE["l0"] = copy(k, "l0")                         # part V's VL starts here (version 2)
     rc2, out2 = worker(a, 2)
     if not check("fixture A: slot 2 under the fence: exit 0, one seal_only epoch, ended \"finalizer\", "
                  "never_dispatched 3",
@@ -488,10 +533,195 @@ def part_refusals():
     check("E1 a root that is not a folder: exit 2", rc, 2)
 
 
+# ---- part V: version 2 (the known answers' CHANGED section) ----------------------------------------------------
+def forge(root: Path, rel: str, fn) -> None:
+    """A range seal changed by fn and written canonical; its .zz, where there is one, written again from the new
+    bytes, so that A5 does not refuse first."""
+    p = root / rel
+    p.write_bytes(W.canon(fn(json.loads(p.read_bytes()))))
+    z = p.with_name(p.name + ".zz")
+    if z.exists():
+        z.write_bytes(zlib.compress(p.read_bytes(), 6))
+
+
+def disp(**kw):
+    """For forge(): the dispositions changed by kw, nothing else."""
+    return lambda s: dict(s, dispositions=dict(s["dispositions"], **kw))
+
+
+def bare_n(name: str, fn) -> Path:
+    """A root holding N's RUN.json changed by fn and a FENCE.json for its fingerprint, nothing else (slot 0 never ran)."""
+    r = WORK / name
+    put(r / "RUN.json", W.canon(fn(json.loads((STATE["n"] / "RUN.json").read_bytes()))))
+    fence(r, "D")
+    return r
+
+
+def gid(k: int, c: int) -> str:
+    return f"term-w{k:03d}-g{c:08d}"
+
+
+def part_v():
+    a, rd = STATE["a"], (lambda r, rel: (r / rel).read_bytes())
+    R1, R2 = "ranges/r0001.w001.seal.json", "ranges/r0001.w002.seal.json"
+    check("part V: fixture A's two range seals have their wire copies (the packer's)",
+          [(a / (x + ".zz")).exists() for x in (R1, R2)], [True, True])
+    foot_a = {"cutoff_reached": True, "ids": ids(done=6, never_dispatched=3),
+              "offered_bytes": sum(json.loads(piece_line(a, 1, i))["offered_bytes"] for i in range(3)), "pieces": 3,
+              "pieces_offered": 3, "raw_rows": 462, "slots": {"ended": 2, "unreconciled": 0}, "stop_reason": "D"}
+    # T-A: each seal against the schedule it names; an ended slot against schedule L
+    r = copy(a, "va1")
+    put(r / "ranges" / "r0002.w001.seal.json", W.canon(dict(json.loads(rd(r, R1)), round=2)))
+    refused("VA1 a seal of round 2, of which schedule 1 has no row", r, "no range of round 2")
+    r = copy(a, "va2")
+    forge(r, R2, lambda s: dict(s, last=2, dispositions=dict(s["dispositions"], never_dispatched=2,
+                                                              never_dispatched_first=1)))
+    refused("VA2 r0001.w002 with last 2", r, "not the schedule's range")
+    for name, rel in (("VA3", R1), ("VA3b", R2)):
+        r = copy(a, name.lower())
+        (r / rel).unlink()
+        (r / (rel + ".zz")).unlink()
+        refused(f"{name} {rel} and its wire copy gone", r, f"{rel[7:]} is missing")
+    r = copy(a, "va4")
+    (r / R1).unlink()
+    inventory("VA4", r, [rd(a, "RUN.json"), rd(a, "SCHEDULE.1.json"), rd(a, "FENCE.json"), slot_line(r, 1, "ended", 2),
+                         piece_line(r, 1, 0), piece_line(r, 1, 1), piece_line(r, 1, 2), rd(a, R1),
+                         slot_line(r, 2, "ended", -1), rd(a, R2)], 11, foot_a, time.time())
+    r = copy(a, "va5")
+    (r / (R1 + ".zz")).write_bytes(zlib.compress(rd(r, R2), 6))
+    refused("VA5 r0001.w001's wire copy holds r0001.w002's bytes", r, "does not decode to the plain range seal")
+    # T-B: a range without a piece
+    for name, fn, why in (("VB1 r0001.w002 first_index 42", lambda s: dict(s, first_index=42), "a range without a piece"),
+                          ("VB2 r0001.w002 first_prev_seal 64 zeros", lambda s: dict(s, first_prev_seal="0" * 64),
+                           "a range without a piece"),
+                          ("VB3 r0001.w002 through_seal BOGUS", lambda s: dict(s, through_seal="BOGUS"),
+                           "a range without a piece"),
+                          ("VB4 r0001.w002 done 3, never_dispatched 0",
+                           disp(done=3, never_dispatched=0, never_dispatched_first=None), "no game")):
+        r = copy(a, name.split()[0].lower())
+        forge(r, R2, fn)
+        refused(name, r, why)
+    # T-C: the counts
+    r = copy(STATE["c"], "vc1")
+    forge(r, R1, disp(done=-1, never_dispatched=6, never_dispatched_first=1))
+    refused("VC1 C's r0001.w001 done -1 (never_dispatched 6 from 1, g4 dispatch_unknown kept)", r, ">= 0")
+    for name, rel, fn, why in (
+            ("VC2 r0001.w001 done 5", R1, disp(done=5), "sum"),
+            ("VC3 r0001.w002 dispatch_unknown 1 without its pair", R2,
+             disp(never_dispatched=2, never_dispatched_first=2, dispatch_unknown=1, not_done=[]), "pairs"),
+            ("VC4 r0001.w002 never_dispatched_first 2", R2, disp(never_dispatched_first=2), "never_dispatched_first"),
+            ("VC4b r0001.w002 never_dispatched 0 with never_dispatched_first 3", R2,
+             disp(dispatch_unknown=3, never_dispatched=0, never_dispatched_first=3,
+                  not_done=[[gid(2, c), "dispatch_unknown"] for c in (1, 2, 3)]), "never_dispatched_first"),
+            ("VC5a r0001.w002 an id of counter 9", R2,
+             disp(dispatch_unknown=1, never_dispatched=2, never_dispatched_first=2,
+                  not_done=[[gid(2, 9), "dispatch_unknown"]]), "not an id of the range"),
+            ("VC5b r0001.w002 g1 twice", R2,
+             disp(dispatch_unknown=2, never_dispatched=1, never_dispatched_first=3,
+                  not_done=[[gid(2, 1), "dispatch_unknown"]] * 2), "rise")):
+        r = copy(a, name.split()[0].lower())
+        forge(r, rel, fn)
+        refused(name, r, why)
+    # T-D: strays
+    r = copy(a, "vd1")
+    (r / "out" / "w001" / "p000099.offer.json.zz").write_bytes(b"x")
+    refused("VD1 out/w001/p000099.offer.json.zz beyond the chain", r, "an offer of p000099")
+    r = copy(a, "vd2")
+    shutil.copyfile(r / "SCHEDULE.1.json", r / "SCHEDULE.01.json")
+    refused("VD2 SCHEDULE.01.json beside SCHEDULE.1.json", r, "SCHEDULE.01.json")
+    # T-F: schema
+    r = bare_n("vf1", lambda h: dict(h, schema=1))
+    refused("VF1 RUN.json schema 1", r, "RUN.json: not schema 2")
+    r = bare_n("vf1c", lambda h: h)
+    rc, out = terminal(r)
+    want = W.canon({"epochs": [], "last_index": -1, "last_seal": f"genesis:{sha(rd(r, 'RUN.json'))}:w000", "slot": 0,
+                    "state": "unreconciled", "t": "slot"})
+    check("VF1c control: N's RUN.json unchanged, no slot file: exit 0, slot 0 unreconciled",
+          (rc, (r / "TERMINAL.jsonl").exists() and want in rd(r, "TERMINAL.jsonl"), out[-160:] if rc else ""),
+          (0, True, ""))
+    r = copy(a, "vf2")
+    rewrite(r / "FENCE.json", lambda f: dict(f, extra=1))
+    refused("VF2 FENCE.json with a key more", r, "FENCE.json: not the keys of a fence")
+    r = copy(a, "vf3")
+    rewrite(r / "FENCE.json", lambda f: dict(f, schema=1))
+    refused("VF3 FENCE.json schema 1", r, "FENCE.json: not schema 2")
+    # T-E: coverage
+    r = copy(a, "ve1")
+    j = rd(r, "w001/journal.txt").split(b"\n")[:-1]
+    check("VE1: slot 1's journal ends with its ended line", json.loads(j[-1])["t"], "ended")
+    (r / "w001" / "journal.txt").write_bytes(b"\n".join(j[:-1]) + b"\n")
+    rewrite(r / "SCHEDULE.1.json", lambda s: dict(s, ranges=s["ranges"] + [
+        {"first": 7, "last": 9, "round": 2, "schedule": 1, "short": False, "slot": 1}]))
+    c_ = copy(r, "ve1c")
+    s = json.loads(rd(r, R1))
+    put(r / "ranges" / "r0002.w001.seal.json", W.canon(dict(s, round=2, first=7, last=9, dispositions=dict(
+        s["dispositions"], done=0, never_dispatched=3, never_dispatched_first=7))))
+    refused("VE1 r0002.w001 names slot 1's pieces 0 to 2 again", r, "in two range seals")
+    rc, out = terminal(c_)
+    check("VE1c control (VE1 without r0002.w001): exit 0, slot 1 unreconciled to p000002",
+          (rc, (c_ / "TERMINAL.jsonl").exists() and slot_line(c_, 1, "unreconciled", 2) in rd(c_, "TERMINAL.jsonl"),
+           out[-160:] if rc else ""), (0, True, ""))
+    r = copy(a, "ve2")
+    p0 = sha(rd(r, "w001/closed/p000000.seal.json"))
+    forge(r, R1, lambda s: dict(s, first_index=1, first_prev_seal=p0))
+    refused("VE2 r0001.w001 from p000001: p000000 in no range", r, "not in a range")
+    # the late schedule (CHANGED section): VL, VL2, VL3
+    v = copy(STATE["l0"], "vl")
+    s1b = rd(v, "SCHEDULE.1.json")
+    s1 = json.loads(s1b)
+    g = object.__new__(G.Guard)                         # the guard's own new_schedule writes SCHEDULE.2
+    g.sched, g.h, g.fp = [(s1b, s1)], json.loads(rd(v, "RUN.json")), sha(rd(v, "RUN.json"))
+    put(v / "SCHEDULE.2.json", g.new_schedule("0" * 64, 2, s1["cutoff_utc"], s1["dispatch_end_utc"]))
+    fence(v, "D")
+    rc, out = worker(v, 2)
+    seals = [json.loads(rd(v, f"ranges/r000{x}.w002.seal.json")) if (v / f"ranges/r000{x}.w002.seal.json").exists()
+             else {} for x in (1, 2)]
+    if not check("fixture VL: SCHEDULE.2 (new_schedule) adds round 2, slot 1 7 to 12 and slot 2 4 to 6; slot 2's start "
+                 "under the fence: exit 0, seal_only, seals of rounds 1 and 2 naming schedule 2, never_dispatched 3 each",
+                 (rc, sorted((x["slot"], x["first"], x["last"], x["schedule"], x["short"])
+                             for x in json.loads(rd(v, "SCHEDULE.2.json"))["ranges"] if x["round"] == 2),
+                  [ln.get("mode") for ln in jlines(v, 2) if ln["t"] == "epoch"],
+                  [(x.get("schedule"), x.get("dispositions", {}).get("never_dispatched")) for x in seals]),
+                 (0, [(1, 7, 12, 2, False), (2, 4, 6, 2, False)], ["seal_only"], [(2, 3), (2, 3)])):
+        print(out)
+        return
+    r = copy(v, "vl2")
+    (r / "ranges" / "r0002.w002.seal.json").unlink()
+    refused("VL2 VL without r0002.w002.seal.json (r0001.w002 names schedule 2)", r, "r0002.w002.seal.json is missing")
+    inventory("VL", v, [rd(v, "RUN.json"), s1b, rd(v, "SCHEDULE.2.json"), rd(v, "FENCE.json"),
+                        slot_line(v, 1, "ended", 2), piece_line(v, 1, 0), piece_line(v, 1, 1), piece_line(v, 1, 2),
+                        rd(v, R1), slot_line(v, 2, "ended", -1), rd(v, R2), rd(v, "ranges/r0002.w002.seal.json")], 13,
+              {"cutoff_reached": True, "ids": ids(done=6, never_dispatched=6), "offered_bytes": 0, "pieces": 3,
+               "pieces_offered": 0, "raw_rows": 462, "slots": {"ended": 2, "unreconciled": 0}, "stop_reason": "D"},
+              time.time())
+    rc, out = terminal(v)
+    check("VL a second run: exit 0, the output names slot 1's round 2 as without a range seal",
+          (rc, "w001 ended without a range seal of round(s) [2]" in out), (0, True))
+    r = copy(a, "vl3")
+    s1b = rd(r, "SCHEDULE.1.json")
+    s1 = json.loads(s1b)
+    rows = [dict(x, last=2, short=True, schedule=2) if x["slot"] == 2 else x for x in s1["ranges"]]
+    put(r / "SCHEDULE.2.json", W.canon(dict(s1, n=2, prev=sha(s1b), ranges=rows)))
+    check("fixture VL3: SCHEDULE.2 has the schedule keys and passes the worker's check_rows",
+          (sorted(json.loads(rd(r, "SCHEDULE.2.json"))) == W.SCHEDULE_KEYS, W.check_rows(rows, [1, 2], 2, "VL3") == rows),
+          (True, True))
+    inventory("VL3", r, [rd(r, "RUN.json"), s1b, rd(r, "SCHEDULE.2.json"), rd(r, "FENCE.json"),
+                         slot_line(r, 1, "ended", 2), piece_line(r, 1, 0), piece_line(r, 1, 1), piece_line(r, 1, 2),
+                         rd(r, R1), slot_line(r, 2, "ended", -1), rd(r, R2)], 12, foot_a, time.time())
+    # A0: the worker's check_rows
+    r = copy(a, "vs1")
+    rewrite(r / "SCHEDULE.1.json", lambda s: dict(s, ranges=[dict(x, round="1") if x["slot"] == 1 else x
+                                                             for x in s["ranges"]]))
+    refused("VS1 SCHEDULE.1's slot 1 row with round \"1\" (a text)", r, "a range row that is not 1.2's")
+    r = bare_n("vs2", lambda h: dict(h, pilot_ranges=[dict(h["pilot_ranges"][0], last=0)]))
+    refused("VS2 RUN.json's pilot row with last 0", r, "a range row that is not 1.2's")
+
+
 safe(fixtures)
 if "n" in STATE:
     safe(part_inventories)
     safe(part_refusals)
+    safe(part_v)
 else:
     check("the fixtures were made", False, True)
 failed = [n for n, ok in RESULTS if not ok]

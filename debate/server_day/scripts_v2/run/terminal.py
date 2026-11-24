@@ -23,6 +23,16 @@ a seal missing before later ones, a `closed` line that names no seal of the chai
 end at its ended line, an offer of another seal or whose .zz is not its bytes, an offer outside the chain, a range seal
 whose pieces are not the chain's, an id state without its journal line, a line after an `ended` line. The ids of an
 unreconciled slot's open range have no range seal: they are counted nowhere, and the slot's state says so.
+VERSION 2 (Opus 2026-11-24; the NOT YETs of Astra 65c89bdc and Neon 20261123T222600Z section 3) refuses as well: RUN.json
+or FENCE.json not schema 2, a FENCE.json without exactly FENCE_KEYS; a SCHEDULE.*.json name outside the worker's
+grammar; a schedule row or pilot row the worker's check_rows refuses (A0); an offer's wire file outside the chain; a
+range seal whose round has no row in the schedule it names, or whose first, last and short are not that row's (A1, A2);
+an ENDED slot without a range seal of every row of schedule L, the highest schedule its seals name (A3); a range seal's
+wire copy that is not its bytes (A5); a range without a piece that names one or counts a game (B); counts below 0, not
+summing to the range, not matching their not_done ids, a never_dispatched_first that does not fit, a not_done id outside
+the range or not rising (C); a piece in two range seals, and a piece of an ENDED slot in none (E). A range seal whose
+plain file is gone is read from its wire copy (A4). An ENDED slot's rows of the FINAL schedule that A3 does not require
+and that have no seal (the guard may write a schedule after a slot ended) are named on the output, not refused.
 WRITTEN create-only: TERMINAL.jsonl, then TERMINAL.jsonl.zz (zlib 6). A TERMINAL.jsonl found from an earlier run must be
 this spool's (its bytes before the footer the same, its footer the same but for completed_at_utc): it is kept and a
 missing .zz is written; otherwise refused and nothing changes. A second run changes nothing.
@@ -36,11 +46,13 @@ import zlib
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from worker import STATES, Stop, canon, create_only, parse_canon, sha256_bytes  # noqa: E402
+from record import RecordError, id_parts  # noqa: E402
+from worker import FENCE_KEYS, STATES, Stop, canon, check_rows, create_only, parse_canon, sha256_bytes  # noqa: E402
 
-SCHED = re.compile(r"SCHEDULE\.([1-9][0-9]*)\.json")
+SCHED = re.compile(r"SCHEDULE\.([1-9][0-9]{0,2})\.json")        # the worker's grammar (load_schedules)
 SEAL = re.compile(r"p([0-9]{6})\.seal\.json")
-OFFER = re.compile(r"p([0-9]{6})\.offer\.json")
+OFFER = re.compile(r"p([0-9]{6})\.offer\.json(?:\.zz)?")
+ROWF = ("first", "last", "short")
 DOUBT = "no line: in doubt after an earlier play epoch (1.8 point 3)"
 
 
@@ -53,12 +65,14 @@ def need(ok, text: str) -> None:
         raise Refused(text)
 
 
-def rec(path: Path, what: str):
-    """(bytes, object) of a canonical record."""
+def rec(path: Path, what: str, zz: bool = False):
+    """(bytes, object) of a canonical record; zz: the file is its wire copy (zlib) and the decoded bytes are read."""
     try:
         data = path.read_bytes()
+        if zz:
+            data = zlib.decompress(data)
         return data, parse_canon(data, what)
-    except OSError as e:
+    except (OSError, zlib.error) as e:
         raise Refused(f"{what} cannot be read ({type(e).__name__})") from None
     except ValueError as e:
         raise Refused(str(e)) from None
@@ -86,7 +100,8 @@ def journal(path: Path, what: str) -> list:
     return out
 
 
-def slot_lines(root: Path, fp: str, k: int, tally: dict) -> list:
+def slot_lines(root: Path, fp: str, run, scheds: list, k: int, tally: dict) -> list:
+    """scheds[s]: the rows of schedule s (0 = the header's pilot_ranges), each list passed by check_rows."""
     name = f"w{k:03d}"
     sdir, odir, genesis = root / name, root / "out" / name, f"genesis:{fp}:{name}"
     jl = journal(sdir / "journal.txt", f"{name}/journal.txt")
@@ -117,7 +132,7 @@ def slot_lines(root: Path, fp: str, k: int, tally: dict) -> list:
     tally["ended" if ended else "unreconciled"] += 1
     out = [canon({"epochs": [ln for ln in jl if ln["t"] == "epoch"], "last_index": last_index, "last_seal": last_seal,
                   "slot": k, "state": "ended" if ended else "unreconciled", "t": "slot"})]
-    stray = [int(m[1]) for p in odir.glob("p*.offer.json") if (m := OFFER.fullmatch(p.name)) and int(m[1]) >= len(chain)]
+    stray = [int(m[1]) for p in odir.glob("p*.offer.json*") if (m := OFFER.fullmatch(p.name)) and int(m[1]) >= len(chain)]
     if stray:
         raise Refused(f"out/{name}: an offer of p{min(stray):06d}, which is not a seal of the chain")
     for ix, (x, s) in enumerate(chain):
@@ -139,11 +154,13 @@ def slot_lines(root: Path, fp: str, k: int, tally: dict) -> list:
         tally["rows"] += s["rows"]
         out.append(canon({"index": ix, "offer": osha, "offered_bytes": ob, "packed_bytes": pb,
                           "raw_bytes": s["raw_bytes"], "seal": x, "slot": k, "t": "piece"}))
-    rpat = re.compile(rf"r([0-9]{{4}})\.{name}\.seal\.json")
-    ids = []
-    for r in sorted(int(m[1]) for p in (root / "ranges").glob(f"r*.{name}.seal.json") if (m := rpat.fullmatch(p.name))):
+    rpat = re.compile(rf"r([0-9]{{4}})\.{name}\.seal\.json(?:\.zz)?")
+    ids, spans, named, sealed = [], [], [], set()
+    for r in sorted({int(m[1]) for p in (root / "ranges").glob(f"r*.{name}.seal.json*")
+                     if (m := rpat.fullmatch(p.name))}):
         what = f"ranges/r{r:04d}.{name}.seal.json"
-        b, rs = rec(root / what, what)
+        plain, twin = root / what, root / f"{what}.zz"
+        b, rs = rec(plain, what) if plain.exists() else rec(twin, f"{what}.zz", zz=True)    # A4: the wire copy
         d = rs.get("dispositions") if isinstance(rs, dict) else None
         need(isinstance(d, dict) and rs.get("run_fingerprint") == fp and rs.get("slot") == k and rs.get("round") == r
              and all(type(d.get(st)) is int for st in STATES) and isinstance(d.get("not_done"), list),
@@ -154,10 +171,65 @@ def slot_lines(root: Path, fp: str, k: int, tally: dict) -> list:
                  and rs.get("through_seal") == chain[ti][0]
                  and rs.get("first_prev_seal") == (genesis if fi == 0 else chain[fi - 1][0]),
                  f"{what}: its pieces are not the chain's (through_seal or first_prev_seal)")
+            spans.append((fi, ti))
+        else:                                           # B (1.7): a range without a piece names none and played none
+            need(fi == -1
+                 and rs.get("first_prev_seal") is None
+                 and rs.get("through_seal") is None, f"{what}: a range without a piece names one (first_index, "
+                                                     f"first_prev_seal or through_seal)")
+            need(d["done"] + d["noselfgame"] == 0, f"{what}: it counts a game done, but it has no piece: no game")
+        need(not plain.exists() or not twin.exists() or same_zz(twin, b),
+             f"{what}.zz does not decode to the plain range seal")
+        s = rs.get("schedule")                          # A1, A2: the row of the schedule the seal names
+        rows = scheds[s] if type(s) is int and 0 <= s < len(scheds) else []
+        row = next((x for x in rows if x["slot"] == k and x["round"] == r), {})
+        need(row, f"{what}: no range of round {r} in the schedule it names ({str(s)[:12]})")
+        need(canon({x: rs.get(x) for x in ROWF}) == canon({x: row.get(x) for x in ROWF}),
+             f"{what}: not the schedule's range (first, last, short)")
+        named.append(s)
+        sealed.add(r)
+        nd = d["not_done"]                              # C: the counts and their ids
+        need(all(isinstance(p, list) and len(p) == 2 and all(isinstance(v, str) for v in p) for p in nd),
+             f"{name}: a not_done entry that is not [id, state]")
+        need(all(d[st] >= 0 for st in STATES), f"{what}: a count below 0 (every count must be >= 0)")
+        need(sum(d[st] for st in STATES) == rs["last"] - rs["first"] + 1,
+             f"{what}: the six counts do not sum to the range's size")
+        need(all(d[st] == sum(p[1] == st for p in nd) for st in ("dispatch_unknown", "noselfgame", "refused",
+                                                                 "unfinished")),
+             f"{what}: a count is not the number of its not_done pairs")
+        ndf = d.get("never_dispatched_first")
+        need(ndf is None if d["never_dispatched"] == 0 else
+             (type(ndf) is int and d["never_dispatched"] == rs["last"] - ndf + 1),
+             f"{what}: never_dispatched_first does not fit never_dispatched")
+        ctr = []
+        for g, _ in nd:
+            try:
+                part = id_parts(g)
+            except RecordError:
+                part = None
+            need(part is not None and part[:2] == (run, k) and rs["first"] <= part[2] <= rs["last"],
+                 f"{what}: {g[:60]} is not an id of the range")
+            ctr.append(part[2])
+        need(all(x < y for x, y in zip(ctr, ctr[1:])), f"{what}: the not_done ids do not rise")
         out.append(b)
         for st in STATES:
             tally["ids"][st] += d[st]
         ids += d["not_done"]
+    spans.sort()
+    for (_, t0), (f1, _) in zip(spans, spans[1:]):     # E1: a piece lies in one range at most
+        need(f1 > t0, f"{name}: p{f1:06d} is in two range seals")
+    if ended:
+        L = max(named, default=0)                       # A3: the slot held a schedule at least this high
+        for want in (x for x in scheds[L] if x["slot"] == k):
+            need(want["round"] in sealed, f"ranges/r{want['round']:04d}.{name}.seal.json is missing (and no wire copy)")
+        miss = sorted(set(range(len(chain))) - {i for f0, t0 in spans for i in range(f0, t0 + 1)})
+        if miss:                                        # E2: every piece of an ended slot lies in a range
+            raise Refused(f"{name}: p{miss[0]:06d} is not in a range seal of the ended slot")
+        late = sorted(x["round"] for x in scheds[-1] if x["slot"] == k and x["round"] not in sealed)
+        if late:
+            print(f"terminal: note: {name} ended without a range seal of round(s) {late}: no seal of the slot names a "
+                  f"schedule that has them (the slot ended before them, or their seals are lost); their ids are not in "
+                  f"the inventory")
     for pair in ids:
         need(isinstance(pair, list) and len(pair) == 2 and all(isinstance(v, str) for v in pair),
              f"{name}: a not_done entry that is not [id, state]")
@@ -187,14 +259,22 @@ def body(root: Path):
     fp = sha256_bytes(hb)
     need(isinstance(h, dict) and isinstance(h.get("slots"), list)
          and all(type(k) is int and 0 <= k <= 999 for k in h["slots"]), "RUN.json: no list of slots")
+    need(type(h.get("schema")) is int and h["schema"] == 2, "RUN.json: not schema 2")
+    scheds = [check_rows(h.get("pilot_ranges"), h["slots"], 0, "RUN.json pilot_ranges")]     # A0: the worker's rule
     lines = [hb]
-    nums = sorted(int(m[1]) for p in root.iterdir() if (m := SCHED.fullmatch(p.name)))
+    names = sorted(p.name for p in root.glob("SCHEDULE.*.json"))
+    bad = [x for x in names if not SCHED.fullmatch(x)]
+    if bad:                                             # the worker stops on such a name (Stop 4); so does this
+        raise Refused(f"{bad[0]}: a schedule file name outside the worker's grammar (SCHEDULE.1.json to "
+                      f"SCHEDULE.999.json)")
+    nums = sorted(int(m[1]) for x in names if (m := SCHED.fullmatch(x)))
     need(nums == list(range(1, len(nums) + 1)), f"the schedules are not exactly 1 to {len(nums)}: {nums[:8]}")
     prev = "first"
     for n in nums:
         b, s = rec(root / f"SCHEDULE.{n}.json", f"SCHEDULE.{n}.json")
         need(isinstance(s, dict) and s.get("n") == n and s.get("run_fingerprint") == fp and s.get("prev") == prev,
              f"SCHEDULE.{n}.json is not schedule {n} of this run, linked to the one before it")
+        scheds.append(check_rows(s.get("ranges"), h["slots"], n, f"SCHEDULE.{n}.json"))
         lines.append(b)
         prev = sha256_bytes(b)
     if not nums:
@@ -203,11 +283,13 @@ def body(root: Path):
     fb, f = rec(root / "FENCE.json", "FENCE.json")
     need(isinstance(f, dict) and f.get("run_fingerprint") == fp and isinstance(f.get("why"), str),
          "FENCE.json is not this run's fence")
+    need(sorted(f) == FENCE_KEYS, "FENCE.json: not the keys of a fence")
+    need(type(f.get("schema")) is int and f["schema"] == 2, "FENCE.json: not schema 2")
     lines.append(fb)
     tally = {"ended": 0, "unreconciled": 0, "pieces": 0, "offered": 0, "bytes": 0, "rows": 0,
              "ids": dict.fromkeys(STATES, 0)}
     for k in h["slots"]:
-        lines += slot_lines(root, fp, k, tally)
+        lines += slot_lines(root, fp, h.get("run"), scheds, k, tally)
     return b"".join(lines), f, tally
 
 
