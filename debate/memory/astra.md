@@ -9,7 +9,7 @@ If you lost your context: read `debate/README.md`, this file, `debate/BOARD.md`,
 - Name in this debate: astra
 - Model: OpenAI Codex (Astra)
 - Started: 2026-11-23T03:39:46Z
-- Last update: 2026-11-23T20:39:59Z
+- Last update: 2026-11-23T20:49:39Z
 - Phase: engine planning
 
 ## What I have read to the end (tick a file only when you reached its last line; 26 source files, 11,566 lines)
@@ -84,7 +84,7 @@ db234d6a04e2 in shared-branch Git order.
 
 ## Server-day session, 23 November 2026
 
-20261123T203959Z
+20261123T204939Z
 
 # Current schedule
 
@@ -231,3 +231,11 @@ The revised ENGINE_PLAN_8H.md remains approved by Astra 200233Z and Neon 201300Z
 At 203918Z, two new processes resumed the real sparse reader and floating optimizer inside chunk groups. Each reproduced its first floating update, every original row and its complete native file byte for byte. Half files, bad checksum, misplaced cursor, zero moments and inference-only restores were detected. Roughly 39.1 MB compressed, 2.28–2.29 seconds to pack/copy/test, and 0.21–0.23 seconds to verify and load on this local machine. Actual PC and power-loss rehearsal remain outstanding.
 
 At 203500Z Neon concurred on the completed 768 teacher games. His four-core diversity-only experiment scored 48.12%. Restricting a helper override to a deeper completed search scored 57.50% [52.79,62.21] in the first 40 pairs. Neon froze the version for disjoint and longer-clock confirmation. Astra requested changed-move denominators and the separate results at 203628Z. Opus’s new unlisted-policy startup finding is queued for the server phase. Fable has not issued a new vote. Next review is the confirmed helper result and the Fable evidence handoff. Engine ends 21:25 UTC, server work then continues to 01:25.
+
+### 20:50 UTC. Packing, recency, six-piece coverage and input identity
+
+Astra 204432Z repacked the same 32,768 genuine rows in game order. A group-only reader discarded 1,024–2,048 rows per pass. Carrying the tails restored all rows, but within-game pair collisions rose about 3.78-fold on both seeds, and all 80 passes missed the local tolerance. Two reversible, sorted encodings kept all original feature bytes after decoding and both complete ID traces, but missed the preset byte and speed targets. Astra 204449Z checked the later recency trigger. The two native cohorts are the same producer. The PC survey found 1,407 recurring boards in 211,881 later-round sampled positions. A known-answer fixture exposed a false apparent benefit from recurrent boards. No change to flat pooling.
+
+Astra 204814Z tested a staged six-piece coverage pilot on the existing 101,231 raw positions. The four most frequent missing root classes, even if all could be certified, reach only 50.12% and 49.94% total coverage on the held-out banks. A real root required a missing smaller child table despite installed root files. A fixed-corpus sample of 270 plus 257 unresolved rows, if completely certified with zero wrong labels, would put both total error rates below 1% at joint 95% confidence while reserving ambiguous clock cases as errors. It has 63/64 root classes, so the file budget must be measured. No new table labels.
+
+A private replay checked 1,280 games, 128 starts and 178,134 post-book positions against the students' actual rows. Literal board overlap was zero. The native feature audit found ten late visits (eight distinct input packets) identical to training after engine symmetry transforms, all at five pieces. The complete feature/transform check and witness are being finished for the Fable handoff. Shared F74-1 four-file repair arrived at c6bfe623. Astra queued it at 204746Z for 21:25. Canonical engine bytes and both votes remain f8fb8197; seven of 23 official server files currently carry all three approvals. Owner 20:35 report was delivered. Next memory 21:00 UTC.
