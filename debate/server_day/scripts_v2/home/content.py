@@ -39,11 +39,24 @@ convert and rebuild, which home repeats). For every receipt without a verdict, i
 The last line: content: judged .. pieces (.. refused); accepted .. games .. rows (C2); noselfgame ..; set_aside ..;
 waits ..; conflicts ..   Exit codes: 0 a pass; 2 a wrong call; 3 the header, the game line, the openings file or the
 rules library cannot be trusted (nothing written); 4 a file or the index that cannot be read or written.
+
+VERSION 2 (Opus 23 Nov; the seats' NOT YET of 223800Z and 186600fd; known answers
+tmp/opus_scratch/content_v2/KNOWN_ANSWERS_content_v2_by_opus.md on the PC, 22:54 and 23:03, written before this
+code): every pass first reads every receipt and fork record through custody's record check (another run's: exit 3;
+one custody did not write: exit 4), then the index's run row (another run's index: exit 3) and every verdict on the
+disk: canonical, the form of 2.2 for its own slot and index, this run (another run's: exit 3), its receipt's seal,
+and the judged row (slot, idx, seal_sha256) of its piece in the index, which index() writes in the transaction of
+the piece's entries (an index older than the verdicts, or an empty one: exit 4). The opening rule is read as the
+worker reads it (seed: exactly kind, plies 0 to 64, a root_seed of letters, digits and _, and --openings with it:
+exit 2; list: exactly count, kind, sha256). The draw run is compared with drawcount only after a ply that qualified
+(uci.cpp 543-551: drawcount 0 acts as 1). --convert-seconds must be finite. A piece's scratch folder is removed on
+every exit of its transport, a WAITS too.
 """
 import argparse
 import hashlib
 import json
 import lzma
+import math
 import re
 import shutil
 import sqlite3
@@ -55,9 +68,9 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "run"))
 sys.path.insert(0, str(HERE))
 import record  # noqa: E402
-from custody import HEX64, Home  # noqa: E402
+from custody import HEX64, Home, is_int  # noqa: E402
 from packer import convert, rebuild  # noqa: E402
-from worker import Stop, canon, create_only, sha256_bytes  # noqa: E402
+from worker import Stop, canon, create_only, parse_canon, sha256_bytes  # noqa: E402
 
 try:
     import chess
@@ -67,6 +80,8 @@ except ImportError:
 KEYS = ("softnodes", "evallimit", "maxply", "writeminply", "drawply", "drawscore", "drawcount")
 RECEIPT = re.compile(r"p([0-9]{6})\.receipt\.json")
 VERDICT = re.compile(r"p([0-9]{6})\.verdict\.json")
+VERDICT_KEYS = sorted(("schema", "run_fingerprint", "slot", "index", "seal_sha256", "round", "piece", "why", "games"))
+GAME_KEYS = sorted(("game", "rows", "rows_digest", "state", "why"))
 
 
 class SetAside(Exception):
@@ -175,7 +190,8 @@ def check_game(g: dict, reserved: tuple, v: dict) -> str:
             need(r[4] == board.fen(), f"the position of row {ri - 1} is not the board's")
             need(abs(score) < v["evallimit"], f"row {ri - 1}'s score is at or past evallimit")
             drun = drun + 1 if ply >= v["drawply"] and abs(score) <= v["drawscore"] else 0
-            need((drun >= v["drawcount"]) == last, "the draw run does not end the game where the engine ends it")
+            need((drun > 0 and drun >= v["drawcount"]) == last,    # uci.cpp: compared only after ++run
+                 "the draw run does not end the game where the engine ends it")
             legal(board, tok)
             need(last or tok == played[j], f"row {ri - 1}'s move is not the move played")
         else:
@@ -208,10 +224,16 @@ class Content:
         self.v = game_values(self.H.h.get("game_line"))
         rule = self.H.h.get("opening_rule")
         self.rule, self.table = rule, None
-        if isinstance(rule, dict) and rule.get("kind") == "seed" and type(rule.get("plies")) is int \
-                and isinstance(rule.get("root_seed"), str) and rule["root_seed"].isascii():
+        if isinstance(rule, dict) and sorted(rule) == ["kind", "plies", "root_seed"] and rule["kind"] == "seed":
+            if type(rule["plies"]) is not int or not 0 <= rule["plies"] <= 64 \
+                    or not (isinstance(rule["root_seed"], str) and re.fullmatch(r"[A-Za-z0-9_]{1,64}", rule["root_seed"])):
+                raise Stop(3, "the header's seed rule needs plies 0 to 64 and a root_seed of letters, digits and _ "
+                              "(as the worker reads it)")
+            if openings:
+                raise Stop(2, "--openings is given and the run's opening rule is seed (the worker refuses that call)")
             return
-        if not (isinstance(rule, dict) and rule.get("kind") == "list" and openings):
+        if not (isinstance(rule, dict) and sorted(rule) == ["count", "kind", "sha256"] and rule["kind"] == "list"
+                and openings):
             raise Stop(3, "the header's opening_rule is not seed, or list with --openings given")
         data = Path(openings).read_bytes()
         self.table = [ln.split(" ") if ln else [] for ln in data.decode("ascii").split("\n")[:-1]]   # the worker's parse
@@ -249,7 +271,6 @@ class Content:
             raw = rebuild(meta, (work / "piece.plain").read_bytes().decode("ascii"))
         except ValueError as e:                 # UnicodeDecodeError too; the server proved this round trip
             raise Waits(f"the binpack does not rebuild here, a local outage (home's converter differs): {e}") from None
-        shutil.rmtree(work, ignore_errors=True)
         return raw
 
     def judge(self, k: int, i: int, r: dict) -> tuple:
@@ -265,6 +286,8 @@ class Content:
             raw = self.transport(k, name, files)
         except (zlib.error, lzma.LZMAError, UnicodeDecodeError, ValueError) as e:
             return refused(f"transport: {e}")
+        finally:
+            shutil.rmtree(self.out / "scratch" / f"w{k:03d}.{name}", ignore_errors=True)   # every exit, a WAITS too
         if (len(raw), sha256_bytes(raw)) != (s["raw_bytes"], s["raw_sha256"]):
             if ".binpack" in files:
                 raise Waits("the binpack does not rebuild here, a local outage (home's converter differs): the bytes "
@@ -299,16 +322,21 @@ class Content:
             entries.append((k, g["counter"], s["round"], g["id"], f"w{k:03d}/{name}", st, dg, g["bind"]))
         return dict(head, piece="judged", why=None, games=out), entries
 
-    def index(self, entries: list) -> list:
-        """Every entry not in the index yet is committed; (first, second) for each (slot, counter) that holds other
-        values: the index keeps the first."""
+    def index(self, entries: list, judged: tuple) -> list:
+        """Every entry not in the index yet is committed, with the run row and the piece's judged row (slot, idx,
+        seal_sha256) in the same transaction; (first, second) for each (slot, counter) that holds other values: the
+        index keeps the first."""
         con, clashes = sqlite3.connect(self.db, isolation_level=None), []
         try:
             con.execute("PRAGMA synchronous=FULL")
             con.execute("CREATE TABLE IF NOT EXISTS entries (slot INTEGER, counter INTEGER, round INTEGER, game TEXT, "
                         "piece TEXT, state TEXT, rows_digest TEXT, bind TEXT, PRIMARY KEY (slot, counter))")
             con.execute("CREATE INDEX IF NOT EXISTS by_digest ON entries (rows_digest)")
+            con.execute("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
+            con.execute("CREATE TABLE IF NOT EXISTS judged (slot INTEGER, idx INTEGER, seal_sha256 TEXT NOT NULL, "
+                        "PRIMARY KEY (slot, idx))")
             con.execute("BEGIN IMMEDIATE")
+            con.execute("INSERT OR IGNORE INTO meta VALUES ('run_fingerprint', ?)", (self.fp,))
             for e in entries:
                 old = con.execute("SELECT slot, counter, round, game, piece, state, rows_digest, bind FROM entries "
                                   "WHERE slot = ? AND counter = ?", e[:2]).fetchone()
@@ -316,6 +344,7 @@ class Content:
                     con.execute("INSERT INTO entries VALUES (?, ?, ?, ?, ?, ?, ?, ?)", e)
                 elif tuple(old) != e:
                     clashes.append((tuple(old), e))
+            con.execute("INSERT OR REPLACE INTO judged VALUES (?, ?, ?)", judged)
             con.execute("COMMIT")
         finally:
             con.close()                                 # a transaction left open here is rolled back
@@ -339,11 +368,58 @@ class Content:
                 return
             n += 1
 
+    def check_index(self) -> None:
+        """2.1, 2.2: the index serves this run (its run row), and every verdict on the disk is one this program wrote
+        for this run: canonical, the form of 2.2 for its own slot and index, its receipt's seal, and that piece's judged
+        row in the index. Another run's index or verdict: STOP 3 (a home folder serves one run); an index older than
+        the verdicts (a backup put back), an empty one, or anything else: STOP 4. Nothing is written before."""
+        seen, run = {}, None
+        if self.db.is_file() and self.db.stat().st_size:
+            con = sqlite3.connect(self.db)
+            try:
+                tables = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+                if "meta" in tables:
+                    run = con.execute("SELECT value FROM meta WHERE key = 'run_fingerprint'").fetchone()
+                if "judged" in tables:
+                    seen = {(a, b): c for a, b, c in con.execute("SELECT slot, idx, seal_sha256 FROM judged")}
+            finally:
+                con.close()
+        if run is not None and run[0] != self.fp:
+            raise Stop(3, "content/equal.sqlite is another run's index: a home folder serves one run (2.1); give this "
+                          "run a fresh home folder (nothing was written)")
+        for d in sorted(self.out.glob("w[0-9][0-9][0-9]")) if self.out.is_dir() else []:
+            for p in sorted(d.iterdir()):
+                if not (m := VERDICT.fullmatch(p.name)):
+                    continue
+                k, i, what = int(d.name[1:]), int(m[1]), f"content/{d.name}/{p.name}"
+                try:
+                    v = parse_canon(p.read_bytes(), what)
+                except ValueError as e:
+                    raise Stop(4, f"{what} is not a verdict this program writes: {e}") from None
+                if isinstance(v, dict) and sorted(v) == VERDICT_KEYS and v["run_fingerprint"] != self.fp:
+                    raise Stop(3, f"{what} is another run's verdict: a home folder serves one run (2.1); give this "
+                                  "run a fresh home folder (nothing was written)")
+                if not (isinstance(v, dict) and sorted(v) == VERDICT_KEYS and is_int(v["schema"], v["slot"], v["index"])
+                        and (v["schema"], v["slot"], v["index"]) == (2, k, i) and v["piece"] in ("judged", "refused")
+                        and isinstance(v["games"], list)
+                        and all(isinstance(g, dict) and sorted(g) == GAME_KEYS and is_int(g["rows"])
+                                and g["state"] in ("accepted", "noselfgame", "set_aside") for g in v["games"])):
+                    raise Stop(4, f"{what} is not a verdict of 2.2 for w{k:03d}/p{i:06d}")
+                seal = self.H.record(k, i)["seal_sha256"]
+                if v["seal_sha256"] != seal:
+                    raise Stop(4, f"{what} is not of its receipt's seal_sha256")
+                if seen.get((k, i)) != seal:
+                    raise Stop(4, f"{what} has no judged row of its receipt's seal in content/equal.sqlite: the index "
+                                  "is older than the verdicts (a backup put back) or empty; move content/ aside and "
+                                  "judge again from the receipts")
+
     def one_pass(self) -> int:
         waits = 0
+        self.H.check_records()
         if (not self.db.is_file() or self.db.stat().st_size == 0) and any(self.out.glob("w*/p*.verdict.json")):
             raise Stop(4, "content/equal.sqlite is gone while verdicts exist: a new index would miss their games (equal "
                           "games, two records under one id); move content/ aside and judge again from the receipts")
+        self.check_index()
         for k in self.H.h["slots"]:
             d = self.H.cust / f"w{k:03d}"
             for i in sorted(int(m[1]) for p in (d.iterdir() if d.is_dir() else []) if (m := RECEIPT.fullmatch(p.name))):
@@ -357,7 +433,7 @@ class Content:
                     waits += 1
                     continue
                 self.out.mkdir(exist_ok=True)
-                for first, second in self.index(entries):
+                for first, second in self.index(entries, (k, i, verdict["seal_sha256"])):
                     self.conflict(first, second)
                 vp.parent.mkdir(exist_ok=True)
                 create_only(vp, canon(verdict))
@@ -398,8 +474,10 @@ def main() -> int:
     except SystemExit:
         return 2
     home = Path(a.home)
-    if not home.is_dir() or not HEX64.fullmatch(a.fingerprint) or not a.convert_seconds > 0:
-        print("content: STOP (2): --home must be a folder, --fingerprint 64 hex digits, --convert-seconds above 0")
+    if not home.is_dir() or not HEX64.fullmatch(a.fingerprint) \
+            or not (math.isfinite(a.convert_seconds) and a.convert_seconds > 0):
+        print("content: STOP (2): --home must be a folder, --fingerprint 64 hex digits, --convert-seconds a finite "
+              "number above 0")
         return 2
     try:
         c = Content(home, a.fingerprint, a.converter, a.openings, a.convert_seconds)

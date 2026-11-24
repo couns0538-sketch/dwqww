@@ -14,6 +14,12 @@ S  the server, from the day's REAL programs: run "cont", slot 1, piece_games 2, 
 P1 to P12, P4b, P9b, P9c, X0 to X3: the pipeline cases of the known answers (D6 as CHANGED 20:37, D4 20:46, the
 lost index 20:54).
 PLANTS (each must make the test fail): see PLANTS below; the numbers are those of the known answers.
+VERSION 2 (Opus 23 Nov; tmp/opus_scratch/content_v2/KNOWN_ANSWERS_content_v2_by_opus.md on the PC, 22:54 and 23:03,
+written BEFORE the code): V1a, V1b another run's receipts (exit 3, nothing written); V2, V2b, V2c, V2d a verdict of
+another run, of another seal, of another slot, not canonical; V3a, V3b, V3c, V3e an empty index, an older index put
+back, another run's index (twice); V4 a receipt custody did not write; V5 drawcount 0 acts as 1 (uci.cpp 543-551);
+V6a to V6e the opening rule as the worker reads it, and --convert-seconds inf; V7 no scratch folder after a WAITS.
+Plants 22 to 37; plant 13 moves with the index() call. A plant whose text is not there exactly once: exit 2.
 """
 import hashlib
 import json
@@ -72,11 +78,13 @@ PLANTS = {
     "plant10": ('        if (len(raw), sha256_bytes(raw)) != (s["raw_bytes"], s["raw_sha256"]):\n', '        if False:\n'),
     "plant11": ('"ids_digest": ids.hexdigest(),', '"ids_digest": s.get("ids_digest"),'),
     "plant12": ('            games = record.parse(raw, self.fp)\n', REBIND),
-    "plant13": ("                self.out.mkdir(exist_ok=True)\n                for first, second in self.index(entries):\n"
+    "plant13": ("                self.out.mkdir(exist_ok=True)\n"
+                "                for first, second in self.index(entries, (k, i, verdict[\"seal_sha256\"])):\n"
                 "                    self.conflict(first, second)\n                vp.parent.mkdir(exist_ok=True)\n"
                 "                create_only(vp, canon(verdict))\n",
                 "                self.out.mkdir(exist_ok=True)\n                vp.parent.mkdir(exist_ok=True)\n"
-                "                create_only(vp, canon(verdict))\n                for first, second in self.index(entries):\n"
+                "                create_only(vp, canon(verdict))\n"
+                "                for first, second in self.index(entries, (k, i, verdict[\"seal_sha256\"])):\n"
                 "                    self.conflict(first, second)\n"),
     "plant14": ('            raise Waits(f"the converter failed here, a local outage: {e}") from None\n',
                 '            raise ValueError(f"the converter failed here, a local outage: {e}") from None\n'),
@@ -92,14 +100,41 @@ PLANTS = {
                 '            raise ValueError(f"the binpack does not rebuild here, a local outage (home\'s converter differs): {e}") from None\n'),
     "plant21": ('        if (not self.db.is_file() or self.db.stat().st_size == 0) and any(self.out.glob("w*/p*.verdict.json")):\n',
                 "        if False:\n"),
+    "plant22": ("        self.H.check_records()\n", ""),
+    "plant23": ("        if run is not None and run[0] != self.fp:\n", "        if False:\n"),
+    "plant24": ('                if v["seal_sha256"] != seal:\n', "                if False:\n"),
+    "plant25": ("                if seen.get((k, i)) != seal:\n", "                if False:\n"),
+    "plant26": ('                if isinstance(v, dict) and sorted(v) == VERDICT_KEYS and v["run_fingerprint"] != self.fp:\n',
+                "                if False:\n"),
+    "plant27": ('need((drun > 0 and drun >= v["drawcount"]) == last,', 'need((drun >= v["drawcount"]) == last,'),
+    "plant28": ('            if type(rule["plies"]) is not int or not 0 <= rule["plies"] <= 64 \\\n',
+                '            if type(rule["plies"]) is not int \\\n'),
+    "plant29": ('                    or not (isinstance(rule["root_seed"], str) and re.fullmatch(r"[A-Za-z0-9_]{1,64}", rule["root_seed"])):\n',
+                '                    or not isinstance(rule["root_seed"], str):\n'),
+    "plant30": ("            if openings:\n", "            if False:\n"),
+    "plant31": ('sorted(rule) == ["count", "kind", "sha256"] and ', ""),
+    "plant32": ("not (math.isfinite(a.convert_seconds) and a.convert_seconds > 0)", "not a.convert_seconds > 0"),
+    "plant33": ('        finally:\n            shutil.rmtree(self.out / "scratch" / f"w{k:03d}.{name}", ignore_errors=True)'
+                '   # every exit, a WAITS too\n', ""),
+    "plant34": ('            con.execute("INSERT OR REPLACE INTO judged VALUES (?, ?, ?)", judged)\n', ""),
+    "plant35": ("            con.execute(\"INSERT OR IGNORE INTO meta VALUES ('run_fingerprint', ?)\", (self.fp,))\n", ""),
+    "plant36": ("                    v = parse_canon(p.read_bytes(), what)\n",
+                "                    v = json.loads(p.read_bytes())\n"),
+    "plant37": ('                if not (isinstance(v, dict) and sorted(v) == VERDICT_KEYS and is_int(v["schema"], v["slot"], v["index"])\n',
+                '                if False and not (isinstance(v, dict) and sorted(v) == VERDICT_KEYS and is_int(v["schema"], v["slot"], v["index"])\n'),
 }
 CP = WORK / "tree"
 for sub in ("home", "run", "workloads", "known"):
     shutil.copytree(TREE / sub, CP / sub, ignore=shutil.ignore_patterns("__pycache__"))
 if PLANT:
+    if PLANT not in PLANTS:
+        print(f"STOP: no plant {PLANT}")
+        sys.exit(2)
     old, new = PLANTS[PLANT]
     text = (CP / "home" / "content.py").read_text(encoding="ascii")
-    assert text.count(old) == 1, f"{PLANT}: the old text is not there exactly once"
+    if text.count(old) != 1:
+        print(f"STOP: {PLANT}: its old text is not there exactly once")
+        sys.exit(2)
     (CP / "home" / "content.py").write_text(text.replace(old, new), encoding="ascii", newline="\n")
     print(f"PLANT {PLANT} applied to the copy's content.py")
 RUN, CUST, CONT = CP / "run", CP / "home" / "custody.py", CP / "home" / "content.py"
@@ -373,9 +408,10 @@ def new_home(name: str, srv: Path = SRV, receipts: bool = True) -> Path:
     return h
 
 
-def content(home: Path, conv=None, openings=True, fp=None) -> tuple:
+def content(home: Path, conv=None, openings=True, fp=None, extra=()) -> tuple:
     cmd = [sys.executable, "-I", "-B", str(CONT), "--home", str(home), "--fingerprint", fp or FP["fp"], "--converter",
-           str(conv or CONV)] + (["--openings", str(OPENINGS if openings is True else openings)] if openings else [])
+           str(conv or CONV)] + (["--openings", str(OPENINGS if openings is True else openings)] if openings else []) \
+        + list(extra)
     p = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
     out = (p.stdout + p.stderr).strip()
     m = COUNTS.fullmatch(out.splitlines()[-1]) if out else None
@@ -709,14 +745,171 @@ def case_x():
     check("X3 --openings with one byte more: exit 3, nothing written", (rc, (x2 / "content").exists()), (3, False))
 
 
+# ---- VERSION 2 (KNOWN_ANSWERS_content_v2_by_opus.md, 22:54 and 23:03) ----------------------------------------------
+def header_b() -> tuple:
+    hb = W.canon(dict(FP["header"], run="contb"))
+    return hb, sha(hb)
+
+
+def judged_copy(name: str) -> Path:
+    base = WORK / "v_base"
+    if not base.exists():
+        new_home("v_base")
+        rc, out, c = content(base)
+        check("V0 the base home of the V cases: exit 0, judged as P1", (rc, c), (0, (3, 0, 6, 462, 0, 0, 0, 0)))
+    h = WORK / name
+    shutil.copytree(base, h)
+    return h
+
+
+def stop_line(out: str, code: int, rel: str) -> bool:
+    last = out.splitlines()[-1] if out else ""
+    return last.startswith(f"content: STOP ({code}):") and rel in last
+
+
+def case_v1():
+    hb, fpb = header_b()
+    h = new_home("v1a")
+    put(h / "wire" / "RUN.json.zz", zlib.compress(hb, 6))
+    rc, out, c = content(h, fp=fpb)
+    check("V1a run A's receipts under header B (another run in a reused home): exit 3 naming p0's receipt, no content/",
+          (rc, stop_line(out, 3, "custody/w001/p000000.receipt.json"), (h / "content").exists()), (3, True, False))
+    h = new_home("v1b")
+    r = json.loads((h / "custody" / "w001" / "p000000.receipt.json").read_bytes())
+    put(h / "custody" / "w001" / "p000005.receipt.json", W.canon(dict(r, run_fingerprint=fpb, index=5)))
+    rc, out, c = content(h)
+    check("V1b A's receipts and one of run B at p000005: exit 3 naming it, nothing judged (no content/)",
+          (rc, stop_line(out, 3, "custody/w001/p000005.receipt.json"), (h / "content").exists()), (3, True, False))
+
+
+def case_v2():
+    rel = "content/w001/p000001.verdict.json"
+
+    def one(name, fn, want):
+        h = judged_copy(name.split()[0])
+        p = h / "content" / "w001" / "p000001.verdict.json"
+        fn(p, json.loads(p.read_bytes()))
+        rc, out, c = content(h)
+        check(f"{name}: exit {want}, the STOP line names {rel}", (rc, stop_line(out, want, rel)), (want, True))
+    one("V2 p1's verdict of another run (run_fingerprint b x 64)",
+        lambda p, v: put(p, W.canon(dict(v, run_fingerprint="b" * 64))), 3)
+    one("V2b p1's verdict with seal_sha256 c x 64, the index untouched",
+        lambda p, v: put(p, W.canon(dict(v, seal_sha256="c" * 64))), 4)
+    one("V2c p1's verdict with slot 2", lambda p, v: put(p, W.canon(dict(v, slot=2))), 4)
+    one("V2d p1's verdict written with spaces (not canonical)",
+        lambda p, v: put(p, (json.dumps(v, sort_keys=True, indent=1) + "\n").encode("ascii")), 4)
+
+
+def case_v3():
+    def sql(h, *stmts):
+        con = sqlite3.connect(h / "content" / "equal.sqlite")
+        for s, args in stmts:
+            con.execute(s, args)
+        con.commit()
+        con.close()
+    h = judged_copy("V3a")
+    (h / "content" / "equal.sqlite").unlink()
+    sql(h, ("CREATE TABLE entries (slot INTEGER, counter INTEGER, round INTEGER, game TEXT, piece TEXT, state TEXT, "
+            "rows_digest TEXT, bind TEXT, PRIMARY KEY (slot, counter))", ()))
+    rc, out, c = content(h)
+    check("V3a P1's home with an index of no row (Astra's 0-row index): exit 4 naming p0's verdict",
+          (rc, stop_line(out, 4, "content/w001/p000000.verdict.json")), (4, True))
+    h = new_home("v3b")
+    keep, wo = WORK / "v3b_keep", h / "wire" / "out" / "w001"
+    keep.mkdir()
+    for i in (1, 2):
+        os.replace(wo / f"p{i:06d}.binpack", keep / f"p{i:06d}.binpack")
+    rc1, out1, c1 = content(h)
+    shutil.copy2(h / "content" / "equal.sqlite", keep / "equal.sqlite")
+    for i in (1, 2):
+        os.replace(keep / f"p{i:06d}.binpack", wo / f"p{i:06d}.binpack")
+    rc2, out2, c2 = content(h)
+    shutil.copy2(keep / "equal.sqlite", h / "content" / "equal.sqlite")
+    rc3, out3, c3 = content(h)
+    check("V3b p0 judged (p1, p2 WAIT), the index copied aside, p1 and p2 judged, the older index put back: exit 4 "
+          "naming p1's verdict",
+          (rc1, c1, rc2, c2, rc3, stop_line(out3, 4, "content/w001/p000001.verdict.json")),
+          (0, (1, 0, 2, 187, 0, 0, 2, 0), 0, (3, 0, 6, 462, 0, 0, 0, 0), 4, True))
+    h = judged_copy("V3c")
+    sql(h, ("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)", ()),
+        ("INSERT OR REPLACE INTO meta VALUES ('run_fingerprint', ?)", ("b" * 64,)))
+    rc, out, c = content(h)
+    check("V3c P1's home, the index's run row b x 64 (another run's index): exit 3 naming equal.sqlite",
+          (rc, stop_line(out, 3, "content/equal.sqlite")), (3, True))
+    hb, fpb = header_b()
+    h = WORK / "v3e"
+    put(h / "wire" / "RUN.json.zz", zlib.compress(hb, 6))
+    put(h / "content" / "equal.sqlite", (WORK / "v_base" / "content" / "equal.sqlite").read_bytes())
+    rc, out, c = content(h, fp=fpb)
+    check("V3e header B and run A's judged index, no receipts: exit 3 naming equal.sqlite",
+          (rc, stop_line(out, 3, "content/equal.sqlite")), (3, True))
+
+
+def case_v4():
+    h = new_home("v4")
+    p = h / "custody" / "w001" / "p000000.receipt.json"
+    put(p, W.canon(dict(json.loads(p.read_bytes()), kept="wire/out/w002")))
+    rc, out, c = content(h)
+    check("V4 p0's receipt with kept wire/out/w002 (not as custody writes it): exit 4 naming it, no content/",
+          (rc, stop_line(out, 4, "custody/w001/p000000.receipt.json"), (h / "content").exists()), (4, True, False))
+
+
+def case_v5():
+    recs = records()
+
+    def states(dc):
+        out = []
+        for i, r in enumerate(recs):
+            g, rule = parsed(r), rule_of(i, r)
+            try:
+                out.append((C.check_game(g, C.reserve(rule[0], rule[1], g["id"], g["counter"]), dict(V, drawcount=dc)),
+                            None))
+            except C.SetAside as e:
+                out.append(("set_aside", str(e)))
+        return out
+    one = states(1)
+    check("V5 control: under drawcount 1 at least one record is accepted", any(s == "accepted" for s, w in one), True)
+    check("V5 the 13 records judged under drawcount 0 and under 1: the same (state, why) record by record "
+          "(uci.cpp 543-551: the run is compared only after a ply that qualified, so 0 acts as 1)", states(0), one)
+
+
+def case_v6():
+    def rule_home(name, rule, openings):
+        h = WORK / name
+        hb = W.canon(dict(FP["header"], opening_rule=rule))
+        put(h / "wire" / "RUN.json.zz", zlib.compress(hb, 6))
+        rc, out, c = content(h, fp=sha(hb), openings=openings)
+        return rc, (h / "content").exists()
+    seed = {"kind": "seed", "plies": 8, "root_seed": "edge2715"}
+    for name, rule, openings, want in (
+            ("V6a the seed rule with plies -5", dict(seed, plies=-5), None, 3),
+            ('V6b the seed rule with root_seed "bad seed!"', dict(seed, root_seed="bad seed!"), None, 3),
+            ("V6c a valid seed rule WITH --openings", seed, True, 2),
+            ("V6c0 control: the same rule without --openings", seed, None, 0),
+            ("V6d the list rule with an extra key x", dict(FP["header"]["opening_rule"], x=1), True, 3)):
+        check(f"{name}: exit {want}, nothing written", rule_home(name.split()[0], rule, openings), (want, False))
+    h = WORK / "v6e"
+    h.mkdir()
+    check("V6e --convert-seconds inf: exit 2", content(h, extra=["--convert-seconds", "inf"])[0], 2)
+
+
+def case_v7():
+    h = new_home("v7")
+    rc, out, c = content(h, conv=WORK / "no_converter.exe")
+    sc = h / "content" / "scratch"
+    check("V7 the converter missing (P6): waits 3, and content/scratch holds nothing after the pass",
+          (rc, c, sorted(p.name for p in sc.iterdir()) if sc.is_dir() else []), (0, (0, 0, 0, 0, 0, 0, 3, 0), []))
+
+
 def main() -> int:
     t0 = time.time()
     safe(case_u)
+    safe(case_v5)
     if not server():
         print("the server side failed: no pipeline case can run")
     else:
         for fn in (case_p1_to_p4, case_p4b, case_p5_p6_p7, case_p8, case_p9, case_p10, case_p11, case_p12,
-                   case_x):
+                   case_x, case_v1, case_v2, case_v3, case_v4, case_v6, case_v7):
             safe(fn)
     bad = [n for n, ok in RESULTS if not ok]
     print(f"{len(RESULTS) - len(bad)} of {len(RESULTS)} checks pass ({time.time() - t0:.0f} s)"

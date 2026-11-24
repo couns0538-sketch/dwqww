@@ -16,6 +16,14 @@ is the longest held run from p0; the receipts equal at the end. H5 epochs [1, 2,
 p1 (314) in all six orders. H6 a forged inventory naming another offer for p1: a fork record, C1 1/187; the same with
 its footer not made right: no fork. R1 to R12 the refusals, waits, conflicts and confirmations of the known answers.
 PLANTS (each must make the test fail): see PLANTS below; the numbers are those of the known answers.
+VERSION 2 (tmp/opus_scratch/custody_v2/KNOWN_ANSWERS_custody_v2_by_opus.md on the PC, written before the code; the
+seats' NOT YET, Astra 213621Z and Neon 223800Z): K1 a home folder that still holds run A's receipts, pointed at run B
+(header B = A's with another run name): STOP 3, nothing counted, written or confirmed; run A again confirms; with no
+header every --confirm is PENDING (exit 5). K2 a receipt not of its own name, kept path, form, members, schema or
+slot: STOP 4. K3 a fork record of another run or index. K4 --confirm decodes the offer (2.4: wire and data); a key
+of a slot the header lacks: exit 2. K5 headers of schema 1, a slot twice, a pilot row twice or not an int. K6 a
+schedule of schema 1 or with a bad or repeated row: not used, its piece waits, no conflict. K7 an inventory naming a
+piece twice or with a line not canonical: no fork. K8 a seal with rows -5: NOT RECEIVED.
 """
 import hashlib
 import itertools
@@ -60,20 +68,55 @@ PLANTS = {
                 '                if False:\n'),
     "plant11": ('                if not a <= r["first_counter"] <= r["last_counter"] <= b:\n', '                if False:\n'),
     "plant12": ('                have = rng.get(s["schedule"])\n', '                have = rng.get(s["schedule"], {})\n'),
-    "plant13": ("            if (len(wb), sha256_bytes(wb)) != (wl, ws) or (dl is not None and (len(data), sha256_bytes(data)) != (dl, ds)):\n",
+    "plant13": ("            if (len(wb), sha256_bytes(wb)) != (wl, ws) or (dl is not None and len(data) != dl) or sha256_bytes(data) != ds:\n",
                 "            if False:\n"),
     "plant14": ("        if sha256_bytes(hb) != fp:\n", "        if False:\n"),
     "plant15": ('"kept": f"wire/out/w{k:03d}"', '"kept": str(self.wire / "out" / f"w{k:03d}")'),
     "plant16": ('                and foot.get("fingerprint") == sha256_bytes(body) and body.startswith(self.hb)\n',
                 '                and body.startswith(self.hb)\n'),
 }
+PLANTS.update({
+    "plant17": ('        if r["run_fingerprint"] != self.fp:\n', '        if False:\n'),
+    "plant18": ('        if not is_int(r["slot"], r["index"]) or (r["slot"], r["index"]) != (k, i):\n',
+                '        if not is_int(r["slot"], r["index"]):\n'),
+    "plant19": ('        if r["kept"] != f"wire/out/w{k:03d}" \\\n', '        if False \\\n'),
+    "plant20": ('            r = parse_canon(p.read_bytes(), what)\n', '            r = json.loads(p.read_bytes())\n'),
+    "plant21": ('                or not all(isinstance(m, dict) and sorted(m) == MEMBER_KEYS and is_int(m["bytes"], m["wire_bytes"])\n',
+                '                or not all(True or isinstance(m, dict) and sorted(m) == MEMBER_KEYS and is_int(m["bytes"], m["wire_bytes"])\n'),
+    "plant22": ('        H.check_records()\n', '        pass\n'),
+    "plant23": ('                print(f"CONFIRM PENDING {x}: wire/RUN.json.zz is not at home yet; nothing is confirmed")\n            return 5\n',
+                '                print(f"CONFIRM PENDING {x}: wire/RUN.json.zz is not at home yet; nothing is confirmed")\n            return 0\n'),
+    "plant24": ('        want = [(f"p{i:06d}.offer.json.zz", True, r["offer_wire_bytes"], r["offer_wire_sha256"], None, r["offer_sha256"])]\n',
+                '        want = [(f"p{i:06d}.offer.json.zz", False, r["offer_wire_bytes"], r["offer_wire_sha256"], None, r["offer_wire_sha256"])]\n'),
+    "plant25": ('        if not is_int(h.get("schema")) or h["schema"] != 2:\n', '        if False:\n'),
+    "plant26": ('        if len(set(h["slots"])) != len(h["slots"]):\n', '        if False:\n'),
+    "plant27": ('        if self.pilot is None:\n', '        if False:\n'),
+    "plant28": ('            if not isinstance(s, dict) or not is_int(s.get("schema"), s.get("n")) or (s["schema"], s["n"]) != (2, n) \\\n',
+                '            if not isinstance(s, dict) or not is_int(s.get("n")) or s["n"] != n \\\n'),
+    "plant29": ('                or (x["slot"], x["round"]) in out:\n', '                or False:\n'),
+    "plant30": ('                if (o["slot"], o["index"]) in inv:\n', '                if False:\n'),
+    "plant31": ('            lines = [parse_canon(ln + b"\\n", "TERMINAL.jsonl") for ln in body.split(b"\\n")[:-1]] if ok else []\n',
+                '            lines = [json.loads(ln) for ln in body.split(b"\\n")[:-1]] if ok else []\n'),
+    "plant32": ('                or s["rows"] < 0:\n', '                or False:\n'),
+    "plant33": ('                or not is_int(r["schema"]) or r["schema"] != 2:\n', '                or not is_int(r["schema"]):\n'),
+    "plant34": ('        if k not in self.h["slots"] or not self.rpath(k, i).exists():\n',
+                '        if k is None or not self.rpath(k, i).exists():\n'),
+    "plant35": ('        if [(m["name"], m["codec"]) for m in ms] not in [[(f"p{i:06d}" + x, c) for x, c in f] for f in FORMS.values()] \\\n',
+                '        if False \\\n'),
+    "plant36": ('        if ms[0]["sha256"] != r["seal_sha256"]:\n', '        if False:\n'),
+})
+if PLANT and PLANT not in PLANTS:
+    print(f"STOP: no plant {PLANT}")
+    sys.exit(2)
 CP = WORK / "tree"
 for sub in ("home", "run", "workloads", "known"):
     shutil.copytree(TREE / sub, CP / sub, ignore=shutil.ignore_patterns("__pycache__"))
 if PLANT:
     old, new = PLANTS[PLANT]
     text = (CP / "home" / "custody.py").read_text(encoding="ascii")
-    assert text.count(old) == 1, f"{PLANT}: the old text is not there exactly once"
+    if text.count(old) != 1:                            # exit 2, never the 1 of a plant that made the test fail
+        print(f"STOP: {PLANT}: the old text is not there exactly once")
+        sys.exit(2)
     (CP / "home" / "custody.py").write_text(text.replace(old, new), encoding="ascii", newline="\n")
     print(f"PLANT {PLANT} applied to the copy's custody.py")
 RUN, CUST = CP / "run", CP / "home" / "custody.py"
@@ -475,6 +518,190 @@ def case_confirm():
     check("R11 --confirm a key without a receipt: exit 2", rc, 2)
 
 
+# ---- version 2 (KNOWN_ANSWERS_custody_v2_by_opus.md) -------------------------------------------------------------
+def copy_h(name: str) -> Path:
+    h = WORK / name
+    shutil.copytree(STATE["h"], h)
+    return h
+
+
+def custody_bytes(h: Path) -> dict:
+    return {str(p.relative_to(h)): p.read_bytes() for p in sorted((h / "custody").rglob("*")) if p.is_file()}
+
+
+def header_b() -> tuple:
+    hb = W.canon(dict(json.loads((SRV / "RUN.json").read_bytes()), run="cust-b"))
+    return hb, sha(hb)
+
+
+def r0(h: Path) -> dict:
+    return json.loads((h / "custody" / "w001" / "p000000.receipt.json").read_bytes())
+
+
+def last_line(out: str) -> str:
+    return out.splitlines()[-1] if out else ""
+
+
+def case_v2_run():
+    hb_b, fp_b = header_b()
+    h = copy_h("K1a")
+    a_zz = (h / "wire" / "RUN.json.zz").read_bytes()
+    before = custody_bytes(h)
+    put(h / "wire" / "RUN.json.zz", zlib.compress(hb_b, 6))
+    rc, out, c = custody(h, fp=fp_b)
+    last = last_line(out)
+    check("K1a run B on run A's receipts: exit 3, the STOP line names p000000.receipt.json and another run, no counts, "
+          "custody/ unchanged", (rc, last.startswith("custody: STOP (3):") and "p000000.receipt.json" in last and
+                                 "another run" in last, c, custody_bytes(h) == before), (3, True, None, True))
+    rc, out, c = custody(h, "--confirm", "w001/p000000", fp=fp_b)
+    check("K1a --confirm run A's key under run B: exit 3, nothing CONFIRMED", (rc, "CONFIRMED" in out), (3, False))
+    put(h / "wire" / "RUN.json.zz", a_zz)
+    rc, out, c = custody(h)
+    rc2, out2, c2 = custody(h, "--confirm", "w001/p000000")
+    check("K1a run A again: a pass exit 0, 3/462, C1 3/462, new 0; --confirm exit 0 CONFIRMED (control)",
+          (rc, c, rc2, "CONFIRMED w001/p000000" in out2), (0, counts_want([0, 1, 2], 3, 0), 0, True))
+    (h / "wire" / "RUN.json.zz").unlink()
+    got = []
+    for key in ("w001/p000009", "w001/p000000"):
+        rc, out, c = custody(h, "--confirm", key)
+        got.append((rc, f"CONFIRM PENDING {key}" in out, "CONFIRMED" in out))
+    check("K1a no header: --confirm an unknown key, then a held key: exit 5 PENDING each, nothing CONFIRMED", got,
+          [(5, True, False)] * 2)
+    check("K1a no header: --confirm w1/p0 (not a key): exit 2", custody(h, "--confirm", "w1/p0")[0], 2)
+    rc, out, c = custody(h)
+    check("K1a no header, a pass: exit 0, nothing to do (control)", (rc, "nothing to do" in out), (0, True))
+    h = new_home("K1b")
+    r = dict(STATE["h_receipts"]["p000000.receipt.json"], run_fingerprint=fp_b, index=5, at_utc=T(NOW))
+    put(h / "custody" / "w001" / "p000005.receipt.json", W.canon(r))
+    rc, out, c = custody(h)
+    check("K1b another run's receipt at p000005, run A's offers without receipts: exit 3, no receipt written",
+          (rc, sorted(p.name for p in (h / "custody" / "w001").iterdir())), (3, ["p000005.receipt.json"]))
+
+
+def case_v2_records():
+    def one(name, rel, fn, *extra, want=4):
+        h = copy_h(name.split()[0])
+        fn(h, h / "custody" / rel)
+        rc, out, c = custody(h, *extra)
+        last = last_line(out)
+        if not check(f"{name}: exit {want}, the STOP line names {rel}",
+                     (rc, last.startswith(f"custody: STOP ({want}):") and rel in last), (want, True)):
+            print(out[-600:])
+
+    def rewrite(**over):
+        return lambda h, p: put(p, W.canon(dict(r0(h), **over)))
+
+    def no_wsha(h, p):
+        r = r0(h)
+        r["members"][0].pop("wire_sha256")
+        put(p, W.canon(r))
+
+    def fork(**over):
+        f = {"schema": 2, "run_fingerprint": FP["fp"], "slot": 1, "index": 1, "receipt_seal_sha256": "1" * 64,
+             "receipt_offer_sha256": "2" * 64, "found_seal_sha256": "3" * 64, "found_offer_sha256": "f" * 64,
+             "at_utc": T(NOW), "how": "the terminal inventory names another seal or offer for a piece with a receipt"}
+        return lambda h, p: put(p, W.canon(dict(f, **over)))
+    one("K2a p0's receipt under the name p000001", "w001/p000001.receipt.json",
+        lambda h, p: put(p, (h / "custody" / "w001" / "p000000.receipt.json").read_bytes()))
+    one("K2b p0's receipt with kept wire/out/w002", "w001/p000000.receipt.json", rewrite(kept="wire/out/w002"))
+    one("K2c p0's receipt with spaces (not canonical)", "w001/p000000.receipt.json",
+        lambda h, p: put(p, (json.dumps(r0(h), sort_keys=True, indent=1) + "\n").encode("ascii")))
+    one("K2d1 p0's receipt, members[0] without wire_sha256: a pass", "w001/p000000.receipt.json", no_wsha)
+    one("K2d2 the same: --confirm w001/p000000", "w001/p000000.receipt.json", no_wsha, "--confirm", "w001/p000000")
+    one("K2e p0's receipt of schema 1", "w001/p000000.receipt.json", rewrite(schema=1))
+    one("K2f p0's receipt with slot 2", "w001/p000000.receipt.json", rewrite(slot=2))
+
+    def member(j, **over):
+        def fn(h, p):
+            r = r0(h)
+            r["members"][j].update(over)
+            put(p, W.canon(r))
+        return fn
+    one("K2g p0's receipt, members[1] of codec lzma (no form of 1.6): a pass", "w001/p000000.receipt.json",
+        member(1, codec="lzma"))
+    one("K2h p0's receipt, members[0] sha256 0 x 64 (not its seal): a pass", "w001/p000000.receipt.json",
+        member(0, sha256="0" * 64))
+    one("K3a a fork record of another run at p000001", "w001/p000001.fork.json", fork(run_fingerprint=header_b()[1]),
+        want=3)
+    one("K3b a fork record of this run with index 2 at p000001", "w001/p000001.fork.json", fork(index=2))
+    h = copy_h("K4a")
+    put(h / "custody" / "w001" / "p000000.receipt.json", W.canon(dict(r0(h), offer_sha256="e" * 64)))
+    rc, out, c = custody(h, "--confirm", "w001/p000000")
+    check("K4a offer_sha256 not the kept offer's data: --confirm exit 5 naming the offer (2.4: wire and data)",
+          (rc, "CONFIRM FAILED w001/p000000: p000000.offer.json.zz" in out), (5, True))
+    h = copy_h("K4b")
+    put(h / "custody" / "w002" / "p000000.receipt.json", (h / "custody" / "w001" / "p000000.receipt.json").read_bytes())
+    check("K4b --confirm w002/p000000, a slot the header lacks (a receipt file lies there): exit 2",
+          custody(h, "--confirm", "w002/p000000")[0], 2)
+
+
+def case_v2_header():
+    a = json.loads((SRV / "RUN.json").read_bytes())
+    for name, hdr in (("K5a a header of schema 1", dict(a, schema=1)), ("K5b slots [1, 1]", dict(a, slots=[1, 1])),
+                      ("K5c pilot_ranges with (1, 1) twice", dict(a, pilot_ranges=a["pilot_ranges"] * 2)),
+                      ('K5d a pilot row with first "1"', dict(a, pilot_ranges=[dict(a["pilot_ranges"][0], first="1")]))):
+        h = new_home(name.split()[0], pieces=())
+        hb = W.canon(hdr)
+        put(h / "wire" / "RUN.json.zz", zlib.compress(hb, 6))
+        rc, out, c = custody(h, fp=sha(hb))
+        check(f"{name}: exit 3, nothing written", (rc, (h / "custody").exists()), (3, False))
+
+
+def case_v2_schedules():
+    def extra_row(s):
+        s["ranges"].append(dict(s["ranges"][1], last=5))
+        return s
+
+    def str_first(s):
+        s["ranges"][1]["first"] = "5"
+        return s
+    for name, fn in (("K6a SCHEDULE.1 of schema 1", lambda s: dict(s, schema=1)),
+                     ("K6b SCHEDULE.1 with a second (1, 2) row (5, 5)", extra_row),
+                     ('K6c SCHEDULE.1 with the (1, 2) row first "5"', str_first)):
+        h = new_home(name.split()[0], inventory=False)
+        zz_rewrite(h / "wire" / "SCHEDULE.1.json.zz", fn)
+        rc, out, c = custody(h)
+        if not check(f"{name}: it does not verify, p2 WAITS, no conflict",
+                     (rc, c, "is not schedule 1 of this run" in out), (0, counts_want([0, 1, 2], 3, 3, waits=1), True)):
+            print(out[-600:])
+
+
+def forged_inventory_v2(h: Path, mode: str) -> None:
+    data = zlib.decompress((h / "wire" / "TERMINAL.jsonl.zz").read_bytes())
+    lines = data.split(b"\n")[:-1]
+    out = []
+    for ln in lines[:-1]:
+        o = json.loads(ln)
+        if isinstance(o, dict) and o.get("t") == "piece" and o.get("index") == 1:
+            other = dict(o, offer="f" * 64)
+            if mode == "twice":
+                out.append(ln + b"\n")
+                ln = W.canon(other)[:-1]
+            else:
+                ln = json.dumps(other, sort_keys=True).encode("ascii")
+        out.append(ln + b"\n")
+    body = b"".join(out)
+    put(h / "wire" / "TERMINAL.jsonl.zz",
+        zlib.compress(body + W.canon(dict(json.loads(lines[-1]), fingerprint=sha(body))), 6))
+
+
+def case_v2_inventory():
+    for name, mode, text in (("K7a an inventory naming p1 twice, the second with another offer", "twice", "twice"),
+                             ("K7b p1's inventory line with spaces naming another offer", "spaces", "does not verify")):
+        h = new_home(name.split()[0])
+        forged_inventory_v2(h, mode)
+        rc, out, c = custody(h)
+        if not check(f"{name} (footer made right): no fork, C1 3/462, the line says why", (rc, c, text in out),
+                     (0, counts_want([0, 1, 2], 3, 3), True)):
+            print(out[-600:])
+    h = new_home("K8", inventory=False)
+    reforge(h, {0: {"rows": -5}})
+    rc, out, c = custody(h)
+    check("K8 p0's seal forged to rows -5: NOT RECEIVED as not a seal of 1.5, RECEIVED 2/275, C1 0, new 2, bad 1",
+          (rc, c, "NOT RECEIVED w001/p000000: the seal is not a seal of 1.5" in out),
+          (0, counts_want([1, 2], 0, 2, bad=1), True))
+
+
 def main() -> int:
     t0 = time.time()
     STATE["ok"] = False
@@ -484,7 +711,8 @@ def main() -> int:
         print(f"FAIL the server fixture crashed:\n{traceback.format_exc()}")
         RESULTS.append(("server fixture crashed", False))
     if STATE["ok"]:
-        for fn in (case_h1_h2, case_orders, case_h5, case_h6, case_refusals, case_confirm):
+        for fn in (case_h1_h2, case_orders, case_h5, case_h6, case_refusals, case_confirm, case_v2_run,
+                   case_v2_records, case_v2_header, case_v2_schedules, case_v2_inventory):
             safe(fn)
     bad = [n for n, ok in RESULTS if not ok]
     print(f"\n{len(RESULTS) - len(bad)} of {len(RESULTS)} checks pass ({time.time() - t0:.0f} s)"

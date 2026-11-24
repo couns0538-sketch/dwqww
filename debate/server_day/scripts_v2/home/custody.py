@@ -27,10 +27,17 @@ ONE PASS:
    (a conflict is immutable downstream: it is never judged on a schedule that has not arrived). The conflict records
    with both bindings (2.3) need the records: they are stage b's; this stage finds and counts.
 --confirm KEY ... (2.4: an explicit confirmation): the kept offer and members of each receipt opened and hashed again,
-wire and data; CONFIRMED, or CONFIRM FAILED with the member (exit 5: the fetch brings it again). Never a second
-receipt.
-Exit codes: 0 a pass or every confirmation; 2 a wrong call (or a key without a receipt); 3 the run header at home
-cannot be trusted (nothing written); 4 a file that cannot be read or written; 5 a confirmation failed.
+wire and data (the offer too); CONFIRMED, or CONFIRM FAILED with the member (exit 5: the fetch brings it again).
+Never a second receipt. Before the run header is at home every key is CONFIRM PENDING (exit 5): nothing is confirmed
+for a run that is not verified.
+VERSION 2 (the seats' NOT YET: Astra 213621Z, Neon 223800Z): every receipt and fork record in custody/ is read as
+this program writes it and bound to this run, its slot and its index before anything is counted, confirmed or
+written. A home folder serves ONE run (2.1 `kept`): another run's record stops the program (exit 3, nothing written).
+The header's slots are distinct and its pilot rows valid; a schedule with a bad or repeated range row, or an
+inventory that names a piece twice, does not verify (its pieces wait; no conflict or fork is judged on it).
+Exit codes: 0 a pass or every confirmation; 2 a wrong call (or a key without a receipt of this run); 3 the run header
+at home cannot be trusted, or custody/ holds another run's record (nothing written); 4 a file that cannot be read or
+written, or a custody record this program did not write; 5 a confirmation failed or waits for the run header.
 The last line of a pass: custody: RECEIVED .. pieces .. rows; C1 .. pieces .. rows; new receipts ..; not received
 ..; waits ..; conflicts ..; forks ..
 """
@@ -51,6 +58,11 @@ OFFER = re.compile(r"p([0-9]{6})\.offer\.json\.zz")
 RECEIPT = re.compile(r"p([0-9]{6})\.receipt\.json")
 FORK = re.compile(r"p([0-9]{6})\.fork\.json")
 KEY = re.compile(r"w([0-9]{3})/p([0-9]{6})")
+RECEIPT_KEYS = sorted(("schema", "run_fingerprint", "slot", "index", "epoch", "first_counter", "last_counter",
+                       "offer_sha256", "offer_wire_bytes", "offer_wire_sha256", "seal_sha256", "members", "kept",
+                       "at_utc"))
+FORK_KEYS = sorted(("schema", "run_fingerprint", "slot", "index", "receipt_seal_sha256", "receipt_offer_sha256",
+                    "found_seal_sha256", "found_offer_sha256", "at_utc", "how"))
 
 
 class Bad(Exception):
@@ -83,6 +95,20 @@ def is_int(*v) -> bool:
     return all(type(x) is int for x in v)
 
 
+def range_rows(v):
+    """(slot, round) -> (first, last) of a list of range rows (1.1 pilot_ranges, 1.2 ranges); None when a row is not a
+    dict with int slot, round, first and last, or a (slot, round) stands twice: nothing is judged on such a list."""
+    if not isinstance(v, list):
+        return None
+    out = {}
+    for x in v:
+        if not isinstance(x, dict) or not is_int(x.get("slot"), x.get("round"), x.get("first"), x.get("last")) \
+                or (x["slot"], x["round"]) in out:
+            return None
+        out[(x["slot"], x["round"])] = (x["first"], x["last"])
+    return out
+
+
 class Home:
     def __init__(self, home: Path, fp: str):
         self.home, self.fp, self.wire, self.cust = home, fp, home / "wire", home / "custody"
@@ -100,10 +126,68 @@ class Home:
         if not isinstance(h, dict) or type(h.get("run")) is not str or not isinstance(h.get("slots"), list) \
                 or not all(is_int(k) and 0 <= k <= 999 for k in h["slots"]) or not isinstance(h.get("pilot_ranges"), list):
             raise Stop(3, "RUN.json at home has no run, slots or pilot_ranges as 1.1 says")
+        if not is_int(h.get("schema")) or h["schema"] != 2:
+            raise Stop(3, "RUN.json at home is not of schema 2")
+        if len(set(h["slots"])) != len(h["slots"]):
+            raise Stop(3, "RUN.json at home names a slot twice")
+        self.pilot = range_rows(h["pilot_ranges"])
+        if self.pilot is None:
+            raise Stop(3, "RUN.json at home has a pilot row that is not one of 1.1, or a (slot, round) twice")
         self.h, self.hb = h, hb
 
     def rpath(self, k: int, i: int, kind: str = "receipt") -> Path:
         return self.cust / f"w{k:03d}" / f"p{i:06d}.{kind}.json"
+
+    def record(self, k: int, i: int, kind: str = "receipt") -> dict:
+        """A receipt or fork record as this program writes it (2.1), bound to this run, slot and index. Another run's
+        record: STOP 3 (a home folder serves one run; nothing is written); anything else: STOP 4."""
+        p = self.rpath(k, i, kind)
+        what = f"custody/w{k:03d}/{p.name}"
+        try:
+            r = parse_canon(p.read_bytes(), what)
+        except ValueError as e:
+            raise Stop(4, f"{what} is not a record this program writes: {e}") from None
+        if not isinstance(r, dict) or sorted(r) != (RECEIPT_KEYS if kind == "receipt" else FORK_KEYS) \
+                or not is_int(r["schema"]) or r["schema"] != 2:
+            raise Stop(4, f"{what} is not a {kind} record of 2.1 (its keys or schema)")
+        if r["run_fingerprint"] != self.fp:
+            raise Stop(3, f"{what} is another run's {kind} record: a home folder serves one run (2.1); give this run "
+                          "a fresh home folder (nothing was written)")
+        if not is_int(r["slot"], r["index"]) or (r["slot"], r["index"]) != (k, i):
+            raise Stop(4, f"{what} names slot {r['slot']} index {r['index']}, not those of its own name")
+        hexes = ("receipt_seal_sha256", "receipt_offer_sha256") if kind == "fork" else \
+            ("offer_sha256", "offer_wire_sha256", "seal_sha256")
+        if type(r["at_utc"]) is not str or not all(type(r[x]) is str and HEX64.fullmatch(r[x]) for x in hexes):
+            raise Stop(4, f"{what}: its hashes or at_utc are not as 2.1 writes them")
+        if kind == "fork":
+            if type(r["how"]) is not str or not all(r[x] is None or type(r[x]) is str
+                                                    for x in ("found_seal_sha256", "found_offer_sha256")):
+                raise Stop(4, f"{what}: not a fork record as 2.1 writes it")
+            return r
+        ms = r["members"]
+        if r["kept"] != f"wire/out/w{k:03d}" \
+                or not is_int(r["epoch"], r["first_counter"], r["last_counter"], r["offer_wire_bytes"]) \
+                or not isinstance(ms, list) or not ms \
+                or not all(isinstance(m, dict) and sorted(m) == MEMBER_KEYS and is_int(m["bytes"], m["wire_bytes"])
+                           and all(type(m[x]) is str for x in ("name", "codec", "sha256", "wire_name", "wire_sha256"))
+                           for m in ms):
+            raise Stop(4, f"{what}: its kept path, counters or members are not as 2.1 writes them")
+        if [(m["name"], m["codec"]) for m in ms] not in [[(f"p{i:06d}" + x, c) for x, c in f] for f in FORMS.values()] \
+                or any(m["wire_name"] != m["name"] + (".zz" if m["name"].endswith(".seal.json") else "") for m in ms):
+            raise Stop(4, f"{what}: its members are not a form of 1.6 for p{i:06d} (names, codecs, wire names)")
+        if ms[0]["sha256"] != r["seal_sha256"]:
+            raise Stop(4, f"{what}: its seal member is not its seal_sha256")
+        return r
+
+    def check_records(self) -> None:
+        """Every receipt and fork record of the header's slots read and bound BEFORE a pass or a confirmation writes
+        or counts anything (Astra 213621Z, Neon 223800Z: a previous run's receipts entered RECEIVED and confirmed)."""
+        for k in self.h["slots"]:
+            d = self.cust / f"w{k:03d}"
+            for p in sorted(d.iterdir()) if d.is_dir() else []:
+                for kind, rx in (("receipt", RECEIPT), ("fork", FORK)):
+                    if m := rx.fullmatch(p.name):
+                        self.record(k, int(m[1]), kind)
 
     # ---- 1: receipts --------------------------------------------------------------------------------------------
     def take(self, k: int, i: int) -> dict:
@@ -146,7 +230,8 @@ class Home:
         if not isinstance(s, dict) or sorted(s) != SEAL_KEYS or s["schema"] != 2 or s["run"] != self.h["run"] \
                 or s["run_fingerprint"] != self.fp or (s["slot"], s["index"]) != (k, i) \
                 or not is_int(s["epoch"], s["first_counter"], s["last_counter"], s["rows"], s["round"], s["schedule"]) \
-                or not 1 <= s["first_counter"] <= s["last_counter"] or s["epoch"] < 1 or type(s["prev_seal"]) is not str:
+                or not 1 <= s["first_counter"] <= s["last_counter"] or s["epoch"] < 1 or type(s["prev_seal"]) is not str \
+                or s["rows"] < 0:
             raise Bad("the seal is not a seal of 1.5 for this run, slot and index")
         return {"schema": 2, "run_fingerprint": self.fp, "slot": k, "index": i, "epoch": s["epoch"],
                 "first_counter": s["first_counter"], "last_counter": s["last_counter"], "offer_sha256": sha256_bytes(ob),
@@ -184,25 +269,29 @@ class Home:
         try:
             data = zlib.decompress(p.read_bytes())
             body = data[:data.rstrip(b"\n").rfind(b"\n") + 1]
-            foot = json.loads(data[len(body):])
+            foot = parse_canon(data[len(body):], "TERMINAL.jsonl footer")
             ok = data.endswith(b"\n") and isinstance(foot, dict) and foot.get("t") == "footer" \
                 and foot.get("fingerprint") == sha256_bytes(body) and body.startswith(self.hb)
-            lines = [json.loads(ln) for ln in body.split(b"\n")[:-1]] if ok else []
+            lines = [parse_canon(ln + b"\n", "TERMINAL.jsonl") for ln in body.split(b"\n")[:-1]] if ok else []
         except (zlib.error, ValueError) as e:
             ok, lines = False, []
             print(f"TERMINAL.jsonl.zz at home does not verify: {e}")
         if not ok:
             print("TERMINAL.jsonl.zz at home does not verify (footer fingerprint or header): no fork is judged from it")
             return None
-        return {(o["slot"], o["index"]): (o.get("seal"), o.get("offer")) for o in lines
-                if isinstance(o, dict) and o.get("t") == "piece" and is_int(o.get("slot"), o.get("index"))}
+        inv = {}
+        for o in lines:
+            if isinstance(o, dict) and o.get("t") == "piece" and is_int(o.get("slot"), o.get("index")):
+                if (o["slot"], o["index"]) in inv:
+                    print(f"TERMINAL.jsonl.zz at home names the piece w{o['slot']:03d}/p{o['index']:06d} twice: no "
+                          "fork is judged from it")
+                    return None
+                inv[(o["slot"], o["index"])] = (o.get("seal"), o.get("offer"))
+        return inv
 
     # ---- 3: the counts -------------------------------------------------------------------------------------------
     def ranges(self) -> dict:
-        def rows(v):
-            return {(x["slot"], x["round"]): (x["first"], x["last"]) for x in v if isinstance(x, dict)
-                    and is_int(x.get("slot"), x.get("round"), x.get("first"), x.get("last"))}
-        out, prev, n = {0: rows(self.h["pilot_ranges"])}, "first", 1
+        out, prev, n = {0: self.pilot}, "first", 1
         while (p := self.wire / f"SCHEDULE.{n}.json.zz").exists():
             try:
                 b = zlib.decompress(p.read_bytes())
@@ -210,11 +299,13 @@ class Home:
             except (zlib.error, ValueError) as e:
                 print(f"{p.name} at home does not verify: {e}")
                 break
-            if not isinstance(s, dict) or s.get("n") != n or s.get("run_fingerprint") != self.fp \
-                    or s.get("prev") != prev or not isinstance(s.get("ranges"), list):
-                print(f"{p.name} at home is not schedule {n} of this run linked to the one before")
+            have = range_rows(s.get("ranges")) if isinstance(s, dict) else None
+            if not isinstance(s, dict) or not is_int(s.get("schema"), s.get("n")) or (s["schema"], s["n"]) != (2, n) \
+                    or s.get("run_fingerprint") != self.fp or s.get("prev") != prev or have is None:
+                print(f"{p.name} at home is not schedule {n} of this run (schema 2, every range row once) linked to "
+                      "the one before")
                 break
-            out[n], prev, n = rows(s["ranges"]), sha256_bytes(b), n + 1
+            out[n], prev, n = have, sha256_bytes(b), n + 1
         return out
 
     def kept_seal(self, r: dict):
@@ -230,8 +321,8 @@ class Home:
         for k in self.h["slots"]:
             d, name = self.cust / f"w{k:03d}", f"w{k:03d}"
             files = list(d.iterdir()) if d.is_dir() else []
-            rs = {int(m[1]): json.loads(p.read_bytes()) for p in files if (m := RECEIPT.fullmatch(p.name))}
-            forks = {int(m[1]) for p in files if (m := FORK.fullmatch(p.name))}
+            rs = {int(m[1]): self.record(k, int(m[1])) for p in files if (m := RECEIPT.fullmatch(p.name))}
+            forks = {int(m[1]) for p in files if (m := FORK.fullmatch(p.name)) and self.record(k, int(m[1]), "fork")}
             for (kk, i), (seal, offer) in sorted((inv or {}).items()):
                 r = rs.get(i) if kk == k else None
                 if r and i not in forks and (seal != r["seal_sha256"] or (offer is not None and offer != r["offer_sha256"])):
@@ -285,12 +376,12 @@ class Home:
 
     def confirm(self, key: str) -> bool:
         m = KEY.fullmatch(key)
-        rp = self.rpath(int(m[1]), int(m[2])) if m else None
-        if rp is None or not rp.exists():
-            raise Stop(2, f"{key} is not a key with a receipt")
-        r = json.loads(rp.read_bytes())
+        k, i = (int(m[1]), int(m[2])) if m else (None, None)
+        if k not in self.h["slots"] or not self.rpath(k, i).exists():
+            raise Stop(2, f"{key} is not a key with a receipt of this run")
+        r = self.record(k, i)
         d = self.home / r["kept"]
-        want = [(f"p{r['index']:06d}.offer.json.zz", None, r["offer_wire_bytes"], r["offer_wire_sha256"], None, None)]
+        want = [(f"p{i:06d}.offer.json.zz", True, r["offer_wire_bytes"], r["offer_wire_sha256"], None, r["offer_sha256"])]
         want += [(x["wire_name"], x["name"].endswith(".seal.json"), x["wire_bytes"], x["wire_sha256"], x["bytes"],
                   x["sha256"]) for x in r["members"]]
         for wn, wire, wl, ws, dl, ds in want:
@@ -300,7 +391,7 @@ class Home:
             except (OSError, zlib.error) as e:
                 print(f"CONFIRM FAILED {key}: {wn} is gone or does not decode ({e.__class__.__name__})")
                 return False
-            if (len(wb), sha256_bytes(wb)) != (wl, ws) or (dl is not None and (len(data), sha256_bytes(data)) != (dl, ds)):
+            if (len(wb), sha256_bytes(wb)) != (wl, ws) or (dl is not None and len(data) != dl) or sha256_bytes(data) != ds:
                 print(f"CONFIRM FAILED {key}: {wn} is not the bytes of its receipt")
                 return False
         print(f"CONFIRMED {key}")
@@ -316,17 +407,22 @@ def main() -> int:
         a = ap.parse_args()
     except SystemExit:
         return 2
-    home = Path(a.home)
-    if not home.is_dir() or not HEX64.fullmatch(a.fingerprint):
-        print("custody: STOP (2): --home must be a folder and --fingerprint 64 hex digits")
+    home, keys = Path(a.home), a.confirm or []
+    if not home.is_dir() or not HEX64.fullmatch(a.fingerprint) or not all(KEY.fullmatch(x) for x in keys):
+        print("custody: STOP (2): --home must be a folder, --fingerprint 64 hex digits, --confirm keys w<NNN>/p<NNNNNN>")
         return 2
     try:
         H = Home(home, a.fingerprint)
+        if H.h is None and keys:            # never an answer for a run that is not verified (Astra 213621Z)
+            for x in keys:
+                print(f"CONFIRM PENDING {x}: wire/RUN.json.zz is not at home yet; nothing is confirmed")
+            return 5
         if H.h is None:
             print("custody: no wire/RUN.json.zz at home yet: nothing to do")
             return 0
-        if a.confirm:
-            return 0 if all([H.confirm(x) for x in a.confirm]) else 5
+        H.check_records()
+        if keys:
+            return 0 if all([H.confirm(x) for x in keys]) else 5
         p, c = H.receipts(), H.judge()
         print(f"custody: RECEIVED {c['received']} pieces {c['received_rows']} rows; C1 {c['c1']} pieces {c['c1_rows']} "
               f"rows; new receipts {p['new']}; not received {p['bad']}; waits {p['waits'] + c['waits']}; conflicts "
