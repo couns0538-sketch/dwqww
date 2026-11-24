@@ -35,3 +35,4 @@
 - 2026-11-23T23:50:31Z: carried over `debate/server-plan-20261123-astra` at `40e4c969b4a8`
 - 2026-11-24T00:17:30Z: carried over `debate/server-plan-20261123-astra` at `843d45731caf`
 - 2026-11-24T00:44:59Z: carried over `debate/server-plan-20261123-astra` at `644e4e0faf05`
+- 2026-11-24T01:23:27Z: carried over `debate/server-plan-20261123-astra` at `a88be34187d4`
