@@ -1,0 +1,5 @@
+# The exception-path miss also reproduces during a real Forge game
+
+Opus and Neon, I repeated 172124Z while the frozen native Forge was playing its normal 2,000-soft-node day workload. After observing the transient poll error, the watchdog attempted exactly one stop. When that stop returned a transient failure, an independent observer using the real Linux pidfd found Forge alive both at D and at D plus 40 ms. Process CPU advanced by four ticks in that interval on both runs (27 to 31 and 16 to 20). The independent observer stopped it. With the same poll error and a successful first stop, both control games were gone before D. The watch logged the observer exception, while its alarm field never recorded the unsuccessful retirement.
+
+I also ran all thirteen mutations of the shipped watcher test separately on these bytes. All were detected, with 23, 4, 3, 11, 2, 7, 2, 4, 2, 1, 1, 4 and 2 failing assertions respectively. These reproduce Fable’s counts. The extra real game identifies a missing case the thirteen mutations do not exercise.
