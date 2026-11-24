@@ -10,6 +10,8 @@ The boot guard runs in this process with planted readers (boot id, synchronised,
 
 U  units: read_instance on fixture folders (values are sha256 of the texts; placeholders null); the equality rule
    of 1.1 [2.4] case by case; the package's hash list as the publisher writes it (its last line `digest`).
+   The day's package is the given one with the owner's plan.json added and listed (the test's fixture); U6 the
+   given list without plan.json: held 5 naming plan.json (FORMATS 1.2, D6; bug hunt 23 Nov 19:30, F74-1).
 PHASE A (boot "boot-a", the header's): slots 0, 1, 2, piece_games 1, pilot ranges 1 to 8; workers 0 and 1 play until
    each journal has two `closed` lines, then STOP: both exit 0, no `ended` line. Slot 2 never starts. A copy of this
    state is the start of every B case. The heads h0, h1 are read from the journals by 1.4's rule alone (the last
@@ -48,6 +50,7 @@ PLANTS (each must make the test fail; the check expected to fail is named):
   plant17 the identity not checked (B14)             plant18 the header's instance_provable ignored (T2)
   plant19 the digest line not checked (U4)          plant20 the header's keys not checked (B19)
   plant21 no catch-all: a traceback (B20)           plant22 old_boot_id not compared in the chain (B21)
+  plant23 plan.json not required in the list (U6)
 """
 import hashlib
 import json
@@ -104,6 +107,7 @@ PLANTS = {
     "plant15": ('            lock = SlotLock(w.dir)                      # Stop 3: a worker runs\n',
                 '            pass\n'),
     "plant16": ('        if sha256_bytes(data) != h["package"]:\n', '        if False:\n'),
+    "plant23": ('        if not any(ln.endswith("  plan.json") for ln in body[:-1]):\n', '        if False:\n'),
     "plant17": ('            w.check_identity(canon({"run": h["run"], "run_fingerprint": fp, "schema": 2, "slot": k}))\n',
                 '            pass\n'),
     "plant18": (' if h.get("instance_provable") is True ', ' if True '),
@@ -181,6 +185,12 @@ INST_H = {"machine_id": sha(M.encode()), "product_uuid": sha(U.encode()), "board
 PKG = WORK / "pkg"
 shutil.copytree(Path(OPTS["pkg"]).resolve(), PKG)
 PKG_LIST = PKG / "MANIFEST.sha256"
+NOPOL = PKG / "MANIFEST.nopolicy.sha256"     # F74-1 (bug hunt 23 Nov 19:30): the published list, no policy in it
+NOPOL.write_bytes(PKG_LIST.read_bytes())
+(PKG / "plan.json").write_bytes(b'{"owner_choice":{"name":"the test policy"}}\n')   # the day adds the owner's
+_rows = PKG_LIST.read_text(encoding="ascii").split("\n")[:-2] + [f"{sha((PKG / 'plan.json').read_bytes())}  plan.json"]
+_body = "\n".join(sorted(_rows, key=lambda ln: ln.split("  ", 1)[1])) + "\n"           # the publisher's form
+PKG_LIST.write_bytes((_body + "digest " + sha(_body.encode("ascii")) + "\n").encode("ascii"))
 man = json.loads(MAN.read_bytes())
 n12 = [ln.split()[3:] for ln in (TREE / "workloads" / "n12_batch.uci").read_text(encoding="ascii").splitlines()
        if ln.startswith("position startpos moves ")]
@@ -339,6 +349,14 @@ def part_u():
         got = (e.code, "digest" in e.text)
     check("U4 a list whose digest line is wrong (its own sha256 in the header): held 5", got, (5, True))
     bad.unlink()
+    try:
+        BG.BootGuard(SimpleNamespace(root=str(WORK), package_list=str(NOPOL))).package(
+            {"package": sha(NOPOL.read_bytes())})
+        got = "no hold"
+    except BG.Held as e:
+        got = (e.code, "plan.json" in e.text)
+    check("U6 the given list without plan.json (its own sha256 in the header): held 5 naming plan.json", got,
+          (5, True))
 
 
 STATE = {}

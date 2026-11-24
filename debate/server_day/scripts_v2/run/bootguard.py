@@ -18,7 +18,9 @@ unit file. Standard library and the worker module only.
              difference, values on both sides must be the same;
    hashes    sha256 of the package's hash list is the header's `package`; the list is in the publisher's form
              (`<sha256>  <relative path>` lines, the last line `digest <sha256 of the lines before it>`) and every
-             file it names has its sha256; the engine file is `engine_sha256`, the net file `net_sha256`;
+             file it names has its sha256; it names `plan.json`, the owner's policy (FORMATS 1.2: owner_policy
+             is the package's; D6; bug hunt 23 Nov 19:30); the engine file is `engine_sha256`, the net file
+             `net_sha256`;
    chains    every slot of the header is read by the WORKER'S OWN code: the header and manifest checks, the slot's
              identity, the schedule chain, the journal replayed (every seal descends from the one before, from the
              genesis), its lock free; the slot's row is the (last_index, last_seal) that reading leaves, which is what
@@ -195,6 +197,9 @@ class BootGuard:
             f = lst.parent / m[2]
             if not f.is_file() or f.is_symlink() or file_sha256(f) != m[1]:
                 raise Held(5, f"the package file {m[2]} is not there or not the bytes its hash list names")
+        if not any(ln.endswith("  plan.json") for ln in body[:-1]):
+            raise Held(5, "the package's hash list names no plan.json: the owner's policy is not a file of the "
+                          "package (FORMATS 1.2, D6)")
         return {"package": h["package"], "package_files": len(body) - 1}
 
     def slot_row(self, h: dict, fp: str, k: int) -> tuple:

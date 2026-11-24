@@ -8,6 +8,7 @@ command lines are handed to the programs' OWN main(), with the classes that woul
 U1 sections Unit, Service, Install, each once. U2 ExecStartPre: one line, prefix `+`, /usr/bin/python3 -I -B
 <PKG>/run/bootguard.py. U3 ExecStart: one line, no prefix, /usr/bin/python3 -I -B <PKG>/run/guard.py, the same PKG.
 U4 --root, --exe, --net, --manifest, --known-startup equal in both lines; --package-list = <PKG>/MANIFEST.sha256.
+U4b the guard's --policy = <PKG>/plan.json: the file the boot guard requires in the list (bug hunt 23 Nov 19:30).
 U5 bootguard.main() and guard.main() accept their lines (exit 0, the recorded values are the line's); a word they
 do not know is refused with exit 2 (the instrument). U6 Restart=on-failure, RestartSec=30, RestartSteps=10,
 RestartMaxDelaySec=600, RestartPreventExitStatus=2, StartLimitIntervalSec=0. U7 KillMode=process. U8
@@ -15,7 +16,8 @@ TimeoutStartSec >= 1200 and no --sync-wait in the boot guard's line (its default
 After=time-sync.target, Type=simple, no User=.
 PLANTS (each must make the test fail): plant1 KillMode=control-group (U7); plant2 TimeoutStartSec=90 (U8); plant3 no
 `+` (U2); plant4 the guard's --root another folder (U4); plant5 Restart=no (U6); plant6 `-I` missing in ExecStart
-(U3); plant7 a misspelt argument in the boot guard's line (U5); plant8 no WantedBy (U9).
+(U3); plant7 a misspelt argument in the boot guard's line (U5); plant8 no WantedBy (U9); plant9 the guard's
+--policy outside the package (U4b).
 """
 import shlex
 import sys
@@ -38,6 +40,7 @@ PLANTS = {
     "plant5": ("Restart=on-failure\n", "Restart=no\n"),
     "plant6": ("ExecStart=/usr/bin/python3 -I -B", "ExecStart=/usr/bin/python3 -B"),
     "plant7": ("--package-list /srv/forgeday/package/MANIFEST.sha256", "--package-lst /srv/forgeday/package/MANIFEST.sha256"),
+    "plant9": ("--policy /srv/forgeday/package/plan.json", "--policy /srv/forgeday/plan.json"),
     "plant8": ("WantedBy=multi-user.target\n", "#WantedBy=multi-user.target\n"),
 }
 text = UNIT.read_bytes().decode("ascii")
@@ -138,6 +141,7 @@ shared = ("--root", "--exe", "--net", "--manifest", "--known-startup")
 check("U4 the five shared arguments equal in both lines, all there",
       [(k, pp.get(k) == sp.get(k) and pp.get(k) is not None) for k in shared], [(k, True) for k in shared])
 check("U4 --package-list = <PKG>/MANIFEST.sha256", pp.get("--package-list"), f"{pkg}/MANIFEST.sha256")
+check("U4b the guard's --policy = <PKG>/plan.json", sp.get("--policy"), f"{pkg}/plan.json")
 code, a = main_code(BG, "BootGuard", pa[4:])
 check("U5 bootguard.main() accepts its line: exit 0, the recorded values are the line's",
       (code, None if a is None else (a.root, a.exe, a.net, a.manifest, a.known_startup, a.package_list, a.sync_wait)),

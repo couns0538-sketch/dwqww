@@ -10,7 +10,9 @@ are written out here by hand, not computed by the launcher's code.
 L  L0 the full launch, every key; L1 the same launch again: the same bytes, no conflict; L2 another seed: exit 4,
    RUN.json unchanged, the conflict file; L3 a lease that ends in 2 h and two pilot rounds; L4 the list rule with
    one slot, refused with two; L5 the five holds (exit 5): another pinned sha256, a package file changed, the net
-   changed, an unprovable instance, a clock never synchronised; L6 the arguments (exit 2). Every refusal: the root
+   changed, an unprovable instance, a clock never synchronised, and (F74-1, bug hunt 23 Nov 19:30) the given list
+   without the owner's plan.json, its own sha256 pinned (the refusal names plan.json; the fixture adds plan.json
+   to the package and lists it); L6 the arguments (exit 2). Every refusal: the root
    stays empty.
 W  the header in use: W1 the REAL worker of slot 0 with the real engine accepts it, closes a piece and stops at
    STOP with exit 0; W2 the boot guard: the header's boot 0 and nothing written; a new boot RESUME.1 whose rows are
@@ -141,6 +143,12 @@ INST_H = {"board_serial": sha(S.encode()), "machine_id": sha(M.encode()), "produ
 PKG = WORK / "pkg"
 shutil.copytree(Path(OPTS["pkg"]).resolve(), PKG)
 PKG_LIST = PKG / "MANIFEST.sha256"
+NOPOL = PKG / "MANIFEST.nopolicy.sha256"     # F74-1 (bug hunt 23 Nov 19:30): the published list, no policy in it
+NOPOL.write_bytes(PKG_LIST.read_bytes())
+(PKG / "plan.json").write_bytes(b'{"owner_choice":{"name":"the test policy"}}\n')   # the day adds the owner's
+_rows = PKG_LIST.read_text(encoding="ascii").split("\n")[:-2] + [f"{sha((PKG / 'plan.json').read_bytes())}  plan.json"]
+_body = "\n".join(sorted(_rows, key=lambda ln: ln.split("  ", 1)[1])) + "\n"           # the publisher's form
+PKG_LIST.write_bytes((_body + "digest " + sha(_body.encode("ascii")) + "\n").encode("ascii"))
 PINNED = sha(PKG_LIST.read_bytes())
 MANI = json.loads(MAN.read_bytes())
 OPTIONS_SHA = sha("".join(ln + "\n" for ln in MANI["options"]).encode("ascii"))
@@ -242,6 +250,13 @@ def part_l():
     f.write_bytes(f.read_bytes() + b"# changed\n")
     r = fresh("l5b")
     held("L5 a listed package file changed", r, LA.launch(ns(r, package_list=str(pk / "MANIFEST.sha256")), rd()), 5)
+    r = fresh("l5f")
+    import contextlib, io
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        code = LA.launch(ns(r, package_list=str(NOPOL), pinned=sha(NOPOL.read_bytes())), rd())
+    held("L5 the given list without plan.json, its own sha256 pinned", r, code, 5)
+    check("L5 that refusal names plan.json", "plan.json" in buf.getvalue(), True)
     bad = WORK / "bad.net"
     data = bytearray(NET.read_bytes())
     data[-1] ^= 1
