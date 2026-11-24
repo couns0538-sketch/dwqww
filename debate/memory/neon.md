@@ -1,33 +1,28 @@
 # Neon Memory (8h Continuation — Phase 1: Engine Plan & Later Stages)
 
-Updated: 2026-11-23T17:36:11Z (UTC).
+Updated: 2026-11-23T18:22:00Z (UTC).
 Active branch: `debate/server-plan-20261123` (Astra edits `debate/engine_plan/ENGINE_PLAN_8H.md` on `origin/debate/server-plan-20261123-astra`).
 
 ## Phase & Schedule (`232555Z`, `FABLE OUT` `001806Z`)
-- **Phase 0 COMPLETE (`17:25Z`):** `FORMATS.md` 2.9 (`ac566296`), `SETUP_PLAN.md` 2.7 (`4100b2a5`), 7/9 `scripts_v2/` files (`engine_lines`, `uciproc`, `test_uciproc`, `record`, `test_record`, `budget` v7 `76817bad`, `test_budget` `52ef5a14`) all **3/3 YES**. 2/9 (`clockwatch` v4 `d21930a1`, `test_clockwatch` `507883ba`) **NOT YET** -> Opus.
+- **Phase 0 COMPLETE (`17:25Z`):** `FORMATS.md` 2.9 (`ac566296`), `SETUP_PLAN.md` 2.7 (`4100b2a5`), 7/9 `scripts_v2/` files **3/3 YES**; `clockwatch` v4 / `test_clockwatch` **NOT YET** -> Opus.
 - **ACTIVE NOW — Phase 1 (Hours 1–4, `17:25Z` – `21:25Z`): ENGINE PLAN & LATER STAGES.**
-  - Deliverable by `21:25Z`: `debate/engine_plan/ENGINE_PLAN_8H.md` (edited by Astra) + `AGREE <sha256> neon ENGINE_PLAN_8H.md`. Fable checks once at `21:55Z`.
+  - **MILESTONE LOCKED (`181124Z`):** **`debate/engine_plan/ENGINE_PLAN_8H.md` (`5c68f8bb82`, SHA-256 `725ffd3aefd5d230665b8bc13d6b53e0e45e65bc4b8832ddb313c41995f11344`) HOLDS 2/2 EXACT `AGREE`** (Astra `181020Z` + `1fdf537f5d`, Neon `181124Z`; embedded `A27` `5dd40b02...` 2/2 verified; 19/19 links OK; all math verified).
+  - Keeping `725ffd3a...` untouched and eligible for Fable's `21:55Z` check while completing complementary native `Forge 6.5` experiments under `/tmp/` until `~21:00Z` (only a substantive change-of-decision finding triggers a v2 freeze + fresh 2/2 exact `AGREE` before `21:25Z`).
 - **UP NEXT — Phase 2 (Hours 5–8, `21:25Z` – `01:25Z` Nov 24): SERVER-DAY PLAN.**
-  - Opus drops, `debate/server_day/specs/` (`171134Z`, `171332Z`, `172109Z` + all unwritten programs), ordered rehearsal + measurements (`171712Z`, `172415Z`), `FINAL_FOR_THE_OWNER.md` + `AGREE` by `01:25Z`.
+  - Queued for `21:25Z`: Opus worker/packer (`b9e369f9d1`, 4 files) + any clockwatch v5 drop; `debate/server_day/specs/` (`171134Z`, `171332Z`, `172109Z` + all unwritten programs); ordered rehearsal + measurements (`171712Z`, `172415Z`); `FINAL_FOR_THE_OWNER.md` + `AGREE` by `01:25Z`.
 - **Strict rules:** Only touch `debate/` (never `source/`); nothing personal/secret; update memory ~every 10 minutes; plain pushes only.
 
-## Exact `Forge 6.5` Live Test Harness (Outside Repo)
-- Source: `/tmp/neon_forge65_src/source/` (`origin/forge6.5` `fe3d86afee`), net: `forge65_net.fnn3`.
-- Binary: `/tmp/neon_forge65_exact/forge` (`-DFORGE_MATE_ALPHA_GUARD=1 -DFORGE_NNUE_V3=1`, AVX-512), verified **bit-exact** to `origin/forge6.5:README.txt` (`bench 11 = 226187`, `bench 13 = 616966`, 24 `loop/LOOP_OPTIONS.txt` settings).
+## Completed Phase 1 Proofs (`17:25Z` – `18:22Z`)
+- **`A27` (`5dd40b02...`) & `ENGINE_PLAN_8H.md` (`725ffd3a...`):** both 2/2 exact `AGREE`.
+- **Dual-seat `postlock_rbw` SMP proof:** Neon ABBA T4 `+6.4%` NPS (`6.562M->6.980M`), TSan `exit=0`, exhaustive BFS `4,580` states `0` violations; Astra pinned-worker micro-harness + bounded SC model (`5,763` states `0` violations).
+- **Live 24-opening whole-game depth scaling (`180515Z`):** `20k` `2.318s` (`1.00x`) -> `60k` `6.227s` (`2.69x`) -> `100k` `9.113s` (`3.93x`) -> `250k` `29.873s` (`12.89x`); `softnodes` `1.68–1.71x` nominal.
+- **Live 400-game `selfgame` audit (`175648Z`):** `50,882` kept rows, `<=5` `8.44%`, additional `6`-piece `3.915%` (`78.3M` of 2B), `<=6` `12.36%` (`37.5%` games); `128k` sensitivity `0/120` `evallimit`, `0/89` `drawadj`; `2.79%` dup positions.
+- **Exp 4 (`N21` AVX2 widening + `768->2048` speed matrix, `182200Z`):**
+  - Extreme-sign overflow (`a=255, w2=+-127`): old `int32` fails at `1056/1536/2048/2080`; 64-bit fold passes through `2080` (fails `2112` per theory).
+  - Exact-tree `bench 14 = 934,530` (4 ABBA passes): 64-bit fold is free (`+1.0%` on AVX2 `768`/`1024`); compile-time `MaxHidden=2048` doubles per-worker stack+cache (`620.5 -> 1228.5 KiB` 8kb) and taxes `768`/`1024` by `-1.5%` to `-2.6%`; `1024->1536` costs `-14.4%` (AVX-512) / `-17.2%` (AVX2); `1024->2048` costs `-24.2%` / `-29.1%` (`-34.6%` vs `768` on AVX2).
+- **Exp 3 (`FORGE_PAWN_HISTORY=1` audit, `182200Z`):** warm steady-state NPS neutral (`2.085M` vs `2.068M`/`2.076M`); 20-opening node ratio flips sign from `d10 = 1.1657` / `d13 = 1.1398` to `d15 (~128k) = 0.9298` (`-7.0%`). Screening signal only -> post-1B high-depth game-match queue.
+- **Astra complementary updates:** `24ef42a7fa` confirmed `QuietExtinction=true` still loses at `250k` (`10.00%` / `11.67%` on 2 disjoint 30-opening banks); `f9ced5de1e` preregistered SF17.1 20k teacher + disagreement-selector experiments.
 
-## Phase 1 Progress & Findings (`173611Z`)
-- **Reviewed Astra `a7e106ef60` (`proposed_game_disjoint_training_validation`):** AGREED as a later-stage diagnostic with two tightenings: (1) target-neutrality rule (different training targets must be evaluated on a third neutral target, never one arm's own labels), (2) 3-level overlap report (same-game=0, exact `board+turn`, opening-ID/book-prefix) + deduplicated-position metric.
-- **Clean 9-topic division:** Astra = opening-gate sensitivity, yardstick ceilings (`N20`+), labels/validation independence (`A19`+); Neon = `L-TM`, `L-SEARCH`, `L-SMP`, `L-WIN`, `L-TB`, `L-GEN`.
-- **`L-TM` (live proof beyond `N19`):**
-  1. `TmNodeShare` (`search.cpp:3185–3211`) fires from depth 1 (`startpos` `60+0.6`: `soft 3176 -> 4478 depth 1`) and breaks both bounds (`1-legal-move` `10+0.1` `soft=529`, floor `238ms`, stopped at `128ms` = `24%` of soft; high end up to `5.25x soft`).
-  2. `moves_to_go > 0` (`clock_plan.hpp:37–41`) ignores all 4 `Tm*` allocation options (`wtime=2000, winc=1000, mtg=1, TmHardPercent=20, TmIncrementPercent=0`: ran `854ms` vs `<=398ms` cap).
-  3. `TmFallingEvalPercent` (`search.cpp:3181–3184`) suppresses extension on `-Mate` (`!is_mate_score`) and misses multi-ply drift.
-  4. All 10 `Tm*` tunables untuned on clock -> clock-SPSA after fixes.
-- **`L-SEARCH` (live proof beyond `N22`):** 22 dormant switches in `search.cpp:100–230` (+ `FORGE_PAWN_HISTORY`). Swept d10 (`13.4k`) -> d13 (`49.7k`) -> d15 (`128.2k`) on 20 openings (and 20 switches on 40 openings d10/d13): `LmrSignedCorrection` `0/20 -> 1/20 -> 6/20`; `NullThreatVerify` `3/20 -> 11/20 -> 18/20`; `CaptureFutilityBase=120` `0.9996 -> 0.9768 -> 0.8789` (`-12.1%`); `LmrLateParentRelief` flips `+1.9% -> -2.5%`; overlaps `ThreatHistory`+`HistRework=2` (`+19.7%` nodes at d13) and `SoundMatePruning`+`MateAlphaGuard` (`+10.3%`).
-- **`L-SMP` (live proof beyond `N18`):** `TranspositionTable::lock_stripe` (`search.cpp:438`) executes global `stripes_dirty_.store(true, seq_cst)` on EVERY TT probe/store for `Threads > 1` + mutex + `exclusive_requested_` `seq_cst` load; `bench` ignores `Threads`. Live `go movetime 2000` (`Hash=64`, 4 positions): `T1=2.051M` (d24.00) -> `T2=3.565M` (`86.9%`/th, d25.75) -> `T4=6.775M` (`82.6%`/th, d25.75, +0 depth gain); `20x d12`: `T1=68ms`, `T2=92ms` (35% slower!), `T4=66ms` (`2.70x` nodes).
-
-## Immediate Next Actions
-1. Commit & push `173611Z` + memory update.
-2. Run live `Forge 6.5` `selfgame` measurements for **`L-GEN`** (`uci.cpp:448–560` termination mix, 1-ply `evallimit` false-resignation/flip rate, trajectory/position uniqueness) and **`L-TB`** (`<=5`-piece / `<=6`-piece prevalence & endgame conversion error rates).
-3. Run exact storage/IO/card-hour/staleness modeling for **`L-WIN`** (`2B -> 4B -> 10B+` positions, single-card I/O vs DDP compute trigger, multi-gen eviction).
-4. Monitor Astra's branch for replies & `debate/engine_plan/ENGINE_PLAN_8H.md` outline/drafts; review/challenge every section thoroughly.
+## Running Now / Next (`18:22Z` – `21:00Z`)
+1. **Exp 1 (`L-TM` / `N19` live `2+0.02` clock-match pilot, 40 reversed pairs = 80 games/arm) — IN PROGRESS:** fixtures passed; first arm (`orig_TmNodeShare_BUGGY`) scored **`43.75% [37.49%, 50.01%]` (`+11 -21 =48`, `0/0` forfeits)** vs default; fixed arms (`TmFinishIter`, `TmNodeShare`, `Both`) running.
+2. **Exp 2 (`L-SMP` / `N18` live `Threads=4` vs `Threads=1` same-clock baseline + `postlock_rbw` + `id_` helper depth diversity / standing pool):** run right after Exp 1 finishes (dedicated 4-core window).
