@@ -17,6 +17,11 @@ O  the order of the four files (in-process) and the .zz files.
 VERSION 2 (24 Nov, the fixture only; make_control.py unchanged): make_root writes its seal in the worker's form,
 because guard v2 counts only this run's chained seals. Known answers: tmp/opus_scratch/mc_v2/KNOWN_ANSWERS_mc_v2_by_opus.md
 on the PC.
+VERSION 3 (24 Nov, make_control.py version 2; known answers tmp/opus_scratch/mc_prog2/KNOWN_ANSWERS_make_control_v2_by_opus.md
+on the PC, written before the code): budget() writes run_fingerprint into state and pilot; the tool gets --state and
+--pilot; every public record carries state_now_s; B7 is kind pilot_decision (M5); R10's folders hold CONTROL.1's
+record; R11's files carry R11's own fingerprint. Part V: the run binding (VB, Astra 214130Z), the policy of a fence
+(VF, Neon 4b), the order (VS), the accepted folder (VN), the freshness (VR) and the match rows (VM, Neon 4c).
 PLANTS: see PLANTS below (each must make the test fail).
 """
 import hashlib
@@ -62,11 +67,40 @@ PLANTS = {
                '    create_only(out / f"CONTROL.{k}.json.zz", zlib.compress(cb, 6))\n'
                '    create_only(out / f"EVIDENCE.{sha(evb)}.json", evb)\n'
                '    create_only(out / f"EVIDENCE.{sha(evb)}.json.zz", zlib.compress(evb, 6))\n'),
-    "plant9": ('        if ev["inputs"]["plan_sha256"] != psha:\n', '        if False:\n'),
+    "plant9": ('    if ev["inputs"]["plan_sha256"] != psha:', '    if False:'),
     "plant10": ("        if cut > cut_in or disp > disp_in or disp > cut:\n", "        if disp > cut:\n"),
     "plant11": ('    if reduced["covered"] or oc.get("if_uncovered") == "self_play":\n', "    if True:\n"),
     "plant12": ("    if nums != list(range(1, len(nums) + 1)):\n", "    if False:\n"),
     "plant13": ('    ev["report_sha256"] = sha(report)\n', '    ev["report_sha256"] = sha(canon(strict(report, "r")))\n'),
+    # version 2 (M1 to M6): each named for the case it must fail
+    "plant14": ('    if ev["inputs"]["plan_sha256"] != psha:',                                     # VF1
+                '    if a.kind != "fence" and ev["inputs"]["plan_sha256"] != psha:'),
+    "plant15": ('    if not isinstance(obj, dict) or obj.get("run_fingerprint") != fp:\n',          # VB1, VB1p, VB5, VF2
+                '    if not isinstance(obj, dict):\n'),
+    "plant16": ("    if sha(data) != want:\n", "    if False:\n"),                                 # VB3
+    "plant17": ('        if sorted(given) != ["pilot", "state"]:\n', "        if False:\n"),          # VB4
+    "plant18": ('    if "state" in files and not whole(now):\n', "    if False:\n"),                 # VR2
+    "plant19": ("    if now is not None and seen and now < max(seen)[0]:\n", "    if False:\n"),     # VR1
+    "plant20": ("and now < max(seen)[0]:", "and now <= max(seen)[0]:"),                             # A2, A3
+    "plant21": ('    if a.kind in ("target", "matches") and not any(c["kind"] == "pilot_decision" for c, _ in '
+                'accepted):\n', "    if False:\n"),                                                  # VS1, VS2
+    "plant22": ("    if fenced:\n", "    if False:\n"),                                              # VS3
+    "plant23": ('    names = [p.name for p in folder.glob("CONTROL.*.json")]\n',                     # VN1
+                '    names = [p.name for p in folder.glob("CONTROL.*.json") if CTL_NAME.fullmatch(p.name)]\n'),
+    "plant24": ("        if data is None or sha(data) != ev:\n", "        if data is None:\n"),     # VN3
+    "plant25": ("        if data is None or sha(data) != ev:\n",                                    # VN2
+                "        if data is None:\n            continue\n        if sha(data) != ev:\n"),
+    "plant26": ('        queue_rows(ev["matches"], policy)\n', "        pass\n"),                    # VM1 to VM4, VM6
+    "plant27": (" and 0 < given <= games and ", " and 0 < given and "),                            # VM2
+    "plant28": (" and (given == games or i == len(matches) - 1))", ")"),                           # VM4
+    "plant29": (" and given % 2 == 0", ""),                                                        # VM6
+    "plant30": ('    if a.kind == "matches" and not ev["matches"]:\n',                              # VM5
+                '    if a.kind == "matches" and ev["matches"] is None:\n'),
+    "plant31": ('    ev["state_now_s"] = now\n', ""),                                              # every record, VR1
+    "plant32": ("q == [name, games]", "q[1] == games"),                                            # VM3
+    "plant33": ('    if a.kind != "fence":\n        if ev["inputs"]["pilot_sha256"] is None:\n',   # B9
+                '    if True:\n        if ev["inputs"]["pilot_sha256"] is None:\n'),
+    "plant34": ('("state", "pilot") if w in given}', '("pilot", "state") if w in given}'),          # VB1
 }
 text = MC_SRC.read_bytes().decode("ascii")
 if PLANT:
@@ -129,13 +163,17 @@ NEEDS = {"plan": ("lease_end_s", "closing_s"), "state": ("c4_rows",), "pilot": t
 GONE = WORK / "gone_raw_file.txt"
 
 
-def budget(name, plan=PLAN, state=STATE, pilot=PILOT):
-    """The real budget tool on these inputs: (report path, {kind: input path})."""
-    paths = {}
+def budget(name, plan=PLAN, state=STATE, pilot=PILOT, fps=None):
+    """The real budget tool on these inputs: (report path, {kind: input path}). Version 3: state and pilot carry
+    run_fingerprint, fps = (the state's, the pilot's), default HB's for both; "" writes none."""
+    paths, fps = {}, fps or (FP, FP)
     for kind, obj in (("plan", plan), ("state", state), ("pilot", pilot)):
         if obj is None:
             continue
         o = obj if "sources" in obj else dict(obj, sources={k: SRC for k in NEEDS[kind]})
+        f = {"state": fps[0], "pilot": fps[1]}.get(kind)
+        if f and "run_fingerprint" not in o:
+            o = dict(o, run_fingerprint=f)
         paths[kind] = WORK / f"{name}.{kind}.json"
         paths[kind].write_text(json.dumps(o), encoding="ascii")
     r = subprocess.run([sys.executable, "-I", "-B", str(TOOLS / "budget.py"),
@@ -150,9 +188,9 @@ L = int(time.time()) // 60 * 60 - 600
 PILOT_ROWS = [{"first": 1, "last": 4, "round": 1, "schedule": 0, "short": False, "slot": k} for k in (1, 2)]
 
 
-def header(lease_end=90000, hard=82800):
+def header(lease_end=90000, hard=82800, instance="test-instance"):
     return W.canon({"schema": 2, "run": "mc", "lease_start_utc": T(L), "lease_end_utc": T(L + lease_end),
-                    "hard_cutoff_utc": T(L + hard), "boot_id": W.boot_id(), "instance": "test-instance",
+                    "hard_cutoff_utc": T(L + hard), "boot_id": W.boot_id(), "instance": instance,
                     "package": "0" * 64, "engine_sha256": "1" * 64, "net_sha256": "2" * 64,
                     "options_sha256": "3" * 64, "game_line": "go nodes 1",
                     "opening_rule": {"kind": "seed", "plies": 8, "root_seed": "s"}, "slots": [1, 2], "piece_games": 4,
@@ -160,6 +198,9 @@ def header(lease_end=90000, hard=82800):
 
 
 HB = header()
+FP = sha(HB)
+HB2 = header(instance="substitute")          # run B: another machine, another fingerprint (Astra 214130Z)
+FP2 = sha(HB2)
 EMPTY = WORK / "accepted_empty"
 EMPTY.mkdir()
 
@@ -196,12 +237,18 @@ def done(g):
     g.log.close()
 
 
-def mk(report, root, pol, acc, kind, out):
-    """The tool as a process: (exit code, its output)."""
+def mk(report, root, pol, acc, kind, out, files=None):
+    """The tool as a process: (exit code, its output). files: {"state": path, "pilot": path}, each optional."""
+    extra = [x for w in ("state", "pilot") if w in (files or {}) for x in (f"--{w}", str(files[w]))]
     r = subprocess.run([sys.executable, "-I", "-B", str(MC), "--report", str(report), "--header",
                         str(root / "RUN.json"), "--policy", str(pol), "--accepted", str(acc), "--kind", kind, "--out",
-                        str(out)], capture_output=True, text=True)
+                        str(out), *extra], capture_output=True, text=True)
     return r.returncode, (r.stdout + r.stderr).strip()
+
+
+def sp(paths):
+    """The state and pilot files a report was computed from (the ones there are)."""
+    return {w: paths[w] for w in ("state", "pilot") if w in paths}
 
 
 def send(out, root):
@@ -223,14 +270,15 @@ def made(out, k):
     return cb, c, ep.read_bytes() if ep.exists() else None
 
 
-def pub(rp, paths, outcome, reason, c4, deficit, disp, matches, reduced, cut=82800, pilot=True):
-    """The public record by hand (FORMATS 0 canonical): the report's own values, the shas of the exact bytes."""
+def pub(rp, paths, outcome, reason, c4, deficit, disp, matches, reduced, cut=82800, pilot=True, now=7200):
+    """The public record by hand (FORMATS 0 canonical): the report's own values, the shas of the exact bytes;
+    version 3: state_now_s, the state's now_s (null when the tool is given no state: kind fence)."""
     return W.canon({"c4_rows": c4, "cutoff_floor_s": cut, "deficit_rows": deficit, "dispatch_end_floor_s": disp,
                     "inputs": {"pilot_sha256": sha(paths["pilot"].read_bytes()) if pilot else None,
                                "plan_sha256": sha(paths["plan"].read_bytes()),
                                "state_sha256": sha(paths["state"].read_bytes())},
                     "matches": matches, "outcome": outcome, "reason": reason, "reduced": reduced,
-                    "report_sha256": sha(rp.read_bytes()), "schema": 2})
+                    "report_sha256": sha(rp.read_bytes()), "schema": 2, "state_now_s": now})
 
 
 def ctl(c, t0, t1, **want):
@@ -242,7 +290,7 @@ def ctl(c, t0, t1, **want):
 
 def control_case(name, rp, paths, root, acc, tool_kind, out, ev_want, **want):
     t0 = time.time()
-    rc, txt = mk(rp, root, paths["plan"], acc, tool_kind, out)
+    rc, txt = mk(rp, root, paths["plan"], acc, tool_kind, out, files=None if tool_kind == "fence" else sp(paths))
     t1 = time.time() + 1
     check(f"{name} exit 0", (rc, txt[:160] if rc else ""), (0, ""))
     k = want.get("k", 1)
@@ -375,9 +423,9 @@ def part_b():
               34400000, 1965600000, 82200, None, None), "none", decision="UNQUALIFIED", scope=None,
           cutoff_utc=HARD, dispatch_end_utc=HARD)
     rp, paths = budget("SHORT", state=dict(STATE, now_s=82800))
-    fresh("B7_SHORT", rp, paths, "target",
+    fresh("B7_SHORT", rp, paths, "pilot_decision",
           pub(rp, paths, "SHORT", "time used up with 1965600000 C4 rows outstanding", 34400000, 1965600000, 82200,
-              None, None), "fence", decision="SHORT", scope=None, cutoff_utc=HARD, dispatch_end_utc=HARD)
+              None, None, now=82800), "fence", decision="SHORT", scope=None, cutoff_utc=HARD, dispatch_end_utc=HARD)
     st = dict(STATE, sources={"c4_rows": {"path": str(GONE), "sha256": "0" * 64}})
     rp, paths = budget("LOCAL", state=st)
     full = rp.read_bytes()
@@ -393,16 +441,16 @@ def part_b():
     rp, paths = budget("NP", pilot=None)
     fresh("B9_no_pilot_fence", rp, paths, "fence",
           pub(rp, paths, "UNQUALIFIED", "D3: no pilot record; nothing starts by script", 34400000, 1965600000, None,
-              None, None, pilot=False), "fence", decision="UNQUALIFIED", scope=None, cutoff_utc=HARD,
+              None, None, pilot=False, now=None), "fence", decision="UNQUALIFIED", scope=None, cutoff_utc=HARD,
           dispatch_end_utc=HARD)
 
 
-def refused(name, rp, pol, kind, acc=None, hb=HB, want_rc=4, out_exists=False):
+def refused(name, rp, pol, kind, acc=None, hb=HB, want_rc=4, out_exists=False, files=None):
     root = make_root(f"root_{name.split()[0]}", hb)     # the case's number alone names its folders
     out = WORK / f"out_{name.split()[0]}"
     if out_exists:
         out.mkdir()
-    rc, txt = mk(rp, root, pol, acc or EMPTY, kind, out)
+    rc, txt = mk(rp, root, pol, acc or EMPTY, kind, out, files=files)
     check(f"{name} exit {want_rc}, nothing written", (rc, out.exists() and any(out.iterdir())), (want_rc, False))
     check(f"{name}: the refusal names its own cause", (WHY[name.split()[0]] in txt, txt[-160:]),
           (True, txt[-160:]))
@@ -414,16 +462,25 @@ WHY = {"R1": "inputs.plan_sha256", "R2": "not a budget decision", "R3": "c4_rows
        "R7": "names no pilot report", "R8": "assigns no matches", "R9": "stands twice", "R10a": "are not exactly 1 to",
        "R10b": "prev does not link", "R10c": "another run's fingerprint", "R10d": "not a canonical record",
        "R11": "a bound later than the one in force", "R12": "invalid choice", "R13": "exists (a NEW folder)",
-       "R14": "does not exist"}
+       "R14": "does not exist",
+       "VB1": "the state is another run's", "VB1p": "the pilot is another run's",
+       "VB3": "not the state the report was computed from", "VB4": "needs --state and --pilot",
+       "VB5": "the pilot is another run's", "VF1": "inputs.plan_sha256", "VF2": "the pilot is another run's",
+       "VS1": "before any pilot_decision", "VS2": "before any pilot_decision", "VS3": "the day is fenced by CONTROL.1",
+       "VN1": "outside the grammar", "VN2": "its evidence is not in the accepted folder",
+       "VN3": "its evidence is not in the accepted folder", "VR1": "an older state", "VR2": "not a whole number",
+       "VM1": "not the policy's match_queue", "VM2": "not the policy's match_queue",
+       "VM3": "not the policy's match_queue", "VM4": "not the policy's match_queue", "VM5": "assigns no matches",
+       "VM6": "not the policy's match_queue"}
 
 
 def part_r():
     rp, paths = budget("M_r")
     _, p_stop = budget("O_stop_r", plan=dict(PLAN, owner_choice={"name": "s", "action": "stop"}))
-    refused("R1 the report of another policy file", rp, p_stop["plan"], "pilot_decision")
+    refused("R1 the report of another policy file", rp, p_stop["plan"], "pilot_decision", files=sp(paths))
     rp_e, p_e = budget("ERR", plan=dict(PLAN, target_rows=-1))
     check("R2 the instrument: the budget tool's error output", b'"error"' in rp_e.read_bytes(), True)
-    refused("R2 the budget tool's error output", rp_e, p_e["plan"], "pilot_decision")
+    refused("R2 the budget tool's error output", rp_e, p_e["plan"], "pilot_decision", files=sp(p_e))
     rep = json.loads(rp.read_bytes())
     for nm, edit in (("R3 c4_rows written 34400000.0", lambda d: d.update(c4_rows=34400000.0)),
                      ("R4 a match's games written 2000.0", lambda d: d["matches"][0].__setitem__(1, 2000.0))):
@@ -431,47 +488,53 @@ def part_r():
         edit(d)
         bad = WORK / f"{nm[:2]}.report.json"
         bad.write_text(json.dumps(d), encoding="ascii")
-        refused(nm, bad, paths["plan"], "pilot_decision")
+        refused(nm, bad, paths["plan"], "pilot_decision", files=sp(paths))
     oc_none = {"name": "uncovered", "reduced_target_rows": 1600000000, "action": "reduced_target"}
     rp5, p5 = budget("O_unc_none", plan=dict(PLAN, owner_choice=oc_none), pilot=dict(PILOT, cohort_seconds=760))
-    refused("R5 an uncovered reduced target, no if_uncovered", rp5, p5["plan"], "pilot_decision")
+    refused("R5 an uncovered reduced target, no if_uncovered", rp5, p5["plan"], "pilot_decision", files=sp(p5))
     rp6, p6 = budget("O_pause", plan=dict(PLAN, owner_choice={"name": "p", "action": "pause"}),
                      pilot=dict(PILOT, cohort_seconds=760))
-    refused("R6 the policy's action pause", rp6, p6["plan"], "pilot_decision")
+    refused("R6 the policy's action pause", rp6, p6["plan"], "pilot_decision", files=sp(p6))
     rp7, p7 = budget("NP_r", pilot=None)
-    refused("R7 kind pilot_decision on a report without a pilot", rp7, p7["plan"], "pilot_decision")
+    refused("R7 kind pilot_decision on a report without a pilot", rp7, p7["plan"], "pilot_decision", files=sp(p7))
     rp8, p8 = budget("U_r", pilot=dict(PILOT, rounds_whole=0))
-    refused("R8 kind matches on a report without matches", rp8, p8["plan"], "matches")
+    refused("R8 kind matches on a report without matches", rp8, p8["plan"], "matches", files=sp(p8))
     twice = WORK / "R9.report.json"
     twice.write_bytes(b'{"outcome": "STOP", ' + rp.read_bytes()[1:])
-    refused("R9 a key twice in the report", twice, paths["plan"], "pilot_decision")
-    # the accepted chain: a control 1 made by the tool on a fresh root, then damaged copies of the folder
+    refused("R9 a key twice in the report", twice, paths["plan"], "pilot_decision", files=sp(paths))
+    # the accepted chain: a control 1 made by the tool on a fresh root, then damaged copies of the folder (version 3:
+    # each folder holds CONTROL.1's record beside it, as the guard's control/ folder does)
     root = make_root("root_chain")
-    rc, _ = mk(rp, root, paths["plan"], EMPTY, "pilot_decision", WORK / "out_chain1")
+    rc, _ = mk(rp, root, paths["plan"], EMPTY, "pilot_decision", WORK / "out_chain1", files=sp(paths))
     cb1 = (WORK / "out_chain1" / "CONTROL.1.json").read_bytes() if rc == 0 else b"{}\n"
     c1 = json.loads(cb1)
+    ev1 = f"EVIDENCE.{c1.get('evidence')}.json"
+    evb1 = (WORK / "out_chain1" / ev1).read_bytes() if rc == 0 else b""
 
     def folder(name, files):
         f = WORK / name
         f.mkdir()
-        for n, b in files.items():
+        for n, b in dict(files, **{ev1: evb1}).items():
             (f / n).write_bytes(b)
         return f
     c3 = W.canon(dict(c1, k=3, prev=sha(cb1)))
     refused("R10a a gap: CONTROL.1 and CONTROL.3", rp, paths["plan"], "target",
-            acc=folder("acc_gap", {"CONTROL.1.json": cb1, "CONTROL.3.json": c3}))
+            acc=folder("acc_gap", {"CONTROL.1.json": cb1, "CONTROL.3.json": c3}), files=sp(paths))
     refused("R10b CONTROL.2's prev does not link", rp, paths["plan"], "target",
-            acc=folder("acc_prev", {"CONTROL.1.json": cb1, "CONTROL.2.json": W.canon(dict(c1, k=2, prev="0" * 64))}))
+            acc=folder("acc_prev", {"CONTROL.1.json": cb1, "CONTROL.2.json": W.canon(dict(c1, k=2, prev="0" * 64))}),
+            files=sp(paths))
     refused("R10c CONTROL.1 of another run", rp, paths["plan"], "target",
-            acc=folder("acc_run", {"CONTROL.1.json": W.canon(dict(c1, run_fingerprint="f" * 64))}))
+            acc=folder("acc_run", {"CONTROL.1.json": W.canon(dict(c1, run_fingerprint="f" * 64))}), files=sp(paths))
     refused("R10d CONTROL.1 not canonical", rp, paths["plan"], "target",
-            acc=folder("acc_canon", {"CONTROL.1.json": b"{ " + cb1[1:]}))
+            acc=folder("acc_canon", {"CONTROL.1.json": b"{ " + cb1[1:]}), files=sp(paths))
     rc, _ = mk(rp, make_root("root_chain_ok"), paths["plan"], folder("acc_ok", {"CONTROL.1.json": cb1}), "target",
-               WORK / "out_chain_ok")
+               WORK / "out_chain_ok", files=sp(paths))
     check("R10 the control: the same folder undamaged gives k 2", (rc, (WORK / "out_chain_ok" / "CONTROL.2.json")
                                                                    .exists()), (0, True))
-    refused("R11 a schedule later than the hard cutoff (lease end L + 84,600)", rp, paths["plan"], "pilot_decision",
-            hb=header(lease_end=84600, hard=81000))
+    h11 = header(lease_end=84600, hard=81000)
+    rp11, p11 = budget("M_r11", fps=(sha(h11), sha(h11)))
+    refused("R11 a schedule later than the hard cutoff (lease end L + 84,600)", rp11, p11["plan"], "pilot_decision",
+            hb=h11, files=sp(p11))
     refused("R12 kind pause", rp, paths["plan"], "pause", want_rc=2)
     refused("R13 the out folder exists", rp, paths["plan"], "pilot_decision", want_rc=2, out_exists=True)
     refused("R14 the accepted folder missing", rp, paths["plan"], "pilot_decision", acc=WORK / "no_such_folder",
@@ -489,7 +552,7 @@ def part_o():
     try:
         MCM.make(SimpleNamespace(report=str(rp), header=str(make_root("root_order") / "RUN.json"),
                                  policy=str(paths["plan"]), accepted=str(EMPTY), kind="pilot_decision",
-                                 out=str(WORK / "out_order")))
+                                 out=str(WORK / "out_order"), state=str(paths["state"]), pilot=str(paths["pilot"])))
     finally:
         MCM.create_only = orig
     ev = [n for n in rec if n.startswith("EVIDENCE.") and n.endswith(".json")]
@@ -502,7 +565,103 @@ def part_o():
            for p in sorted(out.glob("*.json"))], [True, True])
 
 
-for nm, fn in (("A", part_a), ("B", part_b), ("R", part_r), ("O", part_o)):
+def afolder(name, files):
+    """An accepted folder by hand (home's copy of control/)."""
+    f = WORK / name
+    f.mkdir()
+    for n, b in files.items():
+        (f / n).write_bytes(b)
+    return f
+
+
+def part_v():
+    # VB: the run binding (Astra 214130Z): run A's files under run B's header are refused; B's own are taken
+    rpA, pA = budget("VA")
+    refused("VB1 header B, state and pilot of run A", rpA, pA["plan"], "pilot_decision", hb=HB2, files=sp(pA))
+    rpX, pX = budget("VX", fps=(FP2, FP))
+    refused("VB1p header B, state of B, pilot of A", rpX, pX["plan"], "pilot_decision", hb=HB2, files=sp(pX))
+    rpB, pB = budget("VB", fps=(FP2, FP2))
+    root = make_root("root_VB2", HB2)
+    out = WORK / "out_VB2"
+    rc, txt = mk(rpB, root, pB["plan"], EMPTY, "pilot_decision", out, files=sp(pB))
+    check("VB2 header B, B's own state and pilot: exit 0", (rc, txt[:160] if rc else ""), (0, ""))
+    g = guard(root, pB["plan"])
+    try:
+        send(out, root)
+        g.take_controls()
+        check("VB2 the guard of root B takes it: SCHEDULE.1, no alarm on the control",
+              ((root / "SCHEDULE.1.json").exists(), g.alarms.get("control")), (True, None))
+    finally:
+        done(g)
+    other = WORK / "VB3.other_state.json"
+    other.write_text(json.dumps(dict(STATE, c4_rows=34400002, run_fingerprint=FP, sources={"c4_rows": SRC})),
+                     encoding="ascii")
+    refused("VB3 --state with other bytes than the report's state", rpA, pA["plan"], "pilot_decision",
+            files={"state": other, "pilot": pA["pilot"]})
+    refused("VB4 kind pilot_decision without --state and --pilot", rpA, pA["plan"], "pilot_decision")
+    rp5, p5 = budget("V5", fps=(FP, ""))
+    check("VB5 the instrument: the pilot file has no run_fingerprint", b"run_fingerprint" in p5["pilot"].read_bytes(),
+          False)
+    refused("VB5 the pilot without run_fingerprint", rp5, p5["plan"], "pilot_decision", files=sp(p5))
+    # VF: a fence rests on a report of this policy too (Neon 222600Z 4b); a file given to a fence is checked
+    _, p2 = budget("V_plan2", plan=dict(PLAN, match_margin=2.5))
+    refused("VF1 kind fence, report of plan 1, --policy plan 2", rpA, p2["plan"], "fence")
+    refused("VF2 kind fence given run A's pilot under header B", rpX, pX["plan"], "fence", hb=HB2,
+            files={"pilot": pX["pilot"]})
+    # VS: the order of the kinds (Neon 4c) and nothing after the fence
+    refused("VS1 kind matches as CONTROL.1", rpA, pA["plan"], "matches", files=sp(pA))
+    refused("VS2 kind target as CONTROL.1", rpA, pA["plan"], "target", files=sp(pA))
+    rpS, pS = budget("V_STOP", pilot=dict(PILOT, cohort_seconds=1520))
+    root = make_root("root_VS3i")
+    rc, _ = mk(rpS, root, pS["plan"], EMPTY, "pilot_decision", WORK / "out_VS3i", files=sp(pS))
+    g = guard(root, pS["plan"])
+    try:
+        send(WORK / "out_VS3i", root)
+        g.take_controls()
+    finally:
+        done(g)
+    check("VS3 the instrument: CONTROL.1 (STOP) made and taken, FENCE.json there",
+          (rc, (root / "control" / "CONTROL.1.json").exists(), (root / "FENCE.json").exists()), (0, True, True))
+    acc = WORK / "acc_VS3"
+    shutil.copytree(root / "control", acc)
+    refused("VS3 kind fence after the fence of CONTROL.1", rpS, pS["plan"], "fence", acc=acc)
+    # VN: the accepted folder as the guard reads its control/ folder (Neon 4c: CONTROL.01.json)
+    rc, _ = mk(rpA, make_root("root_VN"), pA["plan"], EMPTY, "pilot_decision", WORK / "out_VN", files=sp(pA))
+    cbn = (WORK / "out_VN" / "CONTROL.1.json").read_bytes() if rc == 0 else b"{}\n"
+    evn = f"EVIDENCE.{json.loads(cbn).get('evidence')}.json"
+    evbn = (WORK / "out_VN" / evn).read_bytes() if rc == 0 else b""
+    refused("VN1 CONTROL.01.json beside CONTROL.1 and its record", rpA, pA["plan"], "target",
+            acc=afolder("acc_VN1", {"CONTROL.1.json": cbn, evn: evbn, "CONTROL.01.json": cbn}), files=sp(pA))
+    refused("VN2 CONTROL.1 without its record", rpA, pA["plan"], "target",
+            acc=afolder("acc_VN2", {"CONTROL.1.json": cbn}), files=sp(pA))
+    refused("VN3 other bytes under the record's name", rpA, pA["plan"], "target",
+            acc=afolder("acc_VN3", {"CONTROL.1.json": cbn, evn: W.canon({"other": 1, "schema": 2})}), files=sp(pA))
+    # VR: the freshness of the state (Astra 214130Z); equal now_s is A2's and A3's case
+    rpO, pO = budget("V_old", state=dict(STATE, now_s=3600))
+    refused("VR1 a report from an older state (now_s 3600 after 7200)", rpO, pO["plan"], "target",
+            acc=afolder("acc_VR1", {"CONTROL.1.json": cbn, evn: evbn}), files=sp(pO))
+    rpF, pF = budget("V_frac", state=dict(STATE, now_s=7200.5))
+    refused("VR2 the state's now_s 7200.5", rpF, pF["plan"], "pilot_decision", files=sp(pF))
+    # VM: the match rows against the policy's queue (Neon 4c)
+    repA = json.loads(rpA.read_bytes())
+
+    def edited(nm, rows):
+        p = WORK / f"{nm}.report.json"
+        p.write_text(json.dumps(dict(repA, matches=rows)), encoding="ascii")
+        return p
+    for nm, rows in (("VM1 Neon's row ['', 100, 999999, 0]", [["", 100, 999999, 0]]),
+                     ("VM2 a match given above its games", [["a", 2000, 4000, 0]]),
+                     ("VM3 the first two rows swapped", [["b", 2000, 2000, 0], ["a", 2000, 2000, 0]]),
+                     ("VM4 a partial row before a whole one", [["a", 2000, 1000, 0], ["b", 2000, 2000, 0]]),
+                     ("VM6 given odd", [["a", 2000, 1999, 0]])):
+        refused(nm, edited(nm.split()[0], rows), pA["plan"], "pilot_decision", files=sp(pA))
+    rpS1, pS1 = budget("V_S", pilot=dict(PILOT, cohort_seconds=560))
+    check("VM5 the instrument: SELF_PLAY's report assigns an empty list", json.loads(rpS1.read_bytes()).get("matches"),
+          [])
+    refused("VM5 kind matches on SELF_PLAY's report (matches [])", rpS1, pS1["plan"], "matches", files=sp(pS1))
+
+
+for nm, fn in (("A", part_a), ("B", part_b), ("R", part_r), ("O", part_o), ("V", part_v)):
     safe(nm, fn)
 failed = [n for n, ok in RESULTS if not ok]
 print(f"{len(RESULTS) - len(failed)} of {len(RESULTS)} checks pass")

@@ -1,4 +1,4 @@
-"""Opus 2026-11-23: the test of run/worker.py version 2 (FORMATS 2.2 sections 0, 0.1 and 1.1 to 1.8; SETUP_PLAN
+"""Opus 2026-11-23: the test of run/worker.py version 2, and since 24 Nov of version 3 (V78a to V78e, V7d) (FORMATS 2.2 sections 0, 0.1 and 1.1 to 1.8; SETUP_PLAN
 2.2 D5), with the real engine and the frozen texts of <tree>/workloads and /known. Standard library only.
 
     test_worker.py <engine exe> <net file> <tree> <NEW work folder> [only=V1,V4a,...]
@@ -51,6 +51,17 @@ Astra's 135234Z for the two zero-row controls (FORMATS 1.4 names both as fixture
  (Every FENCE.json of these cases copies the D in force, as 1.8.1 and 2.4 have it: SCHEDULE.1's cutoff_utc. V7b
  and V7c are Astra's two cases of FORMATS 2.5 1.8.3 in a range of six: the FIRST counter without a final state is
  the one in doubt; with its failed line it is unfinished and no id is dispatch_unknown; never_dispatched_first 5.)
+ V7d  VERSION 3, target 79: as V7b with TWO record starts appended to the open piece (g4's, then g5's): exit 4
+      naming "2 game records lie beyond the journal's end"; the journal = its bytes before the restart + ONE epoch
+      line; the open piece byte for byte as after the plant; no closed p000000, no seal, no range seal; no engine.
+      Version 2 cuts both and calls g5 never_dispatched (exit 0).
+ V78a VERSION 3, target 78 (the launcher's text rule), roots like V3's (a finalizer start, no engine): an option
+      line with a carriage return inside, the header bound to it: exit 4 naming the option lines' printable ASCII,
+      no slot folder. V78b the selfgame_line with a tab at its end (the header's game_line the same): exit 4
+      naming the selfgame_line, no slot folder. V78c an option line with U+00E9 (a JSON escape): exit 4 naming the
+      option lines' rule. V78d an integer in the option list: the same. V78e the CONTROL, the manifest's own lines
+      written by the same code: exit 0, epoch + ended (finalizer). Version 2: V78a and V78b exit 0, V78c and V78d
+      exit 4 naming UnicodeEncodeError and TypeError, not the rule.
  V8   V1's journal with line 3 damaged: exit 4 naming journal line 3, the journal unchanged.
  V9   V1's journal cut after the sixth game (the second piece moved and sealed, its closed line lost): exit 0, the
       seal kept byte for byte (no second seal), the journal ends: epoch 2, closed 1 with that seal's sha256, ended
@@ -553,7 +564,7 @@ if want("V19"):
           "2026-11-30T23:59:59Z", got19 == [None] * 5 + [calendar.timegm((2026, 11, 30, 23, 59, 59))], got19)
 
 # ================================================================ group 1: V1, V4a, V4b, V10
-R1 = make_root("v1", "n12", 1, [row(1, 6, slot=1)], 30, 45) if want("V1", "V2", "V2b", "V7", "V7b", "V7c", "V8", "V9", "V9b", "V13", "V13b") else None
+R1 = make_root("v1", "n12", 1, [row(1, 6, slot=1)], 30, 45) if want("V1", "V2", "V2b", "V7", "V7b", "V7c", "V7d", "V8", "V9", "V9b", "V13", "V13b") else None
 R4a = make_root("v4a", "edge", 0, [row(1, 1)], 20, 35, rule="seed", seed="edge2649") if want("V4a") else None
 R4b = make_root("v4b", "edge", 0, [row(1, 1)], 20, 35, rule="seed", seed="edge2715") if want("V4b") else None
 R4c = make_root("v4c", "d10", 0, [row(1, 1)], 20, 35, rule="seed", seed="edge3146") if want("V4c") else None
@@ -690,6 +701,25 @@ if R10:
 R3 = make_root("v3", "late", 0, [row(1, 3)], -60, -30, rule="seed", seed="late") \
     if want("V3", "V38a", "V38b", "V38c", "V38d", "V38e") else None
 R5 = make_root("v5", "lock", 0, [row(1, 2)], 30, 45) if want("V5") else None
+
+
+def v78_root(name, opts=None, line=None):
+    """Version 3, target 78: a root like V3's whose manifest (a file of its own) carries these option lines and game
+    line, the header bound to them as the worker binds them (the lines joined with LF; UTF-8 for the letter)."""
+    man = dict(MAN, options=MAN["options"] if opts is None else opts, selfgame_line=line or MAN["selfgame_line"])
+    path = WORK / f"manifest_{name}.json"
+    path.write_bytes(json.dumps(man).encode("ascii"))
+    h = {"options_sha256": sha("".join(str(x) + "\n" for x in man["options"]).encode("utf-8"))}
+    return make_root(name, "late", 0, [row(1, 3)], -60, -30, rule="seed", seed="late",
+                     game_line=man["selfgame_line"], hdr=h), path
+
+
+V78 = {name: v78_root(name.lower(), opts, line) for name, opts, line in (
+    ("V78a", [MAN["options"][0] + "\rx"] + MAN["options"][1:], None),
+    ("V78b", None, MAN["selfgame_line"] + "\t"),
+    ("V78c", [MAN["options"][0] + "\u00e9"] + MAN["options"][1:], None),
+    ("V78d", MAN["options"] + [7], None),
+    ("V78e", None, None)) if want(name)}
 R6 = make_root("v6", "hash", 0, [row(1, 2)], 30, 45, engine_sha="f" * 64) if want("V6") else None
 R11a = make_root("v11a", "chain", 0, [row(1, 2)], 30, 45) if want("V11a") else None
 if R11a:
@@ -748,6 +778,8 @@ for name, root, kw in (("V3", R3, {"openings": False}), ("V5", R5, {}), ("V6", R
                        ("V18", R18, {"openings": False}), ("V18b", R18b, {"openings": False})):
     if root:
         P[name] = start(root, 1 if name == "V12" else 0, **kw)
+for name, (root, path) in V78.items():
+    P[name] = start(root, 0, manifest=path, openings=False)
 if R11b:
     t_end = time.time() + 120
     while time.time() < t_end and not (R11b / "ranges" / "r0001.w000.seal.json").exists() and P["V11b"].poll() is None:
@@ -759,6 +791,15 @@ OUT, ENDS = finish_all(P)
 if held is not None:
     held.release()
 
+for name, (root, _) in V78.items():
+    if name == "V78e":
+        common(name, OUT[name], 0)
+        check("V78e the journal is epoch + ended (finalizer)",
+              kinds(root, 0) == ["epoch", "ended"] and ended_why(root, 0) == "finalizer", jlines(root, 0))
+    else:
+        common(name, OUT[name], 4, "selfgame_line is not a text of printable ASCII" if name == "V78b"
+               else "option lines are not all texts of printable ASCII")
+        check(f"{name} no slot folder was made", not (root / "w000").exists())
 if R3:
     common("V3", OUT["V3"], 0)
     check("V3 the journal is epoch + ended (finalizer)", kinds(R3, 0) == ["epoch", "ended"] and ended_why(R3, 0) == "finalizer",
@@ -870,13 +911,15 @@ if G3:
         schedule(root, 1, [row(1, 6, slot=1)], 45, 60)
         return root
 
-    R2 = R2b = R7 = R7b = R7c = R8 = R9 = R9b = R13 = R13b = None
+    R2 = R2b = R7 = R7b = R7c = R7d = R8 = R9 = R9b = R13 = R13b = None
     if want("V13b"):
         R13b = fresh_root("v13b", RUN1)
     if want("V7b"):
         R7b = fresh_root("v7b", RUN1)
     if want("V7c"):
         R7c = fresh_root("v7c", RUN1)
+    if want("V7d"):
+        R7d = fresh_root("v7d", RUN1)
     if want("V2"):
         R2 = fresh_root("v2", canon(dict(json.loads(RUN1), run="other")))
         shutil.copytree(R1 / "w001", R2 / "w001")
@@ -935,8 +978,12 @@ if G3:
         P["V7"] = start(R7, 1)
     EVID = (f"game n12-w001-g00000004 opening {' '.join(N12[3])}\n"
             f"sent position startpos moves {' '.join(N12[3])}\n").encode("ascii")
+    EVID5 = (f"game n12-w001-g00000005 opening {' '.join(N12[4])}\n"
+             f"sent position startpos moves {' '.join(N12[4])}\n").encode("ascii")
     KILL7 = {name: (root, plant) for name, root, plant in (("V7b", R7b, EVID),
-                                                           ("V7c", R7c, b"garbage that names no game\n")) if root}
+                                                           ("V7c", R7c, b"garbage that names no game\n"),
+                                                           ("V7d", R7d, EVID + EVID5)) if root}
+    J7d = O7d = None
     if KILL7:
         pk = {name: start(root, 1) for name, (root, _) in KILL7.items()}
         alive7, t_end = set(pk), time.time() + 120
@@ -953,6 +1000,9 @@ if G3:
                 with open(f, "ab") as fh:
                     fh.write(plant)
             fence(root)
+            if name == "V7d":                       # version 3: what must be left exactly as it is
+                J7d = (root / "w001" / "journal.txt").read_bytes()
+                O7d = {f.name: f.read_bytes() for f in (root / "w001" / "open").glob("*.raw")}
             P[name] = start(root, 1)
     OUT, ENDS = finish_all(P)
     if R2:
@@ -991,6 +1041,21 @@ if G3:
         check("V7 the pieces are V1's byte for byte, ended (ranges done)",
               pieces(R7, 1) == V1_PIECES and ended_why(R7, 1) == "ranges done", list(pieces(R7, 1)))
         check("V7 no engine process left", engines_left(R7, 1) == [])
+    if R7d:
+        common("V7d", OUT["V7d"], 4, "2 game records lie beyond the journal's end")
+        check("V7d the plant reached the open piece (one open file, two record starts beyond the journal's end)",
+              O7d is not None and len(O7d) == 1 and all(v.endswith(EVID + EVID5) for v in O7d.values()), O7d and list(O7d))
+        jd = (R7d / "w001" / "journal.txt").read_bytes()
+        check("V7d only the epoch line was added to the journal",
+              J7d is not None and jd.startswith(J7d)
+              and [jline(ln)["t"] for ln in jd[len(J7d):].decode("ascii", "replace").splitlines()] == ["epoch"],
+              jd[len(J7d or b""):][:300])
+        check("V7d the open piece is unchanged byte for byte (nothing cut)",
+              {f.name: f.read_bytes() for f in (R7d / "w001" / "open").glob("*.raw")} == O7d)
+        check("V7d no closed p000000, no seal, no range seal",
+              not list((R7d / "w001" / "closed").glob("p000000*"))
+              and not (R7d / "ranges" / "r0001.w001.seal.json").exists())
+        check("V7d no engine process left", engines_left(R7d, 1) == [])
     for name, root in (("V7b", R7b), ("V7c", R7c)):
         if not root:
             continue

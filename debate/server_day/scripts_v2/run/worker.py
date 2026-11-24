@@ -110,6 +110,11 @@ at every start with old_boot_id linked (as guard v2 R7); a slot folder without I
 and IDENTITY.json.tmp; the lease times are read; FENCE.json is the guard's record; on Linux the engine's handle
 is a pidfd and the engine is started through run/bind_exec.py (PR_SET_PDEATHSIG), from the main thread only;
 worker.log names each engine by its number AND its creation time.
+VERSION 3 (Opus 24 Nov, my bug hunts' targets 78 and 79; known answers first: KNOWN_ANSWERS_worker_v3_by_opus.md
+on the PC): the manifest's option lines and selfgame_line must be texts of printable ASCII, the launcher's TEXT
+rule (Stop 4 naming the rule; a carriage return or a tab inside a line was bound by the hash and SENT as it was);
+and more than one game record beyond the journal's end of the open piece holds (Stop 4, nothing cut): a crash
+leaves at most one, so the journal lost lines, and the later games' dispatch would have gone without a word.
 NOT HERE: the end line's count rules (rows, moves, searches by reason) are home's (2.2); whether the clock can be
 trusted after a restart is the boot guard's (1.3); the wire copies (0) are the packer's.
 """
@@ -137,6 +142,7 @@ PLANTS = ("no_newgame", "writeminply9", "swap_final", "mvoes", "cut2", "kill_eng
 ALLOWANCE_S = 2.0               # 2.9: the stop allowance, the editor's choice until it is measured on the server
 HEX64 = re.compile(r"[0-9a-f]{64}")
 PRINTABLE = bytes(range(0x20, 0x7f))
+TEXT = re.compile(r"[\x20-\x7e]+")             # the launcher's text rule (version 3, target 78)
 FINAL = ("done", "noselfgame", "refused", "unfinished")
 PASSED = ("done", "noselfgame", "refused")          # 2.6: the only states the serial dispatcher can have passed
 MODES = ("play", "seal_only")                      # 2.7: the epoch line's mode
@@ -480,6 +486,12 @@ class Worker:
 
     def read_manifest(self) -> None:
         man = json.loads(Path(self.a.manifest).read_bytes().decode("ascii"))
+        opts, line = man["options"], man["selfgame_line"]
+        if not (isinstance(opts, list) and all(isinstance(ln, str) and TEXT.fullmatch(ln) for ln in opts)):
+            raise Stop(4, "the manifest's option lines are not all texts of printable ASCII (0x20 to 0x7e, no line "
+                          "end inside)")
+        if not (isinstance(line, str) and TEXT.fullmatch(line)):
+            raise Stop(4, "the manifest's selfgame_line is not a text of printable ASCII")
         self.options = list(man["options"])
         if sha256_bytes("".join(ln + "\n" for ln in self.options).encode("ascii")) != self.h["options_sha256"]:
             raise Stop(4, "the manifest's option lines are not the run's (options_sha256)")
@@ -866,7 +878,12 @@ class Worker:
             if size > want:
                 with open(op, "rb") as f:
                     f.seek(want)
-                    first = f.read(120).split(b"\n", 1)[0].split(b" ")
+                    tail = f.read()
+                records = sum(1 for ln in tail.split(b"\n") if ln.startswith(b"game "))
+                if records > 1:                         # a crash leaves at most one (written, fsynced, then its line)
+                    raise Stop(4, f"{op.name}: {records} game records lie beyond the journal's end ({want} bytes); a "
+                                  f"crash leaves at most one, so the journal lost lines: nothing is cut")
+                first = tail[:120].split(b"\n", 1)[0].split(b" ")
                 try:                                    # the id judged by the record module, never by a pattern here
                     run, slot, c = record.id_parts(first[1].decode("ascii")) if first[0] == b"game" and len(first) > 1 \
                         else (None, None, None)
