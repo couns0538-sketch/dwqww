@@ -100,11 +100,12 @@ def _label(line) -> str:
 
 
 class Engine:
-    def __init__(self, exe, log=None):
+    def __init__(self, exe, log=None, *, launcher=None):
         exe = Path(exe).resolve()
         self.log = log                      # a text file object or None: every line in both directions
         try:
-            self.p = subprocess.Popen([str(exe)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            cmd = [*launcher, str(exe)] if launcher else [str(exe)]   # a launcher prefix: the worker's W8 (Linux)
+            self.p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                       stderr=subprocess.STDOUT, cwd=str(exe.parent))
         except OSError as e:
             raise EngineError(f"the engine could not be started ({e})") from None

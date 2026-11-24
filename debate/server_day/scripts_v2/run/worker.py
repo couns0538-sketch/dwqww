@@ -104,6 +104,12 @@ clock_suspend (UTC and the boot-time clock 30 s past D, the steady clock stood s
 60 s past D: the hold), clock_back (UTC an hour back: D comes by the other clocks), watch_nostop (the watch's stop
 does nothing: the native process is found alive at D, the alarm "still there"), watch_lategone (after the stop the
 watch's look for the exit answers only once D has come: the exit is confirmed after D, the alarm "gone after D").
+SECOND READ (Astra 215331Z, Neon 223800Z 1 and 231830Z, Fable FABLE-2311-PDEATHSIG-ANSWER): a range seal that
+exists is judged as a piece seal is (an earlier start's is kept, anything else stops); the RESUME chain is walked
+at every start with old_boot_id linked (as guard v2 R7); a slot folder without IDENTITY.json may hold only LOCK
+and IDENTITY.json.tmp; the lease times are read; FENCE.json is the guard's record; on Linux the engine's handle
+is a pidfd and the engine is started through run/bind_exec.py (PR_SET_PDEATHSIG), from the main thread only;
+worker.log names each engine by its number AND its creation time.
 NOT HERE: the end line's count rules (rows, moves, searches by reason) are home's (2.2); whether the clock can be
 trusted after a restart is the boot guard's (1.3); the wire copies (0) are the packer's.
 """
@@ -116,6 +122,7 @@ import json
 import os
 import re
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -138,6 +145,7 @@ NOT_COMPLETE = ("dispatch_unknown", "never_dispatched", "unfinished")      # any
 HEADER_KEYS = ("schema", "run", "lease_start_utc", "lease_end_utc", "hard_cutoff_utc", "boot_id", "instance",
                "package", "engine_sha256", "net_sha256", "options_sha256", "game_line", "opening_rule", "slots",
                "piece_games", "pilot_ranges")
+FENCE_KEYS = ["at_utc", "cutoff_utc", "run_fingerprint", "schema", "why"]     # as both guards write it (2.3)
 SCHEDULE_KEYS = ["cutoff_utc", "dispatch_end_utc", "evidence", "n", "prev", "ranges", "run_fingerprint", "schema"]
 ROW_KEYS = ["first", "last", "round", "schedule", "short", "slot"]
 G = collections.namedtuple("G", "counter gid state bind rows end")
@@ -280,6 +288,35 @@ def utc(text, what: str) -> int:
     return t
 
 
+def same(v, want) -> bool:
+    """v equals want and has its type (a bool is never an int here)."""
+    return type(v) is type(want) and v == want
+
+
+def created_of(pid: int):
+    """The creation time of process `pid` (Windows: GetProcessTimes through a handle; Linux: /proc stat field 22),
+    or None. It names that process and no other only while the caller holds it (its handle, or the child not
+    reaped): the worker writes it for its own engine, which it holds."""
+    if os.name == "nt":
+        import ctypes
+        k = ctypes.WinDLL("kernel32", use_last_error=True)
+        k.OpenProcess.restype = ctypes.c_void_p
+        h = k.OpenProcess(0x1000, False, int(pid))
+        if not h:
+            return None
+        t = [ctypes.c_ulonglong() for _ in range(4)]
+        try:
+            return t[0].value if k.GetProcessTimes(ctypes.c_void_p(h), *[ctypes.byref(x) for x in t]) else None
+        finally:
+            k.CloseHandle(ctypes.c_void_p(h))
+    try:
+        with open(f"/proc/{int(pid)}/stat", "rb") as f:
+            s = f.read()
+        return int(s[s.rfind(b")") + 2:].split()[19])
+    except (OSError, ValueError, IndexError):
+        return None
+
+
 def boot_id() -> str:
     p = Path("/proc/sys/kernel/random/boot_id")
     return p.read_text(encoding="ascii").strip() if p.exists() else "none:" + os.name
@@ -414,6 +451,12 @@ class Worker:
         if type(h["piece_games"]) is not int or h["piece_games"] < 1:
             raise Stop(4, "RUN.json: piece_games is an integer >= 1")
         self.hard_cutoff = utc(h["hard_cutoff_utc"], "RUN.json hard_cutoff_utc")
+        start, end = utc(h["lease_start_utc"], "RUN.json lease_start_utc"), utc(h["lease_end_utc"],
+                                                                             "RUN.json lease_end_utc")
+        if not start < end:                             # the launcher's own rule (run/launcher.py)
+            raise Stop(4, "RUN.json: lease_start_utc is not before lease_end_utc")
+        if self.hard_cutoff > end:                      # Neon 223800Z 1: D lies inside the lease
+            raise Stop(4, "RUN.json: hard_cutoff_utc lies after lease_end_utc")
         rule, self.fixed = h["opening_rule"], None
         if isinstance(rule, dict) and sorted(rule) == ["kind", "plies", "root_seed"] and rule["kind"] == "seed":
             if type(rule["plies"]) is not int or not 0 <= rule["plies"] <= 64 or not isinstance(rule["root_seed"], str) \
@@ -564,13 +607,16 @@ class Worker:
             self.B.set("dispatch_end", min(held[2], held[1]))
 
     def admitting_resume(self):
-        """(name, sha256, record) of the HIGHEST RESUME record when it admits this boot, else None (FORMATS 1.3,
-        2.4): every RESUME from 1 to n is there, canonical, schema 2, this run's, n = its name, prev = sha256 of
-        RESUME n - 1 (`first` for 1); the highest names this machine's boot id and has instance_provable true."""
+        """(name, sha256, record) of the HIGHEST RESUME record when it admits this boot; None when there is no RESUME
+        and this boot is the header's (FORMATS 1.3, 2.4). Walked at EVERY start, on the header's boot too, as guard
+        v2's R7 walks it (Neon 223800Z 1): every RESUME from 1 to n is there, canonical, schema 2, this run's, n = its
+        name, prev = sha256 of RESUME n - 1 (`first` for 1), old_boot_id = the header's boot for 1 and RESUME n - 1's
+        new_boot_id after it, new_boot_id a text; the highest names this boot with instance_provable true. Anything
+        else: Stop 4, nothing changed."""
         names = [p.name for p in self.root.glob("RESUME.*.json")]
         if any(not re.fullmatch(r"RESUME\.[1-9][0-9]{0,2}\.json", x) for x in names):
             raise Stop(4, f"a RESUME file name outside the grammar: {sorted(names)[:5]}")
-        top, prev = None, b""
+        top, prev, boot = None, b"", self.h["boot_id"]
         for k in range(1, len(names) + 1):
             p = self.root / f"RESUME.{k}.json"
             if not p.exists():
@@ -580,14 +626,19 @@ class Worker:
                 r = parse_canon(data, p.name)
             except ValueError as e:
                 raise Stop(4, str(e)) from None
-            if not isinstance(r, dict) or r.get("schema") != 2 or r.get("n") != k \
+            if not isinstance(r, dict) or not same(r.get("schema"), 2) or not same(r.get("n"), k) \
                     or r.get("run_fingerprint") != self.run_fp \
-                    or r.get("prev") != ("first" if k == 1 else sha256_bytes(prev)):
-                raise Stop(4, f"{p.name}: not RESUME {k} of this run (schema, n, run_fingerprint, prev)")
-            top, prev = (p.name, sha256_bytes(data), r), data
-        if top is None or top[2].get("new_boot_id") != self.boot:
-            return None
-        if top[2].get("instance_provable") is not True:
+                    or r.get("prev") != ("first" if k == 1 else sha256_bytes(prev)) \
+                    or r.get("old_boot_id") != boot or not isinstance(r.get("new_boot_id"), str):
+                raise Stop(4, f"{p.name}: not RESUME {k} of this run's chain (schema, n, run_fingerprint, prev, "
+                              f"old_boot_id, new_boot_id)")
+            top, prev, boot = (p.name, sha256_bytes(data), r), data, r["new_boot_id"]
+        if boot != self.boot:
+            raise Stop(4, (f"this machine's boot id ({self.boot}) is not the header's ({self.h['boot_id']}) and no "
+                           f"RESUME record admits it; nothing was changed") if top is None else
+                          (f"this machine's boot id ({self.boot}) is not the one the highest RESUME names "
+                           f"({boot[:40]}): no RESUME record admits it; nothing was changed"))
+        if top is not None and top[2].get("instance_provable") is not True:
             raise Stop(4, f"{top[0]} admits this boot without instance_provable true: held for a person")
         return top
 
@@ -598,6 +649,9 @@ class Worker:
         if not p.exists():
             return False
         f = read_canon(p)
+        if not isinstance(f, dict) or sorted(f) != FENCE_KEYS or not same(f["schema"], 2):
+            raise Stop(4, "FENCE.json is not a fence record as the guard writes it (at_utc, cutoff_utc, "
+                          "run_fingerprint, schema 2, why)")
         if f.get("run_fingerprint") != self.run_fp:
             raise Stop(4, "FENCE.json is not this run's")
         if f.get("cutoff_utc") != self.d_text:
@@ -651,9 +705,13 @@ class Worker:
 
     def check_identity(self, ident: bytes) -> None:
         p = self.dir / "IDENTITY.json"
-        if not p.exists():
-            if (self.dir / "journal.txt").exists():
-                raise Stop(4, f"{self.name} has a journal and no IDENTITY.json: not this run's slot; nothing was changed")
+        if not p.exists():                              # only what claim_slot leaves before it (Neon 223800Z 1)
+            if not self.dir.exists():                   # W10: the boot guard reads a slot never started
+                return
+            other = sorted(x.name for x in self.dir.iterdir() if x.name not in ("LOCK", "IDENTITY.json.tmp"))
+            if other:
+                raise Stop(4, f"{self.name} holds {', '.join(other[:5])} and no IDENTITY.json: not this run's slot; "
+                              f"nothing was changed")
             return
         if p.read_bytes() != ident:
             raise Stop(4, f"{self.name}/IDENTITY.json belongs to another run or slot; nothing was changed")
@@ -845,6 +903,25 @@ class Worker:
                 return r["round"]
         raise Stop(4, f"{self.gid(counter)} lies in no range of the newest schedule")
 
+    def kept_seal(self, path: Path, fresh: dict) -> bool:
+        """A seal written before a crash, a piece's or a range's: True when it is `fresh` but for the epoch and the
+        schedule that wrote it (an earlier start's: an int from 1 to this epoch, from 0 to this schedule); False
+        when there is none; anything else Stop 4, the file kept as it is (Astra 215331Z, Neon 223800Z 1)."""
+        if not path.exists():
+            return False
+        try:
+            old = parse_canon(path.read_bytes(), path.name)
+        except ValueError:
+            old = None
+        drop = ("epoch", "schedule")
+        if not isinstance(old, dict) or {k: v for k, v in old.items() if k not in drop} != \
+                {k: v for k, v in fresh.items() if k not in drop} \
+                or type(old.get("epoch")) is not int or not 1 <= old["epoch"] <= self.epoch \
+                or type(old.get("schedule")) is not int or not 0 <= old["schedule"] <= self.sched_n:
+            raise Stop(4, f"{path.parent.name}/{path.name} exists and is not the seal of the journal's games and ids "
+                          f"(another run's, other counts, or not readable); it is kept as it is")
+        return True
+
     def close_piece(self) -> None:
         i, games = self.open_index, self.open_games
         if not games:
@@ -865,13 +942,7 @@ class Worker:
                  "last_counter": games[-1].counter, "ids_digest": ids.hexdigest(),
                  "round": self.round_of(games[0].counter), "schedule": self.sched_n}
         seal = self.dir / "closed" / f"p{i:06d}.seal.json"
-        if seal.exists():                               # written before a crash: checked, never a second one
-            old = read_canon(seal)
-            if {k: v for k, v in old.items() if k not in ("epoch", "schedule")} != \
-                    {k: v for k, v in fresh.items() if k not in ("epoch", "schedule")} \
-                    or type(old.get("epoch")) is not int or not 1 <= old["epoch"] <= self.epoch \
-                    or type(old.get("schedule")) is not int or not 0 <= old["schedule"] <= self.sched_n:
-                raise Stop(4, f"{seal.name} exists and is not the seal of the journal's games; both are kept")
+        if self.kept_seal(seal, fresh):                 # written before a crash: checked, never a second one
             sha = file_sha256(seal)
         else:
             body = canon(fresh)
@@ -909,11 +980,9 @@ class Worker:
 
     def range_seal(self, row: dict) -> None:
         path = self.root / "ranges" / f"r{row['round']:04d}.{self.name}.seal.json"
-        if path.exists():
-            return
         counts, idx = self.dispositions(row)
         sums = [self.piece_sums[i] for i in idx]
-        create_only(path, canon({
+        fresh = {
             "schema": 2, "run": self.h["run"], "run_fingerprint": self.run_fp, "round": row["round"],
             "slot": self.slot, "epoch": self.epoch, "schedule": self.sched_n, "first": row["first"],
             "last": row["last"], "short": row["short"],
@@ -922,7 +991,9 @@ class Worker:
             "first_prev_seal": (self.genesis if idx[0] == 0 else self.seal_sha[idx[0] - 1]) if idx else None,
             "through_index": idx[-1] if idx else -1, "through_seal": self.seal_sha[idx[-1]] if idx else None,
             "games": sum(s[0] for s in sums), "rows": sum(s[1] for s in sums), "raw_bytes": sum(s[2] for s in sums),
-            "dispositions": counts}))
+            "dispositions": counts}
+        if not self.kept_seal(path, fresh):             # an earlier start's seal is kept; other bytes: Stop 4
+            create_only(path, canon(fresh))
 
     def range_done(self, counter: int):
         """The range of `counter` when every id of it is final: the lowest open id lies beyond it (rising counters)."""
@@ -1013,7 +1084,17 @@ class Worker:
         finally:
             self.watch_end(w)
 
+    def launcher(self):
+        """W8 (Linux): the engine is started through run/bind_exec.py, which binds its life to this process
+        (PR_SET_PDEATHSIG) and then becomes the engine under the same number; None on Windows."""
+        if os.name == "nt":
+            return None
+        return [sys.executable, "-I", "-B", str(Path(__file__).resolve().parent / "bind_exec.py"), str(os.getpid())]
+
     def start_engine(self) -> None:
+        if threading.current_thread() is not threading.main_thread():   # the binding follows the starting thread
+            raise StartRefused("an engine is started only from the main thread (the parent-death binding follows "
+                               "the thread that starts it)")
         self.kill_engine()
         exe = Path(self.a.exe)
         if not exe.is_file() or file_sha256(exe) != self.h["engine_sha256"]:
@@ -1022,8 +1103,10 @@ class Worker:
         if not net.is_file() or net.stat().st_size != self.net_want[0] or file_sha256(net) != self.net_want[1]:
             raise StartRefused(f"the net file {net.name} is missing or is not the manifest's ({self.net_want[0]} bytes, "
                                f"sha256 {self.net_want[1][:16]}...)")
-        self.eng = eng = Engine(self.a.exe, log=self.log if self.a.trace else None)
+        self.eng = eng = Engine(self.a.exe, log=self.log if self.a.trace else None, launcher=self.launcher())
         self.ph = clockwatch.ProcHandle(eng.p)          # 2.9: right after the start, before any wait
+        if os.name != "nt" and self.ph.how != "pidfd":  # Neon 223800Z 1: the stop at D through a pidfd
+            raise StartRefused(f"the engine's handle is {self.ph.how!r}, not a pidfd: its stop at D is not exact")
         w = self.watch_start()                          # the whole start-up check under a watch
         try:
             have = eng.uci_options(60.0, cutoff=self.cut())
@@ -1090,7 +1173,7 @@ class Worker:
             got = [*(last or [None, None, None]), best]
             if got != want:
                 raise StartRefused(f"the start-up search gave {got}, the known answers are {want}")
-            self.say(f"engine started: pid {eng.p.pid}, engine sha256 {self.h['engine_sha256'][:16]}, net {got_net}, "
+            self.say(f"engine started: pid {eng.p.pid} created {created_of(eng.p.pid)}, engine sha256 {self.h['engine_sha256'][:16]}, net {got_net}, "
                      f"evals {evals}, search {got}")
             eng.sent.clear()
         except EngineRefused as e:
@@ -1293,12 +1376,7 @@ class Worker:
 
     def run(self) -> int:
         self.boot = boot_id()
-        resume = None
-        if self.boot != self.h["boot_id"]:
-            resume = self.admitting_resume()
-            if resume is None:
-                raise Stop(4, f"this machine's boot id ({self.boot}) is not the header's ({self.h['boot_id']}) and no "
-                              f"RESUME record admits it; nothing was changed")
+        resume = self.admitting_resume()                # walked at every start (Neon 223800Z 1; guard v2 R7)
         self.load_schedules(start=True)                 # the chain, before anything is changed
         self.no_hold("nothing was changed")             # 2.9: the clocks, before anything is changed
         first_start = not (self.dir / "journal.txt").exists()

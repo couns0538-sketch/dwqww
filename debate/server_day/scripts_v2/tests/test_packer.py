@@ -89,6 +89,36 @@ the first run:
      SCHEDULE.1.json and r0001.w000.seal.json have theirs; (b) w000/closed/p<six Arabic-Indic digits: 7>.seal.json:
      exit 0 "offered 5 pieces as binpack and 1 as raw" (not a seal of the grammar; the packer before: exit 3, a
      seal "missing while 1 later seals are there").
+SECOND READ (Opus 2026-11-24, P1 to P6 of KNOWN_ANSWERS_packer_v2_by_opus.md; Astra 214929Z, Neon 223800Z). Known
+answers written before the code:
+ K3  T1 to T3 (P6): a stand-in started here is alive by its number AND creation time, not by another creation time,
+     and not after its kill through its handle; the hang stand-in writes its number and creation time, and "none of
+     them alive" is judged by both
+ K16 c to e (P3): --poll inf, --probe-every inf, --convert-seconds inf: each exit 2 `packer: STOP (2): <option> inf:
+     must be a finite number`, no out/ made
+ K23 (P1) a: K2's run, then the official converter, --once, --probe-every 0: exit 0 "offered 0 pieces as binpack and
+     0 as raw"; mode lines fallback (p000003), normal (p000005, "a probe passed"); out/w000 byte for byte; scratch
+     empty. b: K2's run, then a converter that logs its start and exits 1, no --once, --poll 0.1, --probe-every
+     0.3, STOP_PACKER after 2.5 s: exit 0 "offered 0 pieces as binpack and 0 as raw"; at least 3 starts and 3 logged
+     probes on w000/p000005; one mode line; out/w000 byte for byte
+ K24 (P2), the official converter, --once: a p000005's seal and piece moved away: exit 3 "w000: the journal's ended
+     line names last_index 5, but the seals here end at index 4", p000000 to p000004 offered; b all moved away: exit
+     3 "... index -1", nothing offered; c the ended line's last_seal made 64 zeros: exit 3 "names last_seal 0...0, not
+     the sha256 of p000005.seal.json", all six offered; d all moved away and the ended line -1 with this slot's
+     genesis text: exit 0 "offered 0 pieces as binpack and 0 as raw"; e as d with w001's genesis text: exit 3 "not
+     the genesis text of this slot"
+ K25 (P4), the official converter, --once: a an empty SCHEDULE.2.json: exit 4 "SCHEDULE.2.json: a byte outside
+     0x20..0x7e, or no line end", no wire copy of it; b ranges/r0002.w000.seal.json not canonical: exit 4
+     "r0002.w000.seal.json: not in canonical form", no wire copy of it; c a canonical SCHEDULE.2.json: exit 0, its
+     wire copy gives it back
+ K26 (P5), each on a copy of K1's result, the official converter, --once: a p000003.offer.json.zz empty, b it is
+     p000004's, c p000003.binpack removed, e the offer canonical with another seal_sha256 and its wire copy made to
+     fit: each exit 4 "w000/p000003: p000003.offer.json.zz is there but" (b "it does not give p000003.offer.json
+     back", c "the member p000003.binpack is not there at", e "it is not this piece's offer"); d as it is: exit 0
+     "offered 0 pieces as binpack and 0 as raw"; out/w000 unchanged byte for byte in all five
+ K4, K18, K20b (changed with P2): while pieces are held back the slot's journal is without its ended line (a
+     slot whose later pieces are still to come has not ended; with the line, P2 rightly stops); K4 puts the line
+     back with its pieces
 """
 import hashlib
 import json
@@ -186,23 +216,39 @@ def run_conv(cmd, src: Path, dst: Path) -> bool:
     return p.returncode == 0 and dst.is_file() and dst.stat().st_size > 0
 
 
-def alive(pid: int) -> bool:
+IDENT_SRC = '''
+def created_of(pid, h=None):
+    # The creation time of the LIVING process of this number (read through handle h when given), or None.
     if os.name == "nt":
         import ctypes
-        k = ctypes.windll.kernel32
+        k = ctypes.WinDLL("kernel32", use_last_error=True)
         k.OpenProcess.restype = ctypes.c_void_p
-        h = k.OpenProcess(0x100000 | 0x1000, False, pid)
+        own = h is None
+        h = k.OpenProcess(0x1000, False, int(pid)) if own else h
         if not h:
-            return False
+            return None
+        t, code = [ctypes.c_ulonglong() for _ in range(4)], ctypes.c_ulong()
         try:
-            return k.WaitForSingleObject(ctypes.c_void_p(h), 0) == 258
+            ok = (k.GetProcessTimes(ctypes.c_void_p(h), *[ctypes.byref(x) for x in t])
+                  and k.GetExitCodeProcess(ctypes.c_void_p(h), ctypes.byref(code)))
+            return t[0].value if ok and code.value == 259 else None
         finally:
-            k.CloseHandle(ctypes.c_void_p(h))
+            if own:
+                k.CloseHandle(ctypes.c_void_p(h))
     try:
-        os.kill(pid, 0)
-        return True
+        with open(f"/proc/{int(pid)}/stat", "rb") as f:
+            s = f.read()
     except OSError:
-        return False
+        return None
+    s = s[s.rfind(b")") + 2:].split()
+    return int(s[19]) if s[0] != b"Z" else None
+'''
+exec(IDENT_SRC)
+
+
+def alive(pid, created):
+    "P6 (the guard test's R11): a process of this number lives AND it is the recorded one (its creation time)."
+    return created is not None and created_of(pid) == created
 
 
 # ================================================================ the fixture R6, made by the tree's own worker
@@ -317,12 +363,21 @@ def wait_offers(root, p, n=6, secs=120.0):
         time.sleep(0.2)
 
 
+def cut_end(root) -> bytes:
+    """P2: a slot whose later pieces are still to come has not ended: its journal without the `ended` line (the
+    fixture's last line). Returns the journal as it was."""
+    jf = root / "w000" / "journal.txt"
+    jb = jf.read_bytes()
+    jf.write_bytes(jb[:jb.rstrip(b"\n").rfind(b"\n") + 1])
+    return jb
+
+
 NO_CONV = WORK / "no_such_converter.exe"
 FENCE = lambda: canon({"run_fingerprint": FP, "at_utc": T(time.time()), "cutoff_utc": T(time.time()), "why": "a test"})  # noqa: E731
 
 # ================================================================ K1 and K10
 K1 = None
-if want("K1", "K10", "K17", "K19", "K20"):
+if want("K1", "K10", "K17", "K19", "K20", "K26a", "K26b", "K26c", "K26d", "K26e"):
     K1 = copy("k1")
     rc, out, _ = run_packer(K1, CONV, "--once")
     common("K1", rc, out, 0, "offered 5 pieces as binpack and 1 as raw")
@@ -417,10 +472,22 @@ if want("K2"):
 
 # ================================================================ K3: a converter that never answers
 if want("K3"):
+    t = subprocess.Popen([sys.executable, "-I", "-B", "-c", "import time; time.sleep(60)"])
+    c = created_of(t.pid)
+    check("K3 T1 a stand-in: alive by its number and creation time", alive(t.pid, c), (t.pid, c))
+    check("K3 T2 alive by its number and ANOTHER creation time: False", c is not None and not alive(t.pid, c + 1),
+          (t.pid, c))
+    t.kill()
+    t.wait()
+    t_end = time.time() + 10
+    while time.time() < t_end and alive(t.pid, c):
+        time.sleep(0.2)
+    check("K3 T3 killed through its handle: not alive within 10 s", c is not None and not alive(t.pid, c), (t.pid, c))
     pid_file = WORK / "hang_pids.txt"
     hang = WORK / "hang_converter.py"
-    hang.write_text(f"import os, time\nwith open({pid_file.as_posix()!r}, 'a') as f:\n    f.write(str(os.getpid()) + chr(10))\n"
-                    f"time.sleep(600)\n", encoding="ascii")
+    hang.write_text("import os, time\n" + IDENT_SRC + f"with open({pid_file.as_posix()!r}, 'a') as f:\n"
+                    f"    f.write(f'{{os.getpid()}} {{created_of(os.getpid())}}' + chr(10))\ntime.sleep(600)\n",
+                    encoding="ascii")
     K3 = copy("k3")
     rc, out, secs = run_packer(K3, hang, "--once", "--convert-seconds", "3")
     common("K3", rc, out, 0, "offered 0 pieces as binpack and 6 as raw")
@@ -429,12 +496,14 @@ if want("K3"):
           [(r.get("mode"), r.get("piece")) for r in ml] == [("fallback", "w000/p000003")]
           and "no end within 3 s" in ml[0].get("why", ""), ml)
     check("K3 three attempts of 3 s each: at least 9 s and less than 30 s", 9 <= secs < 30, f"{secs:.1f} s")
-    pids = [int(x) for x in pid_file.read_text(encoding="ascii").split()] if pid_file.is_file() else []
+    pairs = [(int(a), int(b) if b.isdigit() else None) for a, b in
+             (ln.split() for ln in pid_file.read_text(encoding="ascii").splitlines())] if pid_file.is_file() else []
     t_end = time.time() + 10
-    while time.time() < t_end and any(alive(p) for p in pids):
+    while time.time() < t_end and any(alive(p, c) for p, c in pairs):
         time.sleep(0.5)
-    check("K3 the stand-in was started three times and none of them is alive after the packer's end",
-          len(pids) == 3 and not any(alive(p) for p in pids), pids)
+    check("K3 the stand-in was started three times and none of them is alive after the packer's end (number AND "
+          "creation time)", len(pairs) == 3 and all(c is not None for _, c in pairs)
+          and not any(alive(p, c) for p, c in pairs), pairs)
 
 # ================================================================ K4: the fallback survives a restart; a probe
 if want("K4"):
@@ -444,12 +513,14 @@ if want("K4"):
     for i in (4, 5):
         for ext in ("raw", "seal.json"):
             os.replace(K4 / "w000" / "closed" / f"p{i:06d}.{ext}", held / f"p{i:06d}.{ext}")
+    journal = cut_end(K4)                       # P2: pieces 4 and 5 still to come: the slot has not ended
     rc1, out1, _ = run_packer(K4, NO_CONV, "--once")
     ml1 = mode_lines(K4)
     check("K4 the first run (no converter, pieces 0 to 3): exit 0, fallback at w000/p000003",
           rc1 == 0 and [(r.get("mode"), r.get("piece")) for r in ml1] == [("fallback", "w000/p000003")], (rc1, out1[-200:], ml1))
     for f in sorted(held.iterdir()):
         os.replace(f, K4 / "w000" / "closed" / f.name)
+    (K4 / "w000" / "journal.txt").write_bytes(journal)
     rc, out, _ = run_packer(K4, CONV, "--once", "--probe-every", "0")
     common("K4", rc, out, 0, "offered 0 pieces as binpack and 2 as raw")
     log = logtext(K4)
@@ -635,6 +706,11 @@ if want("K16"):
     nr.mkdir()
     rc, out, _ = run_packer(nr, CONV, "--once")
     common("K16b", rc, out, 2, "RUN.json")
+    for tag, opt in (("c", "--poll"), ("d", "--probe-every"), ("e", "--convert-seconds")):
+        Kx = copy(f"k16{tag}")
+        rc, out, _ = run_packer(Kx, CONV, "--once", opt, "inf")
+        common(f"K16{tag}", rc, out, 2, f"packer: STOP (2): {opt} inf: must be a finite number")
+        check(f"K16{tag} no out/ made", not (Kx / "out").exists())
 
 # ================================================================ K17 to K22: B1 to B3
 def held_back(name):
@@ -645,6 +721,7 @@ def held_back(name):
     for i in (2, 3, 4, 5):
         for ext in ("raw", "seal.json"):
             os.replace(root / "w000" / "closed" / f"p{i:06d}.{ext}", held / f"p{i:06d}.{ext}")
+    cut_end(root)                               # P2: pieces 2 to 5 still to come: the slot has not ended
     rc, out, _ = run_packer(root, NO_CONV, "--once")
     check(f"{name.upper()} the first run (no converter, pieces 0 and 1): exit 0, both raw, no mode file",
           rc == 0 and forms(root)[:2] == ["raw", "raw"] and not (root / "out" / "PACKER_MODE.jsonl").exists(),
@@ -762,6 +839,143 @@ if want("K22"):
     put(K22b / "w000" / "closed" / ("p" + "\u0660" * 5 + "\u0667.seal.json"), b"{}\n")
     rc, out, _ = run_packer(K22b, CONV, "--once")
     common("K22b", rc, out, 0, "offered 5 pieces as binpack and 1 as raw")
+
+
+# ================================================================ K23 to K26: version 2, second read (P1 to P5)
+def fallback_six(name):
+    """A copy packed once with no converter: all six raw, fallback at w000/p000003 (as K2)."""
+    root = copy(name)
+    rc, out, _ = run_packer(root, NO_CONV, "--once")
+    check(f"{name.upper()} the first run (no converter): exit 0, all six raw, fallback at w000/p000003",
+          rc == 0 and forms(root) == ["raw"] * 6
+          and [(r.get("mode"), r.get("piece")) for r in mode_lines(root)] == [("fallback", "w000/p000003")],
+          (rc, out[-200:], forms(root)))
+    return root
+
+
+def emptied(name):
+    """A copy whose w000/closed is emptied (every seal and piece moved aside)."""
+    root = copy(name)
+    held = WORK / f"{name}_held"
+    held.mkdir()
+    for f in sorted((root / "w000" / "closed").iterdir()):
+        os.replace(f, held / f.name)
+    return root
+
+
+if want("K23a"):
+    K23 = fallback_six("k23a")
+    before = tree_bytes(K23 / "out" / "w000")
+    rc, out, _ = run_packer(K23, CONV, "--once", "--probe-every", "0")
+    common("K23a", rc, out, 0, "offered 0 pieces as binpack and 0 as raw")
+    ml = mode_lines(K23)
+    check("K23a the probe ran after a restart with every offer there: fallback (p000003), normal (p000005, "
+          "`a probe passed`)", [(r.get("mode"), r.get("piece")) for r in ml]
+          == [("fallback", "w000/p000003"), ("normal", "w000/p000005")] and ml[1].get("why") == "a probe passed", ml)
+    sc = K23 / "out" / "scratch"
+    check("K23a out/w000 byte for byte the first run's; scratch empty",
+          tree_bytes(K23 / "out" / "w000") == before and not (sc.is_dir() and any(sc.iterdir())),
+          diff(tree_bytes(K23 / "out" / "w000"), before))
+if want("K23b"):
+    K23b = fallback_six("k23b")
+    before = tree_bytes(K23b / "out" / "w000")
+    starts = WORK / "k23b_starts.txt"
+    failing = WORK / "k23b_failing_converter.py"
+    failing.write_text(f"import sys\nwith open({starts.as_posix()!r}, 'a') as f:\n    f.write('start' + chr(10))\n"
+                       f"sys.exit(1)\n", encoding="ascii")
+    p = subprocess.Popen(packer_cmd(K23b, failing, "--poll", "0.1", "--probe-every", "0.3"), stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT, text=True)
+    time.sleep(2.5)
+    put(K23b / "STOP_PACKER", b"")
+    rc, out = end_of(p)
+    common("K23b", rc, out, 0, "offered 0 pieces as binpack and 0 as raw")
+    n = len(starts.read_text(encoding="ascii").splitlines()) if starts.is_file() else 0
+    probes = logtext(K23b).count("probe on w000/p000005: the converter still fails")
+    check("K23b idle after a restart with every offer there: the probe ran on schedule (at least 3 converter starts, "
+          "at least 3 probes logged on w000/p000005)", n >= 3 and probes >= 3, (n, probes))
+    check("K23b one mode line (still fallback); out/w000 byte for byte the first run's",
+          len(mode_lines(K23b)) == 1 and tree_bytes(K23b / "out" / "w000") == before, mode_lines(K23b))
+if want("K24a"):
+    K24 = copy("k24a")
+    held = WORK / "k24a_held"
+    held.mkdir()
+    for ext in ("raw", "seal.json"):
+        os.replace(K24 / "w000" / "closed" / f"p000005.{ext}", held / f"p000005.{ext}")
+    rc, out, _ = run_packer(K24, CONV, "--once")
+    common("K24a", rc, out, 3, "w000: the journal's ended line names last_index 5, but the seals here end at index 4")
+    check("K24a p000000 to p000004 offered", offered(K24) == [0, 1, 2, 3, 4], offered(K24))
+if want("K24b"):
+    K24b = emptied("k24b")
+    rc, out, _ = run_packer(K24b, CONV, "--once")
+    common("K24b", rc, out, 3, "w000: the journal's ended line names last_index 5, but the seals here end at index -1")
+    check("K24b nothing offered", offered(K24b) == [], offered(K24b))
+if want("K24c"):
+    K24c = copy("k24c")
+    jf = K24c / "w000" / "journal.txt"
+    lines = jf.read_bytes().split(b"\n")[:-1]
+    lines[-1] = lines[-1].replace(json.loads(lines[-1])["last_seal"].encode("ascii"), b"0" * 64)
+    jf.write_bytes(b"".join(ln + b"\n" for ln in lines))
+    rc, out, _ = run_packer(K24c, CONV, "--once")
+    common("K24c", rc, out, 3, "w000: the journal's ended line names last_seal " + "0" * 64
+           + ", not the sha256 of p000005.seal.json")
+    check("K24c all six offered", offered(K24c) == list(range(6)), offered(K24c))
+for tag, slot_name, rc_want, text in (("d", "w000", 0, "offered 0 pieces as binpack and 0 as raw"),
+                                      ("e", "w001", 3, "not the genesis text of this slot")):
+    if want(f"K24{tag}"):
+        Kx = emptied(f"k24{tag}")
+        jf = Kx / "w000" / "journal.txt"
+        lines = jf.read_bytes().split(b"\n")[:-1]
+        lines[-1] = canon({"t": "ended", "epoch": json.loads(lines[-1])["epoch"], "last_index": -1,
+                           "last_seal": f"genesis:{FP}:{slot_name}", "why": "cutoff"})[:-1]
+        jf.write_bytes(b"".join(ln + b"\n" for ln in lines))
+        rc, out, _ = run_packer(Kx, CONV, "--once")
+        common(f"K24{tag}", rc, out, rc_want, text)
+if want("K25a"):
+    K25 = copy("k25a")
+    put(K25 / "SCHEDULE.2.json", b"")
+    rc, out, _ = run_packer(K25, CONV, "--once")
+    common("K25a", rc, out, 4,
+           "SCHEDULE.2.json: a byte outside 0x20..0x7e, or no line end: its wire copy is not written")
+    check("K25a no wire copy of it", not (K25 / "SCHEDULE.2.json.zz").exists())
+if want("K25b"):
+    K25b = copy("k25b")
+    put(K25b / "ranges" / "r0002.w000.seal.json", b'{"a": 1}\n')
+    rc, out, _ = run_packer(K25b, CONV, "--once")
+    common("K25b", rc, out, 4, "r0002.w000.seal.json: not in canonical form")
+    check("K25b no wire copy of it", not (K25b / "ranges" / "r0002.w000.seal.json.zz").exists())
+if want("K25c"):
+    K25c = copy("k25c")
+    put(K25c / "SCHEDULE.2.json", canon({"a": 1}))
+    rc, out, _ = run_packer(K25c, CONV, "--once")
+    common("K25c", rc, out, 0, "offered 5 pieces as binpack and 1 as raw")
+    z = K25c / "SCHEDULE.2.json.zz"
+    check("K25c SCHEDULE.2.json.zz gives it back", z.is_file() and unz(z.read_bytes()) == canon({"a": 1}))
+K26_TEXT = {"a": "w000/p000003: p000003.offer.json.zz is there but",
+            "b": "w000/p000003: p000003.offer.json.zz is there but it does not give p000003.offer.json back",
+            "c": "w000/p000003: p000003.offer.json.zz is there but the member p000003.binpack is not there at",
+            "d": "offered 0 pieces as binpack and 0 as raw",
+            "e": "w000/p000003: p000003.offer.json.zz is there but it is not this piece's offer"}
+for tag in "abcde":
+    if not want(f"K26{tag}") or K1 is None:
+        continue
+    Kx = WORK / f"k26{tag}"
+    shutil.copytree(K1, Kx)
+    d = Kx / "out" / "w000"
+    if tag == "a":
+        (d / "p000003.offer.json.zz").write_bytes(b"")
+    elif tag == "b":
+        (d / "p000003.offer.json.zz").write_bytes((d / "p000004.offer.json.zz").read_bytes())
+    elif tag == "c":
+        (d / "p000003.binpack").unlink()
+    elif tag == "e":
+        o = json.loads((d / "p000003.offer.json").read_bytes())
+        o["seal_sha256"] = "0" * 64
+        (d / "p000003.offer.json").write_bytes(canon(o))
+        (d / "p000003.offer.json.zz").write_bytes(zlib.compress(canon(o), 6))
+    before = tree_bytes(d)
+    rc, out, _ = run_packer(Kx, CONV, "--once")
+    common(f"K26{tag}", rc, out, 0 if tag == "d" else 4, K26_TEXT[tag])
+    check(f"K26{tag} out/w000 unchanged byte for byte", tree_bytes(d) == before, diff(tree_bytes(d), before))
 
 bad = [n for n, ok in results if not ok]
 print(f"{len(results) - len(bad)} of {len(results)} checks pass" + (f"; FAILED: {bad}" if bad else ""))

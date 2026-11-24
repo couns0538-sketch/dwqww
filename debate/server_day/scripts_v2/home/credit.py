@@ -51,6 +51,28 @@ that begins "ALARM credit HOLDS". Exit codes: 0 a pass (also with a round that w
 home yet); 2 a wrong call; 3 the run header at home cannot be trusted; 4 a file that cannot be read or written,
 or stage/credited.sqlite gone or unreadable; 3 also for a table of another run; 5 a round HOLDS (the home
 guard's alarm).
+VERSION 2 (Neon 20261123T231800Z: six defects, each reproduced on Linux; known answers written before the code,
+tmp/opus_scratch/credit_v2/KNOWN_ANSWERS_credit_v2_by_opus.md on the PC):
+ C1 the range seal also: six counts >= 0; not_done in rising counter order (1.7) and below never_dispatched_first;
+   epoch an int >= 1; short the bool of its row in the newest schedule; complete as FORMATS 1.7 [2.4] and the worker
+   write it (no id unfinished, dispatch_unknown or never_dispatched: a refused id does not make a range incomplete,
+   so Neon's `done + noselfgame == length` is not taken); first_index >= -1.
+ C2 a verdict is checked before it is used: canonical (else HOLDS naming it), content's keys, schema 2, piece judged
+   or refused (refused: no games and a why); judged: why null and as many games as its kept seal, each with
+   content's keys, state accepted / noselfgame / set_aside and rows an int >= 0; rows_digest a hex text exactly for
+   an accepted game with rows, none for noselfgame (and no rows) or set_aside; the games' rows sum to the seal's.
+ C3 every receipt and fork record of the header's slots is read through custody's own reader at the start of a
+   pass: another run's is STOP 3, one custody would not write is STOP 4. The walk of C1 ends where a piece is still
+   on its way (no receipt, or its kept seal not at home yet: the rounds that need it WAIT), and with a reason at a
+   fork record, a kept seal that is not the receipt's bytes, not canonical, not of this run, slot and index, a
+   prev_seal that is not the seal before, or an epoch below 1 or below the one before: a round that needs that
+   index or a later one HOLDS.
+ C5 before any round: every wire/SCHEDULE.*.json.zz is a link of custody's chain (the next one present but not
+   taken, or a name outside the chain's grammar: HOLDS; a later one while the next is absent: WAITS, a gap), and
+   every stage/<folder>/credit.json and every rounds row of the table is a round of the newest schedule: else HOLDS.
+ C6 the C1 pieces of slot k whose kept seal names round r are exactly the range seal's [first_index, through_index]
+   (none for an empty range): else HOLDS naming the first one outside. With credit lists in stage/, the table is
+   first opened READ-ONLY and must hold a decided round: else STOP 4, and nothing is written.
 """
 import argparse
 import json
@@ -65,10 +87,13 @@ sys.path.insert(0, str(HERE.parent / "run"))
 sys.path.insert(0, str(HERE))
 from custody import HEX64, Home  # noqa: E402
 from record import RecordError, id_parts  # noqa: E402
-from worker import STATES, Stop, canon, create_only, parse_canon, sha256_bytes  # noqa: E402
+from content import GAME_KEYS, VERDICT_KEYS  # noqa: E402   C2: the keys of the program that writes the verdicts
+from worker import NOT_COMPLETE, STATES, Stop, canon, create_only, parse_canon, sha256_bytes  # noqa: E402
 
 RECEIPT = re.compile(r"p([0-9]{6})\.receipt\.json")
 FORK = re.compile(r"p([0-9]{6})\.fork\.json")
+SCHED = re.compile(r"SCHEDULE\.([1-9][0-9]{0,2})\.json\.zz")       # the chain's grammar ends at 999 (packer, worker)
+STAGE = re.compile(r"r([0-9]{4})")
 RANGE_KEYS = sorted(["schema", "run", "run_fingerprint", "round", "slot", "epoch", "schedule", "first", "last", "short",
                      "complete", "first_index", "first_prev_seal", "through_index", "through_seal", "games", "rows",
                      "raw_bytes", "dispositions"])
@@ -98,37 +123,138 @@ class Rounds:
         self.home, self.fp = home, fp
         self.stage = home / "stage"
         self.db = self.stage / "credited.sqlite"
-        self._chains, self._conflicts = {}, None
+        self._chains, self._conflicts, self._broken, self._rounds_of, self.short = {}, None, {}, {}, {}
 
     # ---- what home holds ------------------------------------------------------------------------------------------
     def rows(self) -> dict:
-        """(slot, round) -> (first, last) of the newest schedule home holds (0 = the header's pilot ranges)."""
+        """(slot, round) -> (first, last) of the newest schedule home holds (0 = the header's pilot ranges).
+        C5: every wire/SCHEDULE.*.json.zz is a link of custody's chain: SCHEDULE.<newest + 1> present (custody's walk
+        stopped before it), or a name outside the grammar: HOLDS; a later one while the next is absent: WAITS (a gap:
+        the next may still be on its way). self.short: (slot, round) -> short of the newest schedule's row."""
         rng = self.H.ranges()
-        self.newest = max(rng)
-        return rng[self.newest]
+        self.newest = n = max(rng)
+        names = sorted(p.name for p in self.H.wire.glob("SCHEDULE.*.json.zz"))
+        for x in names:
+            need(SCHED.fullmatch(x),
+                 f"wire/{x} is not a name of the schedule chain (SCHEDULE.<n>.json.zz, n from 1 to 999)")
+        ns = {int(SCHED.fullmatch(x)[1]) for x in names}
+        need(n + 1 not in ns,
+             f"wire/SCHEDULE.{n + 1}.json.zz is at home and custody's chain stopped before it: it does not verify, or "
+             f"it is not schedule {n + 1} of this run linked to schedule {n}")
+        if any(m > n + 1 for m in ns):
+            raise Waits(f"the schedule chain at home has a gap: SCHEDULE.{n + 1}.json.zz is not at home, "
+                        f"SCHEDULE.{max(ns)}.json.zz is")
+        src = self.H.h["pilot_ranges"] if n == 0 else parse_canon(
+            zlib.decompress((self.H.wire / f"SCHEDULE.{n}.json.zz").read_bytes()), f"SCHEDULE.{n}.json")["ranges"]
+        self.short = {(x["slot"], x["round"]): x.get("short") for x in src}
+        return rng[n]
 
     def chain(self, k: int) -> dict:
-        """C1 of slot k as a1 walks it: index -> kept seal (a dict) for the pieces inside C1, in order; walked once
-        a pass."""
+        """C1 of slot k as a1 walks it: index -> kept seal (a dict, with its sha256) for the pieces inside C1, in
+        order; walked once a pass. The walk ends where the next piece is still on its way: no receipt, or its kept
+        seal not at home yet (the rounds that need it WAIT). C3: it ends with a reason, self._broken[k] = (index, why),
+        at a fork record or a kept seal that does not link (kept()); a round that needs that index or a later one
+        HOLDS (release). self._rounds_of[k]: round -> the C1 indices whose kept seal names that round (C6)."""
         if k in self._chains:
             return self._chains[k]
         d = self.H.cust / f"w{k:03d}"
         files = list(d.iterdir()) if d.is_dir() else []
-        rs = {int(m[1]): json.loads(p.read_bytes()) for p in files if (m := RECEIPT.fullmatch(p.name))}
+        rs = {int(m[1]) for p in files if (m := RECEIPT.fullmatch(p.name))}
         forks = {int(m[1]) for p in files if (m := FORK.fullmatch(p.name))}
-        out, prev, ep, i = {}, f"genesis:{self.fp}:w{k:03d}", 0, 0
-        while i in rs and i not in forks:
-            s = self.H.kept_seal(rs[i])
-            if s is None or s["prev_seal"] != prev or s["epoch"] < ep:
+        out, by, prev, ep, i = {}, {}, f"genesis:{self.fp}:w{k:03d}", 0, 0
+        while i in rs or i in forks:
+            name = f"w{k:03d}/p{i:06d}"
+            if i in forks:
+                self._broken[k] = (i, f"{name} has a fork record at home (custody/{name}.fork.json): two offers of "
+                                      "one index; nothing from it on is in C1")
                 break
-            out[i] = dict(s, sha256=rs[i]["seal_sha256"])
-            prev, ep, i = rs[i]["seal_sha256"], s["epoch"], i + 1
-        self._chains[k] = out
+            rec = self.H.record(k, i)                   # read and bound by check_records at the start of the pass
+            got = self.kept(k, i, rec, prev, ep)
+            if got is None:
+                break                                   # not kept at home yet: the rounds that need it WAIT
+            why, s = got
+            if why:
+                self._broken[k] = (i, f"the kept seal of {name} {why}")
+                break
+            out[i] = dict(s, sha256=rec["seal_sha256"])
+            by.setdefault(s["round"], []).append(i)
+            prev, ep, i = rec["seal_sha256"], s["epoch"], i + 1
+        self._chains[k], self._rounds_of[k] = out, by
         return out
+
+    def kept(self, k: int, i: int, rec: dict, prev: str, ep: int):
+        """The kept seal of piece (k, i) as C1 needs it: None when custody has not kept it at home yet; else
+        (why, seal) with why None when it links to the seal before (C3)."""
+        p = self.home / rec["kept"] / f"p{i:06d}.seal.json.zz"
+        if not p.exists():
+            return None
+        try:
+            sb = zlib.decompress(p.read_bytes())
+        except zlib.error as e:
+            return f"does not decompress: {e}", None
+        if sha256_bytes(sb) != rec["seal_sha256"]:
+            return "is not the bytes its receipt names (seal_sha256)", None
+        try:
+            s = parse_canon(sb, p.name)
+        except ValueError as e:
+            return f"is not a canonical record: {e}", None
+        if not (isinstance(s, dict) and s.get("run_fingerprint") == self.fp and is_int(s.get("slot"), s.get("index"))
+                and (s["slot"], s["index"]) == (k, i)):
+            return "names another run, slot or index than its receipt", None
+        if not (is_int(s.get("epoch"), s.get("round"), s.get("games"), s.get("rows"), s.get("raw_bytes"))
+                and type(s.get("prev_seal")) is str):
+            return "has not the fields of a piece seal (1.5)", None
+        if s["prev_seal"] != prev:
+            return f"names prev_seal {s['prev_seal'][:16]}..., not the seal of the piece before", None
+        if s["epoch"] < max(ep, 1):
+            return f"has epoch {s['epoch']}, below 1 or below {ep}, the epoch of the piece before", None
+        return None, s
 
     def verdict(self, k: int, i: int):
         p = self.home / "content" / f"w{k:03d}" / f"p{i:06d}.verdict.json"
-        return json.loads(p.read_bytes()) if p.exists() else None
+        if not p.exists():
+            return None
+        try:
+            return parse_canon(p.read_bytes(), p.name)
+        except ValueError as e:
+            raise Holds(f"content/w{k:03d}/{p.name} is not a canonical record: {e}") from None
+
+    @staticmethod
+    def check_verdict(k: int, i: int, seal: dict, v) -> None:
+        """C2: a verdict as content writes it (2.2), checked before anything of it is used; HOLDS naming it."""
+        what = f"content/w{k:03d}/p{i:06d}.verdict.json"
+        need(isinstance(v, dict) and sorted(v) == VERDICT_KEYS, f"{what}: its keys are not content's (2.2)")
+        need(is_int(v["schema"]) and v["schema"] == 2,
+             f"{what}: its schema is {v['schema']!r}, not 2")
+        need(v["piece"] in ("judged", "refused"),
+             f"{what}: piece is {v['piece']!r}, not judged or refused")
+        gs = v["games"]
+        if v["piece"] == "refused":
+            need(gs == [] and type(v["why"]) is str, f"{what}: a refused piece with games or without a why")
+            return
+        need(v["why"] is None and isinstance(gs, list) and len(gs) == seal["games"],
+             f"{what}: judged with {len(gs) if isinstance(gs, list) else gs!r} games, its kept seal holds "
+             f"{seal['games']}")
+        for g in gs:
+            need(isinstance(g, dict) and sorted(g) == GAME_KEYS,
+                 f"{what}: a game record whose keys are not content's (2.2)")
+            need(g["state"] in ("accepted", "noselfgame", "set_aside"),
+                 f"{what}: the state {g['state']!r} of {g['game']} is not accepted, noselfgame or set_aside")
+            need(is_int(g["rows"]) and g["rows"] >= 0,
+                 f"{what}: the rows of {g['game']} are {g['rows']!r}, not a number >= 0")
+            dg = g["rows_digest"]
+            if g["state"] == "accepted":
+                need(type(dg) is str and HEX64.fullmatch(dg) is not None if g["rows"] else dg is None,
+                     f"{what}: the rows_digest of {g['game']} is not what 2.2 writes for an accepted game of "
+                     f"{g['rows']} rows")
+            elif g["state"] == "noselfgame":
+                need(g["rows"] == 0 and dg is None,
+                     f"{what}: {g['game']} is noselfgame with rows or a rows_digest")
+            else:
+                need(dg is None,
+                     f"{what}: {g['game']} is set_aside with a rows_digest")
+        need(sum(g["rows"] for g in gs) == seal["rows"],
+             f"{what}: the rows of its games do not sum to its kept seal's {seal['rows']}")
 
     def range_seal(self, k: int, r: int, first: int, last: int) -> tuple:
         """(sha256, record) of the range seal of (k, r), checked as 1.7 says."""
@@ -153,6 +279,7 @@ class Rounds:
         need(isinstance(d, dict) and sorted(d) == sorted(list(STATES) + ["never_dispatched_first", "not_done"])
              and is_int(*(d[x] for x in STATES)) and sum(d[x] for x in STATES) == last - first + 1,
              f"{name}: the six counts do not sum to the range's {last - first + 1} ids")
+        need(all(d[x] >= 0 for x in STATES), f"{name}: a count below 0")       # implied by the rules around it
         nd = d["never_dispatched_first"]
         need((nd is None and d["never_dispatched"] == 0) or
              (is_int(nd) and first <= nd <= last and d["never_dispatched"] == last - nd + 1),
@@ -163,9 +290,32 @@ class Rounds:
                                            for x in nd_)
              and all([x[1] for x in nd_].count(st) == d[st] for st in four),
              f"{name}: not_done does not list the ids of the four counts")
+        cs = []
+        for x in nd_:
+            try:
+                run, kk, c = id_parts(x[0])
+            except RecordError:
+                raise Holds(f"{name}: not_done names {x[0]!r}, not a game id") from None
+            need(run == self.H.h["run"] and kk == k and first <= c <= last,
+                 f"{name}: not_done names {x[0]}, not an id of its range")
+            cs.append(c)
+        need(all(a < b for a, b in zip(cs, cs[1:])),
+             f"{name}: not_done is not in rising counter order (1.7)")
+        need(nd is None or all(c < nd for c in cs),
+             f"{name}: not_done names an id at or after never_dispatched_first {nd}")
+        need(is_int(s["epoch"]) and s["epoch"] >= 1,
+             f"{name}: its epoch {s['epoch']!r} is not a number >= 1")
+        need(type(s["short"]) is bool and s["short"] is self.short.get((k, r)),
+             f"{name}: short {s['short']!r} is not the short of its row in schedule {self.newest} "
+             f"({self.short.get((k, r))!r})")
+        need(type(s["complete"]) is bool and s["complete"] == (sum(d[x] for x in NOT_COMPLETE) == 0),
+             f"{name}: complete {s['complete']!r} is not what its counts say (FORMATS 1.7 [2.4]: no id unfinished, "
+             "dispatch_unknown or never_dispatched)")
         need(is_int(s["first_index"], s["through_index"], s["games"], s["rows"], s["raw_bytes"])
              and (s["first_index"] == -1) == (s["through_index"] == -1) and s["first_index"] <= s["through_index"],
              f"{name}: first_index and through_index are not a range of pieces")
+        need(s["first_index"] >= -1,
+             f"{name}: first_index {s['first_index']} is below -1")
         return sha256_bytes(b), s
 
     def release(self, r: int, rows: dict) -> list:
@@ -176,15 +326,22 @@ class Rounds:
             if rr != r:
                 continue
             sha, s = self.range_seal(k, r, first, last)
+            c1 = self.chain(k)
+            outside = [i for i in self._rounds_of[k].get(r, []) if not s["first_index"] <= i <= s["through_index"]]
+            if outside:
+                raise Holds(f"r{r:04d}.w{k:03d}: C1 holds w{k:03d}/p{outside[0]:06d} of round {r} outside its range "
+                            f"seal's pieces [{s['first_index']}, {s['through_index']}]")
             pieces = []
             if s["first_index"] >= 0:
-                c1 = self.chain(k)
                 for i in range(s["first_index"], s["through_index"] + 1):
                     if i not in c1:
+                        if k in self._broken:
+                            raise Holds(self._broken[k][1])
                         raise Waits(f"w{k:03d}/p{i:06d} of round {r} is not in custody's chain (C1) yet")
                     v = self.verdict(k, i)
                     if v is None:
                         raise Waits(f"w{k:03d}/p{i:06d} of round {r} has no content verdict yet")
+                    self.check_verdict(k, i, c1[i], v)
                     pieces.append((i, c1[i], v))
                 first_prev = c1[s["first_index"]]["prev_seal"]
                 need(first_prev == s["first_prev_seal"], f"r{r:04d}.w{k:03d}: first_prev_seal is not the seal before "
@@ -280,11 +437,34 @@ class Rounds:
                 "conflict_ids": [e["game"] for e in ids if e["state"] == "conflict"],
                 "repeat_games": sum(e["state"] == "repeat" for e in ids)}, ({} if partial else mine)
 
+    def strays(self, con, rows: dict) -> None:
+        """C5: every credit list in stage/ and every rounds row of the table is a round of the newest schedule."""
+        sched = {rr for (_k, rr) in rows}
+        for p in sorted(self.stage.glob("*/credit.json")):
+            m = STAGE.fullmatch(p.parent.name)
+            need(m and int(m[1]) in sched,
+                 f"stage/{p.parent.name}/credit.json is not a round of schedule {self.newest}")
+        stray_rounds = sorted(x for (x,) in con.execute("SELECT round FROM rounds") if x not in sched)
+        if stray_rounds:
+            raise Holds(f"stage/credited.sqlite holds round {stray_rounds[0]}, not a round of schedule {self.newest}")
+
     def table(self):
         """stage/credited.sqlite, made on first use; STOP 4 when it is gone or empty while a credit list exists."""
         if any(self.stage.glob("r*/credit.json")) and (not self.db.is_file() or self.db.stat().st_size == 0):
             raise Stop(4, "stage/credited.sqlite is gone while decided rounds exist: a new table would credit every "
                           "later repeat again; move stage/ aside and decide every round again")
+        if any(self.stage.glob("r*/credit.json")):     # C6 (Neon 231800Z 6): looked at READ-ONLY before any write
+            ro = sqlite3.connect(f"{self.db.resolve().as_uri()}?mode=ro", uri=True)
+            try:
+                held = ro.execute("SELECT COUNT(*) FROM rounds").fetchone()[0]
+            except sqlite3.Error:
+                held = 0
+            finally:
+                ro.close()
+            if not held:
+                raise Stop(4, "stage/credited.sqlite holds no decided round while stage/ holds credit lists: a table "
+                              "made again would credit every later repeat again; move stage/ aside and decide every "
+                              "round again (nothing was written)")
         self.stage.mkdir(exist_ok=True)
         con = sqlite3.connect(self.db, isolation_level=None)
         con.execute("CREATE TABLE IF NOT EXISTS credited (rows_digest TEXT PRIMARY KEY, game TEXT NOT NULL, "
@@ -318,11 +498,24 @@ class Rounds:
             raise
 
     def one_pass(self) -> int:
-        rows = self.rows()
-        self._chains, self._conflicts = {}, None
+        self.H.check_records()                          # C3, C4: STOP 3 or 4 before anything is decided or written
+        self._chains, self._conflicts, self._broken, self._rounds_of = {}, None, {}, {}
         t, waits, holds = dict(decided=0, complete=0, partial=0, games=0, rows=0), "none", 0
+        try:
+            rows = self.rows()                          # C5: the schedule files at home
+        except Waits as e:
+            print(f"WAITS schedule: {e}")
+            return self.last(t, f"schedule: {e}", 0)
+        except Holds as e:
+            print(f"ALARM credit HOLDS: {e}")
+            return self.last(t, "none", 1)
         con = self.table()
         try:
+            try:
+                self.strays(con, rows)                  # C5: no credit list or rounds row outside the schedule
+            except Holds as e:
+                holds, rows = 1, {}
+                print(f"ALARM credit HOLDS: {e}")
             top = con.execute("SELECT MAX(round) FROM rounds").fetchone()[0]
             for r in sorted({rr for (_k, rr) in rows}):
                 p = self.stage / f"r{r:04d}" / "credit.json"
@@ -350,7 +543,7 @@ class Rounds:
                     waits = f"round {r}: {e}"
                     print(f"WAITS {waits}")
                     break
-                except (Holds, RecordError, KeyError, TypeError) as e:
+                except (Holds, RecordError, KeyError, TypeError, ValueError) as e:
                     holds = 1
                     print(f"ALARM credit HOLDS round {r}: {e}")
                     break
@@ -359,6 +552,10 @@ class Rounds:
                     t["rows"] += nrows
         finally:
             con.close()
+        return self.last(t, waits, holds)
+
+    @staticmethod
+    def last(t: dict, waits: str, holds: int) -> int:
         print(f"credit: decided {t['decided']} rounds ({t['complete']} complete, {t['partial']} partial) this pass; "
               f"credited {t['games']} games {t['rows']} rows; waits: {waits}; holds {holds}")
         return 5 if holds else 0

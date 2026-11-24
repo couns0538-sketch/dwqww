@@ -51,6 +51,11 @@ worker reads it (seed: exactly kind, plies 0 to 64, a root_seed of letters, digi
 exit 2; list: exactly count, kind, sha256). The draw run is compared with drawcount only after a ply that qualified
 (uci.cpp 543-551: drawcount 0 acts as 1). --convert-seconds must be finite. A piece's scratch folder is removed on
 every exit of its transport, a WAITS too.
+
+VERSION 2.1 (Opus 24 Nov; Neon 20261124T004000Z; known answers tmp/opus_scratch/content_v21/
+KNOWN_ANSWERS_content_v21_by_opus.md on the PC, written before this code): an index that holds entries or judged
+rows but names no run (no meta table, or no run row) is exit 3 before anything is judged or written; an index of
+empty tables (a crash before the first COMMIT of index()) is this run's.
 """
 import argparse
 import hashlib
@@ -372,8 +377,9 @@ class Content:
         """2.1, 2.2: the index serves this run (its run row), and every verdict on the disk is one this program wrote
         for this run: canonical, the form of 2.2 for its own slot and index, its receipt's seal, and that piece's judged
         row in the index. Another run's index or verdict: STOP 3 (a home folder serves one run); an index older than
-        the verdicts (a backup put back), an empty one, or anything else: STOP 4. Nothing is written before."""
-        seen, run = {}, None
+        the verdicts (a backup put back), an empty one, or anything else: STOP 4. An index that holds rows and
+        names no run: STOP 3 (R-T8). Nothing is written before."""
+        seen, run, held = {}, None, False
         if self.db.is_file() and self.db.stat().st_size:
             con = sqlite3.connect(self.db)
             try:
@@ -382,11 +388,16 @@ class Content:
                     run = con.execute("SELECT value FROM meta WHERE key = 'run_fingerprint'").fetchone()
                 if "judged" in tables:
                     seen = {(a, b): c for a, b, c in con.execute("SELECT slot, idx, seal_sha256 FROM judged")}
+                held = any(con.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("entries", "judged")
+                           if t in tables)
             finally:
                 con.close()
         if run is not None and run[0] != self.fp:
             raise Stop(3, "content/equal.sqlite is another run's index: a home folder serves one run (2.1); give this "
                           "run a fresh home folder (nothing was written)")
+        if run is None and held:                        # R-T8 (Neon 004000Z): credit.py's table() has this guard
+            raise Stop(3, "content/equal.sqlite holds entries or judged rows and names no run: a home folder serves "
+                          "one run (2.1); give this run a fresh home folder (nothing was written)")
         for d in sorted(self.out.glob("w[0-9][0-9][0-9]")) if self.out.is_dir() else []:
             for p in sorted(d.iterdir()):
                 if not (m := VERDICT.fullmatch(p.name)):

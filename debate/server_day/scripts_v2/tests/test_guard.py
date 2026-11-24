@@ -1,8 +1,8 @@
-"""Opus 2026-11-23: the test of run/guard.py version 1 (A3a). Known answers written BEFORE the guard ran once, from
+"""Opus 2026-11-23: the test of run/guard.py version 2 (A3a; A5: the repairs R1 to R12, cases V1 to V11, T1). Known answers written BEFORE the guard ran once, from
 FORMATS 2.9 1.2 and 1.8, SETUP_PLAN D2 and D5, and Astra 160235Z, 161634Z, 171134Z, 171332Z, 172109Z. Standard
 library only; run it with a PLAIN interpreter (it starts python processes itself).
 
-    test_guard.py <run/guard.py> <a NEW folder> [exe=<engine> net=<net file>] [only=C,P,E] [plant1 ... plant22]
+    test_guard.py <run/guard.py> <a NEW folder> [exe=<engine> net=<net file>] [only=C,P,E] [plant1 ... plant44]
 
 The run folder of <run/guard.py> is copied into the new folder (a plant changes the copy only) and imported from
 there. C and P need nothing else; E needs the engine and its net and the tree's workloads/ and known/ (the folder
@@ -10,7 +10,7 @@ above run/); without exe= and net= it prints NOT RUN and counts in neither.
 
 C  THE CONTROL RECORD, in-process, no process started (take_controls, extend and replay called directly). A root with
    slots 1 and 2, pilot rows of round 1 (counters 1 to 4), D = now + 2 h, the lease started 600 s ago, one sealed
-   piece (4 games, 4,000 bytes; the seal keys `games` and `raw_bytes` are worker.py's, line 863), floor 0. The policy
+   piece (4 games, 4,000 bytes; every key of worker.py's piece seal, chained to the slot's genesis), floor 0. The policy
    is a plan.json written with indent=1 (NOT canonical: the guard reads it as json), owner_choice action "stop". A
    report is a canonical record with outcome, cutoff_floor_s = D - 600 s - lease start, dispatch_end_floor_s 300 s
    less, matches [], inputs {plan_sha256 = the policy's}. Known answers:
@@ -70,9 +70,15 @@ P  THE PROCESSES, stand-in worker and packer scripts started by the guard's own 
        why "D", exactly its five keys; slot 1: 1 start; slot 2: 2 starts, the first without the fence, the second
        with it (the finalizer), FAULTED in between; slot 3: 1 start, its child NOT alive right after the pass that
        reaped slot 3; slot 4: 2 starts, the alarm late4, UNRECONCILED; STOP_PACKER canonical with unreconciled [4];
-       CLOSED.json slots_ended [1, 2, 3], slots_unreconciled [4], terminal null, packer "ended"; the packer started
-       once and made its last pass; groups.jsonl 7 lines (6 workers, 1 packer) of this boot; hourly.jsonl's first
-       line state "play"; no process of the day alive at the end.
+       CLOSED.json slots_ended [1, 2, 3], slots_unreconciled [4], terminal = the inventory on disk {lines, sha256,
+       zz_sha256} (R10), packer "ended"; the stand-in terminal writer started once, after the packer's last pass; the
+       packer started once and made its last pass; groups.jsonl 8 lines (6 workers, 1 packer, 1 terminal writer) of
+       this boot; hourly.jsonl's first
+       line state "play"; the recorded processes carry their creation time; no process of the day alive at the end
+       (a process is its number AND its creation time: R11).
+   T1  (first in part P, R11) a process of the test's own (sleep 60): its creation time an integer; alive by number and
+       creation time; NOT alive by number and another creation time (the stand-in for a number Windows gives
+       again); a kill by the other creation time leaves it alive; a kill by its own ends it within 5 s.
    PB  the STOP file: three passes start nothing (no worker, no packer) and raise the alarm "stop"; removed: the slot
        starts once and ends. Another boot id in the header: three passes start nothing, the alarm "boot"; a
        RESUME.1.json naming this boot: the slot starts.
@@ -94,7 +100,34 @@ E  ONE DAY WITH THE REAL WORKER, ENGINE AND PACKER (slots 0 and 1, piece_games 1
    SCHEDULE.3.json; the workers play all four rounds (each range seal r0001 to r0004 of each slot counts 2 games);
    control 2 kind fence: FENCE.json, cutoff_utc = control 1's cutoff, why naming control 2; each journal's last line
    is `ended` with why "ranges done"; every worker exit 0 (no FAULTED, no UNRECONCILED, no STOP_PACKER); CLOSED.json
-   slots_ended [0, 1]; the packer's last pass with 8 offers in each slot's out folder.
+   slots_ended [0, 1], its terminal the real TERMINAL.jsonl (footer: 16 pieces, slots ended 2, unreconciled 0); the
+   packer's last pass with 8 offers in each slot's out folder.
+
+V  VERSION 2 (the seats' NOT YET on version 1; tmp/opus_scratch/guard_v2/KNOWN_ANSWERS_guard_v2_by_opus.md, written
+   before the code). The fixtures are the real programs' forms: worker.py's piece and range seals, its ended line and
+   IDENTITY.json, bootguard.py's RESUME keys, a fence report with inputs.plan_sha256.
+   V1a/b a 0-byte and another run's guard/CLOSED.json: run() Stop 4 naming it, nothing started (part C); V1c PA's
+       closed day started again: exit 0 at once, no file changed (part P).
+   V2a a 0-byte FENCE.json and bare {"t":"ended"} journals (Neon 223800Z): the pass raises Stop 4 naming FENCE.json,
+       no packer, no worker, no CLOSED.json; V2b/c another run's fence, a fence of another D: Stop 4; V2d control.
+   V3  slot_ended: a bare line, the full line without IDENTITY.json, another run's IDENTITY.json, a last_seal that
+       is not its seal's sha256: not ended; the genesis end and the end at seal 0: ended.
+   V4a another run's piece seal (games 1,000,000, raw 0): not counted, HELD "no sealed piece", ALARM seal1; V4b an
+       index that is not its name's: none; V4c a seal off the chain: only the one before; V4d control.
+   V5a-d (C18's setting) r0002.w002 0 bytes, another run's, last + 1, through_index 0 with no seal on disk: no
+       SCHEDULE.2, ALARM range2.2; V5e the genuine seal: round 4 alone.
+   V6  orphan_groups on a stand-in process table (Linux behaviour; the kill itself runs only on Linux, the seats'):
+       a live leader: left; a dead worker's engine: ended; a dead packer's converter: ended; gone: dropped; an unknown
+       kind: left. V6b a group number this guard starts is dropped from the earlier guards' list.
+   V7  boot_ok over RESUME chains: the header's boot alone, a linked RESUME to this boot, a chain of two: admitted; a
+       RESUME away from the header's boot, prev not "first", old_boot_id not the header's, a broken chain,
+       instance_provable false: not.
+   V8  a policy without target_rows, with target_rows true, declaring 2 pilot rounds for a pilot of 1: Stop 4.
+   V9  a kind fence control whose report names another plan: HELD inputs.plan_sha256, no FENCE.json.
+   V10a/b/c the stand-in terminal writer exits 4 / writes a .zz of other bytes / no footer: no CLOSED.json, the ALARM
+       terminal naming why, one start in the next seconds (it is tried again after 60 s).
+   V11 (Linux only, R12) end_exact: ours() False: nothing sent, the child lives; True: ended within 5 s; a child that
+       has exited and is not reaped (its pidfd readable), ours() True: nothing sent.
 
 PLANTS (each must make the test fail; the check expected to fail is named):
   plant1 no decision-vs-outcome check (C6)          plant2 prev not checked (C3)
@@ -112,12 +145,24 @@ PLANTS (each must make the test fail; the check expected to fail is named):
   plant24 a control taken while an effect is owed (C19b)
   plant25 no probe of the slot's lock (PD)          plant26 no probe of out/LOCK (PE)
   plant27 a held slot never UNRECONCILED at the end (PF)
+  plant28 CLOSED.json not read (V1a)                plant29 FENCE.json's content not checked (V2a)
+  plant30 a bare ended line counts (V3)             plant31 a piece seal's fingerprint not checked (V4a)
+  plant32 a range seal counts by its name (V5)      plant33 the range's interval not compared (V5)
+  plant34 the through seal not looked at (V5)       plant35 no leader check before an orphan is ended (V6)
+  plant36 the RESUME chain's prev not walked (V7)   plant37 old_boot_id not linked (V7)
+  plant38 target_rows not demanded (V8)             plant39 the pilot rounds not compared (V8)
+  plant40 a fence control exempt from the plan (V9) plant41 no terminal writer (PA, V10a)
+  plant42 the terminal's footer not checked (V10c)
+  plant43 ours() not asked (V11a, Linux)          plant44 the pidfd not polled (V11c, Linux)
 """
 import ctypes
 import hashlib
 import json
 import os
+import select
 import shutil
+import signal
+import subprocess
 import sys
 import time
 import traceback
@@ -170,20 +215,48 @@ PLANTS = {
     "plant16": ('            if (c["cutoff_utc"], c["dispatch_end_utc"]) != (T(self.lease_start + fl[0]), '
                 'T(self.lease_start + fl[1])):\n', '            if False:\n'),
     "plant17": ('                self.pending = k\n', '                pass\n'),
-    "plant18": ('        if self.boot == self.h["boot_id"]:\n', '        if True:\n'),
+    "plant18": ('        why = self.resume_why()\n', '        why = None\n'),
     "plant19": ('        stop = (self.root / "STOP").exists()\n', '        stop = False\n'),
     "plant20": ('                if len([t for t in s.starts if now - t < HOUR]) >= 5:\n',
                 '                if False:\n'),
     "plant21": ('        return self.B.judge("cutoff", lead=-self.a.end_grace)[0] == cw.COME\n',
                 '        return False\n'),
-    "plant22": ('                                     or rep["inputs"].get("plan_sha256") != self.policy_sha):\n',
-                '                                     or False):\n'),
+    "plant22": ('                or rep["inputs"].get("plan_sha256") != self.policy_sha):\n',
+                '                or False):\n'),
     "plant23": ('                    raise Held(f"the owed schedule: {why}")\n', '                    pass\n'),
     "plant24": ('            if not fenced and st != "cutoff" and self.pending is None:\n',
                 '            if not fenced and st != "cutoff":\n'),
     "plant25": ('            if self.lock_held(self.root / f"w{s.k:03d}"):', '            if False:'),
     "plant26": ('        if self.lock_held(self.root / "out"):', '        if False:'),
     "plant27": ('                if end and self.past_d_grace():', '                if False:'),
+    "plant28": ('            self.check_closed()\n', '            pass\n'),
+    "plant29": ('        except ValueError as e:\n            raise Stop(4, f"FENCE.json: {e}") from None\n',
+                '        except ValueError:\n            return {}\n'),
+    "plant30": ('        if not (isinstance(ln, dict) and sorted(ln) == ENDED_KEYS and ln["t"] == "ended"):\n'
+                '            return False\n', '        if isinstance(ln, dict) and ln.get("t") == "ended":\n'
+                '            return True\n'),
+    "plant31": ('                if not (isinstance(s, dict) and s.get("schema") == 2 and s.get("run_fingerprint") == '
+                'self.fp\n', '                if not (isinstance(s, dict) and s.get("schema") == 2\n'),
+    "plant32": ('                why = self.range_fault(Path(f.path), key[0], key[1], rows.get(key))\n',
+                '                why = None\n'),
+    "plant33": ('                and same(s.get("last"), row["last"])):\n', '                ):\n'),
+    "plant34": ('        except OSError:\n            return f"names piece {ti}, whose seal is not in w{k:03d}/closed"\n',
+                '        except OSError:\n            return None\n'),
+    "plant35": ('        if kind not in LEADER or any(LEADER[kind].encode() in line for _, line in mem):\n',
+                '        if kind not in LEADER:\n'),
+    "plant36": ('                    and r.get("prev") == ("first" if n == 1 else sha256_bytes(prev))\n', ''),
+    "plant37": ('                    and r.get("old_boot_id") == boot and isinstance(r.get("new_boot_id"), str)):\n',
+                '                    and isinstance(r.get("new_boot_id"), str)):\n'),
+    "plant38": ('        if type(pol.get("target_rows")) is not int or pol["target_rows"] < 1:\n', '        if False:\n'),
+    "plant39": ('        if not same(pol.get("pilot_rounds_declared"), pilot):\n', '        if False:\n'),
+    "plant40": ('        if (not isinstance(rep.get("inputs"), dict)\n',
+                '        if c["kind"] != "fence" and (not isinstance(rep.get("inputs"), dict)\n'),
+    "plant41": ('        term = self.terminal()\n        if term is None:\n            return False\n',
+                '        term = {"lines": 0, "sha256": "", "zz_sha256": ""}\n'),
+    "plant42": ("            return None, \"TERMINAL.jsonl's last line is not its footer (t footer, the fingerprint of "
+                "the bytes before it)\"\n", '            pass\n'),
+    "plant43": ('        if not ours():\n            return False\n', '        if False:\n            return False\n'),
+    "plant44": ('        if p.poll(0):\n            return False\n', '        if False:\n            return False\n'),
 }
 if PLANT:
     if PLANT not in PLANTS:
@@ -324,16 +397,74 @@ def accepted(root, k, cb):
     SENT[(root.name, k)] = cb
 
 
-def seal_piece(root, slot, i, games=4, raw=4000):
+def fp_of(root):
+    return sha((root / "RUN.json").read_bytes())
+
+
+def plan_in(pol):
+    """A report's inputs naming the policy (a fence's too: R9)."""
+    return {"plan_sha256": sha(Path(pol).read_bytes()), "state_sha256": "4" * 64, "pilot_sha256": "5" * 64}
+
+
+def seal_piece(root, slot, i, games=4, raw=4000, **over):
+    """The worker's piece seal (worker.py, its `fresh` record), chained to p<i-1> or the slot's genesis."""
     d = root / f"w{slot:03d}" / "closed"
     d.mkdir(parents=True, exist_ok=True)
-    (d / f"p{i:06d}.seal.json").write_bytes(W.canon({"games": games, "raw_bytes": raw, "rows": 100, "schema": 2}))
+    fp = fp_of(root)
+    prev = f"genesis:{fp}:w{slot:03d}" if i == 0 else sha((d / f"p{i - 1:06d}.seal.json").read_bytes())
+    rec = {"schema": 2, "run": hdr(root)["run"], "run_fingerprint": fp, "slot": slot, "epoch": 1, "index": i,
+           "prev_seal": prev, "raw_sha256": "6" * 64, "raw_bytes": raw, "games": games, "rows": 100,
+           "first_game": "g1", "last_game": "g1", "first_counter": 1, "last_counter": games, "ids_digest": "7" * 64,
+           "round": 1, "schedule": 0}
+    rec.update(over)
+    (d / f"p{i:06d}.seal.json").write_bytes(W.canon(rec))
 
 
-def seal_range(root, rnd, slot):
+def row_of(root, rnd, slot):
+    """The newest schedule's row for (slot, round), or the pilot's (a schedule lists every row before it)."""
+    n = len(list(root.glob("SCHEDULE.*.json")))
+    rs = json.loads((root / f"SCHEDULE.{n}.json").read_bytes())["ranges"] if n else hdr(root)["pilot_ranges"]
+    return next(r for r in rs if r["slot"] == slot and r["round"] == rnd)
+
+
+def seal_range(root, rnd, slot, **over):
+    """The worker's range seal (worker.py range_seal) of the newest schedule's row, with no piece in it."""
     d = root / "ranges"
     d.mkdir(exist_ok=True)
-    (d / f"r{rnd:04d}.w{slot:03d}.seal.json").write_bytes(W.canon({"games": 2, "schema": 2}))
+    r = row_of(root, rnd, slot)
+    rec = {"schema": 2, "run": hdr(root)["run"], "run_fingerprint": fp_of(root), "round": rnd, "slot": slot,
+           "epoch": 1, "schedule": r["schedule"], "first": r["first"], "last": r["last"], "short": r["short"],
+           "complete": True, "first_index": -1, "first_prev_seal": None, "through_index": -1, "through_seal": None,
+           "games": 2, "rows": 0, "raw_bytes": 0, "dispositions": {}}
+    rec.update(over)
+    (d / f"r{rnd:04d}.w{slot:03d}.seal.json").write_bytes(W.canon(rec))
+
+
+def ended_slot(root, slot, last_index=-1, **over):
+    """The worker's end of a slot: IDENTITY.json (worker.py claim_slot) and its ended line (worker.py: t, epoch,
+    last_index, last_seal, why), at the end of its seal chain (the genesis text without a seal)."""
+    d = root / f"w{slot:03d}"
+    d.mkdir(parents=True, exist_ok=True)
+    fp = fp_of(root)
+    if not (d / "IDENTITY.json").exists():
+        (d / "IDENTITY.json").write_bytes(W.canon({"run": hdr(root)["run"], "run_fingerprint": fp, "schema": 2,
+                                                   "slot": slot}))
+    last = f"genesis:{fp}:w{slot:03d}" if last_index == -1 else \
+        sha((d / "closed" / f"p{last_index:06d}.seal.json").read_bytes())
+    rec = {"epoch": 1, "last_index": last_index, "last_seal": last, "t": "ended", "why": "test"}
+    rec.update(over)
+    with open(d / "journal.txt", "ab") as f:
+        f.write(W.canon(rec))
+
+
+def resume(root, n, old, new, provable=True, **over):
+    """RESUME.<n>.json with the boot guard's keys (bootguard.py), chained to RESUME n-1."""
+    prev = "first" if n == 1 else sha((root / f"RESUME.{n - 1}.json").read_bytes())
+    rec = {"at_utc": T(time.time()), "checks": [], "instance": None, "instance_provable": provable, "n": n,
+           "new_boot_id": new, "old_boot_id": old, "prev": prev, "run_fingerprint": fp_of(root), "schema": 2,
+           "slots": []}
+    rec.update(over)
+    (root / f"RESUME.{n}.json").write_bytes(W.canon(rec))
 
 
 def sched(root, n):
@@ -345,43 +476,74 @@ def held(g, text):
     return text in g.alarms.get("control", "")
 
 
-def alive(pid):
-    pid = int(pid)
+# R11: a process is its number AND its creation time (Windows gives a freed number again within seconds). The same
+# text runs in the test and in the stand-in worker, which records its own and its child's.
+IDENT_SRC = '''
+def created_of(pid, h=None):
+    # The creation time of the LIVING process of this number (read through handle h when given), or None.
     if os.name == "nt":
+        import ctypes
         k = ctypes.WinDLL("kernel32", use_last_error=True)
         k.OpenProcess.restype = ctypes.c_void_p
-        h = k.OpenProcess(0x1000, False, pid)
+        own = h is None
+        h = k.OpenProcess(0x1000, False, int(pid)) if own else h
         if not h:
-            return False
-        code = ctypes.c_ulong()
-        ok = k.GetExitCodeProcess(ctypes.c_void_p(h), ctypes.byref(code))
-        k.CloseHandle(ctypes.c_void_p(h))
-        return bool(ok) and code.value == 259
+            return None
+        t, code = [ctypes.c_ulonglong() for _ in range(4)], ctypes.c_ulong()
+        try:
+            ok = (k.GetProcessTimes(ctypes.c_void_p(h), *[ctypes.byref(x) for x in t])
+                  and k.GetExitCodeProcess(ctypes.c_void_p(h), ctypes.byref(code)))
+            return t[0].value if ok and code.value == 259 else None
+        finally:
+            if own:
+                k.CloseHandle(ctypes.c_void_p(h))
     try:
-        with open(f"/proc/{pid}/stat", "rb") as f:
+        with open(f"/proc/{int(pid)}/stat", "rb") as f:
             s = f.read()
-        return s[s.rfind(b")") + 2:].split()[0] != b"Z"
     except OSError:
-        return False
+        return None
+    s = s[s.rfind(b")") + 2:].split()
+    return int(s[19]) if s[0] != b"Z" else None
+'''
+exec(IDENT_SRC)
 
 
-def kill(pid):
-    if not alive(pid):
+def alive(pid, created):
+    "R11: a process of this number lives AND it is the recorded one (its creation time); a number alone is none."
+    return created is not None and created_of(pid) == created
+
+
+def kill(pid, created):
+    "R11: end the recorded process only, through ONE handle (Windows) or pidfd (Linux) checked before the end."
+    if created is None:
         return
     if os.name == "nt":
         k = ctypes.WinDLL("kernel32", use_last_error=True)
         k.OpenProcess.restype = ctypes.c_void_p
-        h = k.OpenProcess(0x0001, False, int(pid))
+        h = k.OpenProcess(0x1001, False, int(pid))
         if h:
-            k.TerminateProcess(ctypes.c_void_p(h), 1)
+            if created_of(pid, h) == created:
+                k.TerminateProcess(ctypes.c_void_p(h), 1)
             k.CloseHandle(ctypes.c_void_p(h))
-    else:
-        os.kill(int(pid), 9)
+        return
+    try:
+        fd = os.pidfd_open(int(pid))
+    except OSError:
+        return
+    try:
+        p = select.poll()
+        p.register(fd, select.POLLIN)
+        if created_of(pid) == created and not p.poll(0):
+            signal.pidfd_send_signal(fd, signal.SIGKILL)
+    except OSError:
+        pass
+    finally:
+        os.close(fd)
 
 
 def cleanup():
     for g in LIVE:
-        for grp in [s.g for s in g.slots.values()] + [g.packer]:
+        for grp in [s.g for s in g.slots.values()] + [g.packer, getattr(g, "term", None)]:
             if grp is not None and not grp.done:
                 try:
                     grp.end_and_verify(2.0)
@@ -389,10 +551,11 @@ def cleanup():
                 except Exception:  # noqa: BLE001
                     pass
     for f in WORK.glob("*/fake/orphan.*.pid"):
-        kill(f.read_text())
+        kill(*map(int, f.read_text().split()))
     for f in WORK.glob("*/fake/starts.*.txt"):
         for ln in f.read_text().splitlines():
-            kill(json.loads(ln)["pid"])
+            x = json.loads(ln)
+            kill(x["pid"], x.get("created"))
 
 
 def drive(g, until, limit, each=None):
@@ -410,15 +573,16 @@ def drive(g, until, limit, each=None):
 # ---- the stand-in worker and packer -----------------------------------------------------------------------------
 FAKE = WORK / "fake_run"
 FAKE.mkdir()
-(FAKE / "worker.py").write_text('''import json, os, subprocess, sys, time
+(FAKE / "worker.py").write_text('''import hashlib, json, os, subprocess, sys, time
 from pathlib import Path
+''' + IDENT_SRC + '''
 a = sys.argv[1:]
 root = Path(a[a.index("--root") + 1]); slot = int(a[a.index("--slot") + 1]); fk = root / "fake"
 plan = json.loads((fk / f"plan.{slot}.json").read_text())
 log = fk / f"starts.{slot}.txt"
 n = len(log.read_text().splitlines()) if log.exists() else 0
 with open(log, "a") as f:
-    f.write(json.dumps({"n": n, "t": time.time(), "fence": (root / "FENCE.json").exists(), "pid": os.getpid()}) + "\\n")
+    f.write(json.dumps({"n": n, "t": time.time(), "fence": (root / "FENCE.json").exists(), "pid": os.getpid(), "created": created_of(os.getpid())}) + "\\n")
 def lock(folder):
     folder.mkdir(exist_ok=True)
     f = open(folder / "LOCK", "a+b")
@@ -435,10 +599,17 @@ def lock(folder):
     return f
 L = lock(root / ("w%03d" % slot))                  # as the real worker: exit 3 when another holds it
 act = plan[min(n, len(plan) - 1)]
+def canon(o):
+    return (json.dumps(o, sort_keys=True, separators=(",", ":")) + "\\n").encode("ascii")
 def ended():
     d = root / ("w%03d" % slot); d.mkdir(exist_ok=True)
+    head = (root / "RUN.json").read_bytes(); fp = hashlib.sha256(head).hexdigest()
+    if not (d / "IDENTITY.json").exists():
+        (d / "IDENTITY.json").write_bytes(canon({"run": json.loads(head)["run"], "run_fingerprint": fp, "schema": 2,
+                                                 "slot": slot}))
     with open(d / "journal.txt", "ab") as f:
-        f.write(b'{"t":"ended","why":"test"}\\n')
+        f.write(canon({"epoch": 1, "last_index": -1, "last_seal": "genesis:%s:w%03d" % (fp, slot), "t": "ended",
+                       "why": "test"}))
 if act == "ended":
     ended(); sys.exit(0)
 if act.startswith("exit:"):
@@ -447,7 +618,7 @@ if act.startswith("sleep:"):
     time.sleep(float(act[6:])); ended(); sys.exit(0)
 if act == "orphan":
     c = subprocess.Popen([sys.executable, "-I", "-B", "-c", "import time; time.sleep(120)"])
-    (fk / f"orphan.{slot}.pid").write_text(str(c.pid)); ended(); sys.exit(0)
+    (fk / f"orphan.{slot}.pid").write_text(f"{c.pid} {created_of(c.pid)}"); ended(); sys.exit(0)
 if act == "hang":
     time.sleep(600); sys.exit(0)
 sys.exit(99)
@@ -476,7 +647,11 @@ L = lock(root / "out")                             # as the real packer: exit 3 
 slots = json.loads((root / "RUN.json").read_text())["slots"]
 def ended(k):
     p = root / ("w%03d" % k) / "journal.txt"
-    return p.exists() and p.read_bytes().splitlines()[-1:] == [b'{"t":"ended","why":"test"}']
+    last = p.read_bytes().splitlines()[-1:] if p.exists() else []
+    try:
+        return bool(last) and json.loads(last[0]).get("t") == "ended"
+    except ValueError:
+        return False
 t_end = time.time() + 120
 while time.time() < t_end:
     if (fk / "END").exists():
@@ -484,6 +659,22 @@ while time.time() < t_end:
     if (root / "STOP_PACKER").exists() or ((root / "FENCE.json").exists() and all(ended(k) for k in slots)):
         (fk / "packer.final").write_text("%f" % time.time()); sys.exit(0)
     time.sleep(0.1)
+sys.exit(0)
+''', encoding="ascii")
+(FAKE / "terminal.py").write_text('''import hashlib, sys, time, zlib
+from pathlib import Path
+a = sys.argv[1:]
+root = Path(a[a.index("--root") + 1]); fk = root / "fake"
+with open(fk / "terminal.starts.txt", "a") as f:
+    f.write("%f\\n" % time.time())
+mode = (fk / "terminal.mode").read_text().strip() if (fk / "terminal.mode").exists() else "ok"
+if mode == "exit4":
+    sys.exit(4)
+body = (root / "RUN.json").read_bytes() + b'{"t":"slot"}\\n'
+foot = b'{"fingerprint":"%s","t":"footer"}\\n' % hashlib.sha256(body).hexdigest().encode("ascii")
+full = body + (b'{"t":"slot"}\\n' if mode == "nofooter" else foot)
+(root / "TERMINAL.jsonl").write_bytes(full)
+(root / "TERMINAL.jsonl.zz").write_bytes(zlib.compress(full + (b"x" if mode == "badzz" else b""), 6))
 sys.exit(0)
 ''', encoding="ascii")
 REAL_RUN = G.RUN_DIR
@@ -688,7 +879,8 @@ def part_c():
     check("C14 matches: accepted, no schedule", ((root / "control" / "CONTROL.1.json").exists(), sched(root, 1)),
           (True, None))
     true("C14 an ALARM: no match runner", "no match runner" in g.alarms.get("matches1", ""), g.alarms)
-    cf, evf = control(root, pol, 2, {"outcome": "STOP", "why": "the owner's word"}, kind="fence", decision="STOP")
+    cf, evf = control(root, pol, 2, {"outcome": "STOP", "why": "the owner's word", "inputs": plan_in(pol)},
+                      kind="fence", decision="STOP")
     send(root, 2, cf, evf)
     g.take_controls()
     f = json.loads((root / "FENCE.json").read_bytes()) if (root / "FENCE.json").exists() else {}
@@ -746,7 +938,7 @@ def part_c():
     root, pol = make_root("co", [1], rows([1]), 7200)
     seal_piece(root, 1, 0)
     (root / "w001").mkdir(exist_ok=True)
-    (root / "w001" / "journal.txt").write_bytes(b'{"t":"ended","why":"test"}\n')
+    ended_slot(root, 1)
     (root / "fake").mkdir()
     cb, evb = control(root, pol, 1, report(root, pol, "SELF_PLAY"), scope={"highest_round": 9, "target_rows": 9})
     (root / "control").mkdir()
@@ -765,14 +957,15 @@ def part_c():
     # C19b
     root, pol = make_root("cp", [1], rows([1]), 7200)
     (root / "w001").mkdir()
-    (root / "w001" / "journal.txt").write_bytes(b'{"t":"ended","why":"test"}\n')
+    ended_slot(root, 1)
     (root / "fake").mkdir()
     cb, evb = control(root, pol, 1, report(root, pol, "SELF_PLAY"), scope={"highest_round": 9, "target_rows": 9})
     (root / "control").mkdir()
     (root / "control" / f"EVIDENCE.{sha(evb)}.json").write_bytes(evb)
     (root / "control" / "CONTROL.1.json").write_bytes(cb)
     accepted(root, 1, cb)
-    cf, evf = control(root, pol, 2, {"outcome": "STOP", "why": "the owner's word"}, kind="fence", decision="STOP")
+    cf, evf = control(root, pol, 2, {"outcome": "STOP", "why": "the owner's word", "inputs": plan_in(pol)},
+                      kind="fence", decision="STOP")
     send(root, 2, cf, evf)
     g = guard(root, pol)
     g.one_pass()
@@ -790,9 +983,259 @@ def part_c():
     end_packer(g, root)
     done(g)
 
+    # V1a, V1b: the closing record (R1)
+    got = []
+    for x in ("a", "b"):
+        root, pol = make_root(f"v1{x}", [1], rows([1]), 7200)
+        (root / "guard").mkdir()
+        rec = b"" if x == "a" else W.canon({
+            "at_utc": T(time.time()), "packer": "ended", "run_fingerprint": "f" * 64, "schema": 2, "slots_ended": [1],
+            "slots_unreconciled": [], "terminal": {"lines": 3, "sha256": "8" * 64, "zz_sha256": "9" * 64}})
+        (root / "guard" / "CLOSED.json").write_bytes(rec)
+        g = guard(root, pol)
+        try:
+            got.append(("exit", g.run()))
+        except G.Stop as e:
+            got.append((e.code, "CLOSED.json" in str(e)))
+        got.append((g.packer is None, g.slots[1].g is None))
+        done(g)
+    check("V1a, V1b a 0-byte and another run's CLOSED.json: Stop 4 naming it, nothing started", got,
+          [(4, True), (True, True), (4, True), (True, True)])
+
+    # V2: the fence (R2)
+    root, pol = make_root("v2a", [1, 2], rows([1, 2]), 7200)
+    (root / "FENCE.json").write_bytes(b"")
+    for k in (1, 2):
+        (root / f"w{k:03d}").mkdir()
+        (root / f"w{k:03d}" / "journal.txt").write_bytes(b'{"t":"ended"}\n')
+    g = guard(root, pol)
+    try:
+        g.one_pass()
+        rc = None
+    except G.Stop as e:
+        rc = (e.code, "FENCE.json" in str(e))
+    check("V2a a 0-byte FENCE.json and bare ended lines (Neon's repro): Stop 4 naming FENCE.json, nothing started "
+          "or closed", (rc, g.packer is None, [g.slots[k].g is None for k in (1, 2)],
+                        (root / "guard" / "CLOSED.json").exists()), ((4, True), True, [True, True], False))
+    done(g)
+    got = []
+    for x, over in (("b", {"run_fingerprint": "f" * 64}), ("c", {"cutoff_utc": "2026-01-01T00:00:00Z"})):
+        root, pol = make_root(f"v2{x}", [1], rows([1]), 7200)
+        g = guard(root, pol)
+        f = {"at_utc": T(time.time()), "cutoff_utc": g.d_text(), "run_fingerprint": fp_of(root), "schema": 2,
+             "why": "D"}
+        f.update(over)
+        (root / "FENCE.json").write_bytes(W.canon(f))
+        try:
+            g.one_pass()
+            got.append(None)
+        except G.Stop as e:
+            got.append(e.code)
+        done(g)
+    check("V2b, V2c another run's fence, a fence of another D: Stop 4", got, [4, 4])
+    root, pol = make_root("v2d", [1], rows([1]), 7200)
+    g = guard(root, pol)
+    (root / "FENCE.json").write_bytes(W.canon({"at_utc": T(time.time()), "cutoff_utc": g.d_text(),
+                                               "run_fingerprint": fp_of(root), "schema": 2, "why": "D"}))
+    fd = getattr(g, "fenced", None)
+    check("V2d this run's fence of the D in force: fenced (control)", fd() if fd else (root / "FENCE.json").exists(),
+          True)
+    done(g)
+
+    # V3: an ended slot (R3)
+    root, pol = make_root("v3", [1, 2, 3, 4, 5, 6], rows([1, 2, 3, 4, 5, 6]), 7200)
+    fp = fp_of(root)
+    ident = lambda k, f=fp: W.canon({"run": "gt", "run_fingerprint": f, "schema": 2, "slot": k})  # noqa: E731
+    full = lambda k, i=-1, s=None: W.canon({"epoch": 1, "last_index": i,  # noqa: E731
+                                            "last_seal": s or f"genesis:{fp}:w{k:03d}", "t": "ended", "why": "test"})
+    for k in (1, 2, 3, 4):
+        (root / f"w{k:03d}").mkdir()
+    (root / "w001" / "IDENTITY.json").write_bytes(ident(1))
+    (root / "w001" / "journal.txt").write_bytes(b'{"t":"ended"}\n')
+    (root / "w002" / "journal.txt").write_bytes(full(2))
+    (root / "w003" / "IDENTITY.json").write_bytes(ident(3, "f" * 64))
+    (root / "w003" / "journal.txt").write_bytes(full(3))
+    seal_piece(root, 4, 0)
+    (root / "w004" / "IDENTITY.json").write_bytes(ident(4))
+    (root / "w004" / "journal.txt").write_bytes(full(4, 0, "0" * 64))
+    ended_slot(root, 5)
+    seal_piece(root, 6, 0)
+    ended_slot(root, 6, last_index=0)
+    g = guard(root, pol)
+    check("V3 ended only by the worker's own end: a bare line, no IDENTITY, another run's IDENTITY, a last_seal off "
+          "its chain: not ended; the genesis end and the end at its seal: ended",
+          [g.slot_ended(k) for k in range(1, 7)], [False, False, False, False, True, True])
+    done(g)
+
+    # V4: the piece seals of the room test (R4)
+    root, pol = make_root("v4a", [1, 2], rows([1, 2]), 7200)
+    seal_piece(root, 1, 0, games=1000000, raw=0, run_fingerprint="f" * 64)
+    g = guard(root, pol)
+    cb, evb = control(root, pol, 1, report(root, pol, "SELF_PLAY"), scope={"highest_round": 9, "target_rows": 9})
+    send(root, 1, cb, evb)
+    g.take_controls()
+    true("V4a another run's piece seal (Neon's repro): not counted, HELD no sealed piece, the ALARM seal1 names it",
+         held(g, "no sealed piece") and sched(root, 1) is None and "p000000.seal.json" in g.alarms.get("seal1", ""),
+         g.alarms)
+    done(g)
+    got = []
+    for x in ("b", "c", "d"):
+        root, pol = make_root(f"v4{x}", [1], rows([1]), 7200)
+        if x == "b":
+            seal_piece(root, 1, 0, index=5)
+        else:
+            seal_piece(root, 1, 0)
+            seal_piece(root, 1, 1, **({"prev_seal": "0" * 64} if x == "c" else {}))
+        g = guard(root, pol)
+        g.read_seals()
+        got.append((g.games_total, g.pieces_total, "seal1" in g.alarms))
+        done(g)
+    check("V4b, V4c, V4d a seal whose index is not its name's: none; a seal off the chain: only the one before; two "
+          "of the chain: both (control)", got, [(0, 0, True), (4, 1, True), (8, 2, False)])
+
+    # V5: the range seals (R5), C18's setting
+    root, pol = make_root("v5", [1, 2], rows([1, 2]), 7200)
+    seal_piece(root, 1, 0)
+    g = guard(root, pol)
+    cb, evb = control(root, pol, 1, report(root, pol, "SELF_PLAY"), scope={"highest_round": 5, "target_rows": 9})
+    send(root, 1, cb, evb)
+    g.take_controls()
+    (root / "ranges").mkdir(exist_ok=True)
+    got = []
+    (root / "ranges" / "r0002.w002.seal.json").write_bytes(b"")
+    g.extend()
+    got.append(sched(root, 2) is None)
+    seal_range(root, 2, 2, run_fingerprint="f" * 64)
+    g.extend()
+    got.append(sched(root, 2) is None)
+    seal_range(root, 2, 2, last=row_of(root, 2, 2)["last"] + 1)
+    g.extend()
+    got.append(sched(root, 2) is None)
+    seal_range(root, 2, 2, first_index=0, first_prev_seal=f"genesis:{fp_of(root)}:w002", through_index=0,
+               through_seal="0" * 64)
+    g.extend()
+    got.append(sched(root, 2) is None)
+    check("V5a-d r0002.w002 0 bytes, another run's, another interval's, its through seal not on disk: no "
+          "SCHEDULE.2, the ALARM range2.2", (got, "range2.2" in g.alarms), ([True] * 4, True))
+    seal_range(root, 2, 2)
+    g.extend()
+    s2 = sched(root, 2) or {}
+    check("V5e the genuine seal: SCHEDULE.2 adds round 4 alone (control)",
+          sorted((r["slot"], r["round"]) for r in s2.get("ranges", []) if r["schedule"] == 2), [(1, 4), (2, 4)])
+    done(g)
+
+    # V6: an orphan of an earlier guard (R6): the decision without a process touched, and a number taken over
+    og = getattr(G, "orphan_groups", None)
+    table = {100: [(100, b"python -I -B /r/run/worker.py --root R"), (101, b"/e/forge.exe")],
+             200: [(201, b"/e/forge.exe")], 300: [(301, b"vim notes.txt")], 400: [], 600: [(601, b"/e/forge.exe")],
+             700: [(701, b"python -I -B /c/conv.py")]}
+    foreign = [(100, "worker"), (200, "worker"), (300, "worker"), (400, "packer"), (500, "worker"),
+               (600, "mystery"), (700, "packer")]
+    check("V6 the leader lives: left; its worker gone: the engine; nothing of the day: none; gone: dropped; a kind "
+          "not known: left; the packer gone: its converter",
+          og(foreign, table, ("R", "/e/forge.exe", "/c/conv.py")) if og else None,
+          ([(100, "worker"), (200, "worker"), (300, "worker"), (600, "mystery"), (700, "packer")],
+           [(200, "worker", [201]), (700, "packer", [701])]))
+    root, pol = make_root("v6b", [1], rows([1]), 7200)
+    g = guard(root, pol)
+    g.foreign = [(4242, "packer"), (4343, "worker")]
+    g.record_group(SimpleNamespace(pid=4242), "worker", 1)
+    check("V6b a group number this guard starts is no earlier guard's any more", g.foreign, [(4343, "worker")])
+    done(g)
+
+    # V11 (R12, Linux only: the seats run it): the guard's own end goes through a pidfd and asks again first
+    if os.name != "nt":
+        ee = getattr(G, "end_exact", None)
+        true("V11 end_exact exists (R12)", callable(ee), ee)
+        if callable(ee):
+            p = subprocess.Popen([sys.executable, "-I", "-B", "-c", "import time; time.sleep(60)"])
+            sent = ee(p.pid, lambda: False)
+            time.sleep(0.5)
+            check("V11a ours() False: nothing sent, the process lives", (sent, p.poll()), (False, None))
+            sent = ee(p.pid, lambda: True)
+            try:
+                code = p.wait(5)
+            except subprocess.TimeoutExpired:
+                code = None
+            check("V11b ours() True: sent, ended within 5 s", (sent, code is not None), (True, True))
+            p.kill()
+            p.wait()
+            z = subprocess.Popen([sys.executable, "-I", "-B", "-c", "pass"])
+            while not os.waitid(os.P_PID, z.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT):
+                time.sleep(0.01)
+            check("V11c a child that has exited, not reaped (its pidfd readable), ours() True: nothing sent",
+                  ee(z.pid, lambda: True), False)
+            z.wait()
+
+    # V7: the boot (R7)
+    got = []
+    for x, hb, res in (("a", None, []), ("b", None, [(BOOT, "other-boot")]),
+                       ("c", "another-boot", [("another-boot", BOOT)]),
+                       ("d", "another-boot", [("another-boot", BOOT, {"prev": "0" * 64})]),
+                       ("e", "another-boot", [("x-boot", BOOT)]),
+                       ("f1", "another-boot", [("another-boot", "b2-boot"), ("b2-boot", BOOT)]),
+                       ("f2", "another-boot", [("another-boot", "b2-boot"), ("b9-boot", BOOT)]),
+                       ("g", "another-boot", [("another-boot", BOOT, {"instance_provable": False})])):
+        root, pol = make_root(f"v7{x}", [1], rows([1]), 7200, **({"boot": hb} if hb else {}))
+        for n, r in enumerate(res, 1):
+            resume(root, n, r[0], r[1], **(r[2] if len(r) > 2 else {}))
+        g = guard(root, pol)
+        got.append(g.boot_ok())
+        done(g)
+    check("V7 admitted: the header's boot alone, a linked RESUME to this boot, a chain of two; not: a RESUME away "
+          "from the header's boot, prev not first, old_boot_id not the header's, a broken chain, not provable",
+          got, [True, False, True, False, False, True, False, False])
+
+    # V8: the policy (R8)
+    got = []
+    for x, change in (("a", lambda q: q.pop("target_rows")), ("b", lambda q: q.update(target_rows=True)),
+                      ("c", lambda q: q.update(pilot_rounds_declared=2))):
+        root, pol = make_root(f"v8{x}", [1], rows([1]), 7200)
+        plan = json.loads(pol.read_bytes())
+        change(plan)
+        pol.write_text(json.dumps(plan, indent=1) + "\n", encoding="ascii")
+        try:
+            g = guard(root, pol)
+            got.append(None)
+            done(g)
+        except G.Stop as e:
+            got.append(e.code)
+    check("V8 a policy without target_rows, with target_rows true, declaring 2 pilot rounds for a pilot of 1: Stop 4",
+          got, [4, 4, 4])
+
+    # V9: a fence control bound to the plan (R9)
+    root, pol = make_root("v9", [1], rows([1]), 7200)
+    g = guard(root, pol)
+    cf, evf = control(root, pol, 1, {"outcome": "STOP", "why": "x", "inputs": dict(plan_in(pol), plan_sha256="0" * 64)},
+                      kind="fence", decision="STOP")
+    send(root, 1, cf, evf)
+    g.take_controls()
+    true("V9 a fence control computed from another plan: HELD inputs.plan_sha256, no FENCE.json",
+         held(g, "inputs.plan_sha256") and not (root / "FENCE.json").exists(), g.alarms)
+    done(g)
+
 
 # ---- P ---------------------------------------------------------------------------------------------------------------
 def part_p():
+    # T1 (R11): a process of the test's own is known by number AND creation time; another creation time stands in for
+    # a number Windows has given again: neither counted nor ended
+    p = subprocess.Popen([sys.executable, "-I", "-B", "-c", "import time; time.sleep(60)"])
+    c = created_of(p.pid)
+    true("T1a a process of the test's own: its creation time is an integer", type(c) is int, c)
+    other = (c or 0) + 1
+    check("T1b alive by its number and creation time", alive(p.pid, c), True)
+    check("T1c alive by its number and another creation time", alive(p.pid, other), False)
+    kill(p.pid, other)
+    time.sleep(1.0)
+    check("T1d a kill by its number and another creation time: it still lives", p.poll(), None)
+    kill(p.pid, c)
+    try:
+        code = p.wait(5)
+    except subprocess.TimeoutExpired:
+        code = None
+    true("T1e a kill by its number and creation time: it has ended within 5 s", code is not None, code)
+    p.kill()
+    p.wait()
     G.RUN_DIR = FAKE
     G.RETRY = {6: 0.5, 8: 0.5, 3: 0.5, 0: 0.5}
     root, pol = fake_root("pa", [1, 2, 3, 4], {1: ["sleep:1"], 2: ["exit:4", "ended"], 3: ["orphan"],
@@ -806,7 +1249,7 @@ def part_p():
             faulted2.append(True)
         pid = root / "fake" / "orphan.3.pid"
         if "orphan" not in seen and g.slots[3].g is None and g.slots[3].ended and pid.exists():
-            seen["orphan"] = alive(pid.read_text())
+            seen["orphan"] = alive(*map(int, pid.read_text().split()))
 
     closed = drive(g, lambda g: False, 60, each)
     check("PA the day closed", closed, True)
@@ -836,8 +1279,16 @@ def part_p():
     check("PA STOP_PACKER", (sorted(spr), spr.get("unreconciled")),
           (["at_utc", "run_fingerprint", "schema", "unreconciled"], [4]))
     cl = json.loads((root / "guard" / "CLOSED.json").read_bytes()) if (root / "guard" / "CLOSED.json").exists() else {}
+    tj = (root / "TERMINAL.jsonl").read_bytes() if (root / "TERMINAL.jsonl").exists() else b""
+    tz = (root / "TERMINAL.jsonl.zz").read_bytes() if (root / "TERMINAL.jsonl.zz").exists() else b""
     check("PA CLOSED.json", (cl.get("slots_ended"), cl.get("slots_unreconciled"), cl.get("terminal"),
-                             cl.get("packer")), ([1, 2, 3], [4], None, "ended"))
+                             cl.get("packer")), ([1, 2, 3], [4], {"lines": len(tj.splitlines()), "sha256": sha(tj),
+                                                                  "zz_sha256": sha(tz)}, "ended"))
+    ts = root / "fake" / "terminal.starts.txt"
+    tst = [float(x) for x in ts.read_text().split()] if ts.exists() else []
+    pf = root / "fake" / "packer.final"
+    true("PA the terminal writer: one start, after the packer's last pass",
+         len(tst) == 1 and pf.exists() and tst[0] >= float(pf.read_text()), (tst, pf.exists()))
     ps = (root / "fake" / "packer.starts.txt")
     check("PA the packer: one start, its last pass",
           (len(ps.read_text().splitlines()) if ps.exists() else 0, (root / "fake" / "packer.final").exists()),
@@ -846,18 +1297,32 @@ def part_p():
         else []
     kinds = sorted(json.loads(x)["kind"] for x in gl)
     check("PA groups.jsonl", (kinds, all(json.loads(x)["boot_id"] == BOOT for x in gl)),
-          (["packer"] + ["worker"] * 6, True))
+          (["packer", "terminal"] + ["worker"] * 6, True))
     hl = (root / "guard" / "hourly.jsonl").read_bytes().splitlines() if (root / "guard" / "hourly.jsonl").exists() \
         else []
     first = json.loads(hl[0]) if hl else {}
     check("PA hourly.jsonl first line", (first.get("t"), first.get("state"), first.get("schedules"),
                                          first.get("controls")), ("hour", "play", 0, 0))
-    pids = [x["pid"] for k in (1, 2, 3, 4) for x in starts(root, k)]
+    pids = [(x["pid"], x.get("created")) for k in (1, 2, 3, 4) for x in starts(root, k)]
     op = root / "fake" / "orphan.3.pid"
     if op.exists():
-        pids.append(int(op.read_text()))
-    check("PA no process of the day alive", [p for p in pids if alive(p)], [])
+        pids.append(tuple(map(int, op.read_text().split())))
+    true("PA the recorded processes carry their creation time (R11)",
+         bool(pids) and all(type(c) is int for _, c in pids), pids)
+    check("PA no process of the day alive", [p for p, c in pids if alive(p, c)], [])
     done(g)
+
+    # V1c: the closed day started again (R1)
+    def snap(r):
+        return sorted((str(q.relative_to(r)), q.stat().st_size) for q in r.rglob("*") if q.is_file() and q.name != "LOCK")
+    before = snap(root)
+    g2 = guard(root, pol)
+    try:
+        rc = g2.run()
+    except G.Stop as e:
+        rc = ("stop", e.code, str(e)[:200])
+    check("V1c the closed day started again: exit 0 at once, nothing written", (rc, snap(root) == before), (0, True))
+    done(g2)
 
     # PB
     root, pol = fake_root("pb", [1], {1: ["ended"]}, 3600)
@@ -879,9 +1344,7 @@ def part_p():
         g.one_pass()
         time.sleep(0.1)
     check("PB another boot: nothing started, the alarm boot", (len(starts(root, 1)), "boot" in g.alarms), (0, True))
-    (root / "RESUME.1.json").write_bytes(W.canon({"new_boot_id": BOOT, "old_boot_id": "another-boot",
-                                                  "run_fingerprint": sha((root / "RUN.json").read_bytes()),
-                                                  "schema": 2}))
+    resume(root, 1, "another-boot", BOOT)
     drive(g, lambda g: g.slots[1].ended, 10)
     check("PB a RESUME naming this boot: the slot starts", len(starts(root, 1)), 1)
     end_packer(g, root)
@@ -953,6 +1416,23 @@ def part_p():
            else None, cl.get("slots_unreconciled")), (True, 0, True, [1], [1]))
     lk.release()
     done(g)
+
+    # V10: the terminal writer fails (R10)
+    for x, mode, text in (("a", "exit4", "exited with 4"), ("b", "badzz", "does not decode"),
+                          ("c", "nofooter", "footer")):
+        root, pol = fake_root(f"v10{x}", [1], {1: ["ended"]}, 4)
+        (root / "fake" / "terminal.mode").write_text(mode, encoding="ascii")
+        g = guard(root, pol)
+        closed = drive(g, lambda g: "terminal" in g.alarms, 25) is True
+        t_end = time.monotonic() + 2.0
+        while time.monotonic() < t_end and not closed:
+            closed = g.one_pass()
+            time.sleep(0.1)
+        ts = root / "fake" / "terminal.starts.txt"
+        check(f"V10{x} the terminal writer {mode}: no CLOSED.json, the ALARM terminal ({text}), one start",
+              (closed, (root / "guard" / "CLOSED.json").exists(), text in g.alarms.get("terminal", ""),
+               len(ts.read_text().split()) if ts.exists() else 0), (False, False, True, 1))
+        done(g)
     G.RETRY = {6: 30.0, 8: 10.0, 3: 30.0, 0: 5.0}
 
 
@@ -1001,7 +1481,8 @@ def part_e():
              if (rs / f"r{r:04d}.w{k:03d}.seal.json").exists()]
     check("E every range seal: 2 games, complete", [(s.get("games"), s.get("complete")) for s in seals],
           [(2, True)] * 8)
-    cf, ef = control(root, pol, 2, {"outcome": "STOP", "why": "the test's end"}, kind="fence", decision="STOP",
+    cf, ef = control(root, pol, 2, {"outcome": "STOP", "why": "the test's end", "inputs": plan_in(pol)},
+                     kind="fence", decision="STOP",
                      over={"cutoff_utc": cut, "dispatch_end_utc": disp})
     send(root, 2, cf, ef)
     closed = drive(g, lambda g: False, 240)
@@ -1022,6 +1503,11 @@ def part_e():
                                                                                             False))
     cl = json.loads((root / "guard" / "CLOSED.json").read_bytes()) if (root / "guard" / "CLOSED.json").exists() else {}
     check("E CLOSED.json", (cl.get("slots_ended"), cl.get("slots_unreconciled")), ([0, 1], []))
+    tj = (root / "TERMINAL.jsonl").read_bytes() if (root / "TERMINAL.jsonl").exists() else b""
+    foot = json.loads(tj.splitlines()[-1]) if tj else {}
+    check("E CLOSED.json's terminal: the real inventory, 16 pieces, 2 slots ended",
+          ((cl.get("terminal") or {}).get("sha256"), foot.get("pieces"), foot.get("slots")),
+          (sha(tj), 16, {"ended": 2, "unreconciled": 0}))
     offers = [len(list((root / "out" / f"w{k:03d}").glob("p*.offer.json.zz"))) for k in (0, 1)]
     check("E the packer's last pass: 8 offers a slot", ("the packer made its last pass" in log, offers),
           (True, [8, 8]))

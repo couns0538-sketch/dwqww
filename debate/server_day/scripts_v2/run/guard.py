@@ -3,6 +3,18 @@
 161634Z, 171134Z, 171332Z, 172109Z). ONE program runs the day on the server: it starts and owns every worker and the
 packer, takes home's decision, writes every schedule after the pilot, publishes the fence and closes the day.
 Standard library only; the same file runs on Linux (the day) and on the PC (the tests).
+VERSION 2 (A5: the repairs of the seats' NOT YET on version 1, 67384d4b5e3d; Astra 215151Z, 220826Z, 225517Z, Neon
+223800Z, the agreed spec server_guard_completion.md): no file on disk is trusted by its name or its existence alone.
+R1 guard/CLOSED.json is this run's closing record or the guard stops (exit 4); R2 FENCE.json is this run's fence of
+the D in force or the guard stops (exit 4); R3 a slot has ended only by the worker's own ended line under this run's
+IDENTITY.json, at the end of its seal chain; R4 a piece seal counts in the room test only as this run's seal of its
+slot, index and chain; R5 a range seal counts as sealed only as this run's seal of the newest schedule's row whose
+through_seal is on disk; R6 (Linux) an earlier guard's group whose leader is gone has every member left ended at
+every pass (an orphaned engine never searches on); R7 every RESUME is walked as a chain; R8 the policy holds
+target_rows and the header's pilot round count; R9 a fence control is bound to the policy too; R10 the terminal
+writer runs after the packer's last pass and CLOSED.json names the inventory it verified; R12 (Linux, Fable's G2) a
+process found by a scan is ended only through a pidfd opened first, after /proc was read again and the pidfd shows it
+still living (a number given again in between is never ended); without a working pidfd the guard does not start.
 
     guard.py --root DIR --exe E --net N --manifest M --known-startup S --converter C --policy P --floor-bytes B
              [--openings F] [--game-seconds T = 600] [--horizon H = 2] [--tick S = 1] [--allowance S = 2]
@@ -17,7 +29,8 @@ ONE PASS every --tick seconds, in this order:
 G1 START (once). One guard: an OS lock on guard/LOCK (else exit 3). RUN.json canonical with the keys of 1.1, its
    slots, piece_games, pilot_ranges (rows of schedule 0), lease_start_utc and hard_cutoff_utc. The policy file is
    the package's plan.json as the budget tool reads it (floor, margin, choice: json with no key twice and no NaN; an
-   `owner_choice` object with a `name`); its sha256 is the package's owner policy. Every
+   `owner_choice` object with a `name`; target_rows an integer >= 1; pilot_rounds_declared the header's highest
+   pilot round); its sha256 is the package's owner policy. Every
    SCHEDULE.<n>.json on disk walked as a chain (canonical, schema 2, n, prev, this run, evidence, bounds never later,
    rows as 1.2): a break stops the guard (exit 4), since only the guard writes schedules. Then the accepted controls
    are REPLAYED (G3).
@@ -34,8 +47,8 @@ G3 THE CONTROL RECORD (1.2). inbox/CONTROL.<k>.json.zz for the NEXT k (one more 
    b. inbox/EVIDENCE.<evidence>.json.zz whose DECODED bytes have that sha256 (Astra 172109Z: the public bytes are
       hashed before they are packed) and are a canonical record without `local_only` (the full local report never
       travels: a control resting on it is HELD);
-   c. owner_policy = the sha256 of the policy file, and, except for kind fence, the report's inputs.plan_sha256 too
-      (the report was computed from that policy);
+   c. owner_policy = the sha256 of the policy file, and the report's inputs.plan_sha256 too, for every kind (the
+      report was computed from that policy; R9);
    d. at_utc, cutoff_utc and dispatch_end_utc are existing UTC times, the dispatch end not after the cutoff, neither
       bound later than the one in force (the newest schedule's; the header's hard cutoff before any);
    e. the report agrees (Astra 161634Z): for pilot_decision and target, decision is the report's outcome; for
@@ -117,12 +130,17 @@ G8 THE STOP FILE (row 23). DIR/STOP: no control is taken, no schedule written, n
 G9 THE HOURLY LINE (row 21). At the first pass and then every hour of the steady clock, one canonical line in
    guard/hourly.jsonl, for people (nothing reads it): at_utc, state, schedules, controls accepted, fence, the slots
    ended, live, faulted and unreconciled, free bytes, alarms so far, the alarms standing, STOP.
-EXIT CODES: 0 the day is closed (CLOSED.json; a guard started after it exits 0 at once); 2 a wrong call; 3 another
-guard holds the lock; 4 the header, the policy, the schedule chain, the accepted controls or a file the guard must
-write cannot be trusted. Never a traceback.
-NOT HERE (version 1): the terminal inventory (1.9, A3c: CLOSED.json says terminal null); the boot guard, RESUME and
-the time after a restart (A3b); memory (row 20); a pause of running workers at the floor; a match runner; on Windows
-the groups an earlier guard started (only a job object of this process can be ended).
+G10 THE CLOSE (R10). When the fence is there, every slot is ended or unreconciled, no worker lives and the packer has
+   made its last pass: the terminal writer (`python -I -B run/terminal.py --root DIR`, a group of its own, its print
+   in guard/terminal.out). Exit 0 and TERMINAL.jsonl.zz decoding to TERMINAL.jsonl, its first line RUN.json's bytes,
+   its last a canonical footer whose fingerprint is sha256 of every byte before it: guard/CLOSED.json with terminal
+   {lines, sha256, zz_sha256}. Anything else: no CLOSED.json, an ALARM naming why, the originals untouched, tried
+   again after 60 s.
+EXIT CODES: 0 the day is closed (CLOSED.json, this run's closing record: a guard started after it exits 0 at once);
+2 a wrong call; 3 another guard holds the lock; 4 the header, the policy, the schedule chain, the accepted controls,
+FENCE.json, CLOSED.json or a file the guard must write cannot be trusted. Never a traceback.
+NOT HERE (version 2): memory (row 20); a pause of running workers at the floor; a match runner; on Windows the groups
+an earlier guard started (only a job object of this process can be ended).
 """
 import argparse
 import ctypes
@@ -130,6 +148,7 @@ import json
 import math
 import os
 import re
+import select
 import shutil
 import signal
 import subprocess
@@ -154,6 +173,16 @@ LOG_CAP = 64 << 20
 HOUR = 3600.0
 RANGE_SEAL = re.compile(r"r([0-9]{4})\.w([0-9]{3})\.seal\.json")
 RETRY = {6: 30.0, 8: 10.0, 3: 30.0, 0: 5.0}        # after a signal: 5 s; any other code is a named fault
+FENCE_KEYS = ["at_utc", "cutoff_utc", "run_fingerprint", "schema", "why"]
+ENDED_KEYS = ["epoch", "last_index", "last_seal", "t", "why"]
+CLOSED_KEYS = ["at_utc", "packer", "run_fingerprint", "schema", "slots_ended", "slots_unreconciled", "terminal"]
+LEADER = {"worker": "worker.py", "packer": "packer.py", "terminal": "terminal.py"}
+TERMINAL_RETRY = 60.0
+
+
+def same(v, want) -> bool:
+    """v equals want and has its type (a bool is never an int here)."""
+    return type(v) is type(want) and v == want
 
 
 class Held(Exception):
@@ -200,29 +229,89 @@ def last_line(path: Path):
         return None
 
 
+def is_member(pid: int, pgid: int, marks=()) -> bool:
+    """Process `pid` lives (not a zombie) in process group `pgid` and, when `marks` are given, its command line
+    contains one of them (Linux, /proc)."""
+    try:
+        with open(f"/proc/{pid}/stat", "rb") as f:
+            s = f.read()
+        fields = s[s.rfind(b")") + 2:].split()
+        if len(fields) < 3 or int(fields[2]) != pgid or fields[0] == b"Z":
+            return False
+        if marks:
+            with open(f"/proc/{pid}/cmdline", "rb") as f:
+                line = f.read().replace(b"\0", b" ")
+            return any(m.encode() in line for m in marks)
+        return True
+    except (OSError, ValueError):
+        return False
+
+
 def linux_members(pgid: int, marks=()) -> list:
     """The processes of a process group that are not zombies (Linux, /proc), optionally only those whose command
     line contains one of `marks`."""
-    out = []
+    return [int(e.name) for e in os.scandir("/proc") if e.name.isdigit() and is_member(int(e.name), pgid, marks)]
+
+
+def end_exact(pid: int, ours) -> bool:
+    """R12 (Linux, Fable's G2): end a process found by a scan only while it is still that process. A pidfd first; then
+    ours() reads /proc again; then the pidfd is polled (readable: the process it holds has exited, so what ours() read
+    may be another process of the same number); only then the signal goes through the pidfd. True when sent."""
+    try:
+        fd = os.pidfd_open(pid)
+    except OSError:
+        return False
+    try:
+        if not ours():
+            return False
+        p = select.poll()
+        p.register(fd, select.POLLIN)
+        if p.poll(0):
+            return False
+        signal.pidfd_send_signal(fd, signal.SIGKILL)
+        return True
+    except OSError:
+        return False
+    finally:
+        os.close(fd)
+
+
+def proc_table() -> dict:
+    """Linux: process group -> [(pid, command line bytes)] of every process that is not a zombie (one walk of /proc)."""
+    out = {}
     for e in os.scandir("/proc"):
         if not e.name.isdigit():
             continue
         try:
             with open(f"/proc/{e.name}/stat", "rb") as f:
                 s = f.read()
-            r = s.rfind(b")")
-            fields = s[r + 2:].split()
-            if len(fields) < 3 or int(fields[2]) != pgid or fields[0] == b"Z":
+            fields = s[s.rfind(b")") + 2:].split()
+            if len(fields) < 3 or fields[0] == b"Z":
                 continue
-            if marks:
-                with open(f"/proc/{e.name}/cmdline", "rb") as f:
-                    line = f.read().replace(b"\0", b" ")
-                    if not any(m.encode() in line for m in marks):
-                        continue
+            with open(f"/proc/{e.name}/cmdline", "rb") as f:
+                line = f.read().replace(b"\0", b" ")
+            out.setdefault(int(fields[2]), []).append((int(e.name), line))
         except (OSError, ValueError):
             continue
-        out.append(int(e.name))
     return out
+
+
+def orphan_groups(foreign, table, marks):
+    """R6's decision, without a process touched: (the earlier groups that still have a member, [(pgid, kind, pids)]
+    of those whose leader is gone, no member naming its script, with members naming one of `marks`). A group of a
+    kind the guard does not know is left to G7. `table` as proc_table() gives it (a stand-in in the tests)."""
+    live, orphans = [], []
+    for pgid, kind in foreign:
+        mem = table.get(pgid, [])
+        if not mem:
+            continue
+        live.append((pgid, kind))
+        if kind not in LEADER or any(LEADER[kind].encode() in line for _, line in mem):
+            continue
+        left = [pid for pid, line in mem if any(m.encode() in line for m in marks)]
+        if left:
+            orphans.append((pgid, kind, left))
+    return live, orphans
 
 
 class _Acct(ctypes.Structure):
@@ -353,6 +442,9 @@ class Guard:
         self.slots = {k: Slot(k) for k in self.h["slots"]}
         self.packer, self.packer_starts, self.packer_next, self.packer_done = None, [], 0.0, False
         self.seal_next = {k: 0 for k in self.h["slots"]}
+        self.seal_prev = {k: self.genesis(k) for k in self.h["slots"]}
+        self.range_ok = {}              # (slot, round) -> the (size, mtime_ns, inode) of the range seal verified (R5)
+        self.term, self.term_next, self.term_rec = None, 0.0, None
         self.raw_total = self.games_total = self.pieces_total = 0
         self.next_hour = 0.0
         self.boot = boot_id()
@@ -408,6 +500,12 @@ class Guard:
         oc = pol.get("owner_choice") if isinstance(pol, dict) else None
         if not isinstance(oc, dict) or not isinstance(oc.get("name"), str):
             raise Stop(4, "the policy file: an owner_choice object with a name (the budget tool's plan.json)")
+        if type(pol.get("target_rows")) is not int or pol["target_rows"] < 1:
+            raise Stop(4, "the policy file: target_rows an integer >= 1 (the cap of every schedule's scope)")
+        pilot = max(r["round"] for r in self.h["pilot_ranges"])
+        if not same(pol.get("pilot_rounds_declared"), pilot):
+            raise Stop(4, f"the policy file declares {str(pol.get('pilot_rounds_declared'))[:20]} pilot rounds and the "
+                          f"header's pilot has {pilot} (Astra 225517Z: the cohort is the policy's)")
         self.policy, self.policy_sha = pol, sha256_bytes(data)
 
     def load_schedules(self) -> None:
@@ -500,8 +598,8 @@ class Guard:
                        "(Astra 172109Z)")
         if c["owner_policy"] != self.policy_sha:
             raise Held(f"CONTROL.{k}.json: owner_policy is not the package's policy")
-        if c["kind"] != "fence" and (not isinstance(rep.get("inputs"), dict)
-                                     or rep["inputs"].get("plan_sha256") != self.policy_sha):
+        if (not isinstance(rep.get("inputs"), dict)
+                or rep["inputs"].get("plan_sha256") != self.policy_sha):
             raise Held(f"CONTROL.{k}.json: the report was not computed from the package's policy file "
                        f"(inputs.plan_sha256)")
         try:
@@ -713,27 +811,92 @@ class Guard:
         self.say(f"SCHEDULE.{n}.json written: rounds up to {max(r['round'] for r in s['ranges'])}, cutoff "
                  f"{s['cutoff_utc']}, dispatch end {s['dispatch_end_utc']}, evidence {s['evidence'][:12]}")
 
+    def genesis(self, k: int) -> str:
+        return f"genesis:{self.fp}:w{k:03d}"
+
     def sealed_rounds(self) -> set:
+        """R5: (slot, round) of every range seal that is this run's seal of the newest schedule's row (a verified
+        file is not read again while its size, time and inode stay)."""
         d = self.root / "ranges"
         if not d.is_dir():
             return set()
-        return {(int(m.group(2)), int(m.group(1))) for f in os.scandir(d) if (m := RANGE_SEAL.fullmatch(f.name))}
+        rows = {(r["slot"], r["round"]): r for r in self.rows()}
+        out = set()
+        for f in os.scandir(d):
+            m = RANGE_SEAL.fullmatch(f.name)
+            if not m:
+                continue
+            key = (int(m.group(2)), int(m.group(1)))
+            try:
+                st = f.stat()
+                stamp = (st.st_size, st.st_mtime_ns, st.st_ino)
+            except OSError:
+                continue
+            if self.range_ok.get(key) != stamp:
+                why = self.range_fault(Path(f.path), key[0], key[1], rows.get(key))
+                if why:
+                    self.range_ok.pop(key, None)
+                    self.alarm(f"range{key[0]}.{key[1]}", f"ranges/{f.name} {why}: not counted as sealed (no "
+                                                          f"extension rests on it, its games count as unplayed)")
+                    continue
+                self.range_ok[key] = stamp
+                self.clear(f"range{key[0]}.{key[1]}")
+            out.add(key)
+        return out
+
+    def range_fault(self, p: Path, k: int, rnd: int, row):
+        """None when the range seal at p is this run's seal of the schedule row `row` (R5), else why not."""
+        if row is None:
+            return "names a range the newest schedule does not hold"
+        try:
+            s = parse_canon(p.read_bytes(), p.name)
+        except (OSError, ValueError) as e:
+            return f"cannot be read as a record ({e})"
+        if not isinstance(s, dict) or s.get("schema") != 2 or s.get("run_fingerprint") != self.fp:
+            return "is not this run's (schema 2, run_fingerprint)"
+        if not (same(s.get("slot"), k) and same(s.get("round"), rnd) and same(s.get("first"), row["first"])
+                and same(s.get("last"), row["last"])):
+            return "is not the seal of its schedule row (slot, round, first, last)"
+        ti, ts = s.get("through_index"), s.get("through_seal")
+        if same(ti, -1):
+            return None if ts is None else "holds no piece and names a through_seal"
+        if type(ti) is not int or ti < 0:
+            return "has no through_index"
+        try:
+            ok = sha256_bytes((self.root / f"w{k:03d}" / "closed" / f"p{ti:06d}.seal.json").read_bytes()) == ts
+        except OSError:
+            return f"names piece {ti}, whose seal is not in w{k:03d}/closed"
+        return None if ok else f"names a through_seal that is not the sha256 of piece {ti}'s seal"
 
     def read_seals(self) -> None:
+        """R4: the pieces of the room test, each this run's seal of its slot, index and chain."""
         for k in self.h["slots"]:
             closed = self.root / f"w{k:03d}" / "closed"
             while True:
-                p = closed / f"p{self.seal_next[k]:06d}.seal.json"
+                i = self.seal_next[k]
+                p = closed / f"p{i:06d}.seal.json"
                 try:
-                    s = parse_canon(p.read_bytes(), p.name)
-                    games, raw = s["games"], s["raw_bytes"]
-                except (OSError, ValueError, TypeError, KeyError):
+                    data = p.read_bytes()
+                except OSError:
                     break
-                if type(games) is not int or type(raw) is not int or games < 1 or raw < 0:
+                try:
+                    s = parse_canon(data, p.name)
+                except ValueError:
+                    s = None
+                if not (isinstance(s, dict) and s.get("schema") == 2 and s.get("run_fingerprint") == self.fp
+                        and same(s.get("slot"), k) and same(s.get("index"), i)
+                        and s.get("prev_seal") == self.seal_prev[k]
+                        and type(s.get("games")) is int and s["games"] >= 1
+                        and type(s.get("raw_bytes")) is int and s["raw_bytes"] >= 0):
+                    self.alarm(f"seal{k}", f"w{k:03d}/closed/{p.name} is not this run's seal {i} of slot {k} (schema, "
+                                           f"run_fingerprint, slot, index, prev_seal, games, raw_bytes): not counted, "
+                                           f"the slot's later seals neither")
                     break
-                self.games_total += games
-                self.raw_total += raw
+                self.clear(f"seal{k}")
+                self.games_total += s["games"]
+                self.raw_total += s["raw_bytes"]
                 self.pieces_total += 1
+                self.seal_prev[k] = sha256_bytes(data)
                 self.seal_next[k] += 1
 
     def room(self, data: bytes):
@@ -788,22 +951,36 @@ class Guard:
         self.write_schedule(data)
 
     # ---- G7: the fence -----------------------------------------------------------------------------------------
-    def fence_names(self, csha: str) -> bool:
+    def fence_record(self):
+        """R2: None when there is no FENCE.json; this run's fence of the D in force; anything else Stop 4 (a root
+        whose fence cannot be trusted decides and starts nothing)."""
+        p = self.root / "FENCE.json"
         try:
-            f = parse_canon((self.root / "FENCE.json").read_bytes(), "FENCE.json")
-        except (OSError, ValueError):
-            return False
-        return isinstance(f, dict) and csha in str(f.get("why"))
+            data = p.read_bytes()
+        except FileNotFoundError:
+            return None
+        except OSError as e:
+            raise Stop(4, f"FENCE.json cannot be read ({e})") from None
+        try:
+            f = parse_canon(data, "FENCE.json")
+        except ValueError as e:
+            raise Stop(4, f"FENCE.json: {e}") from None
+        if not isinstance(f, dict) or sorted(f) != FENCE_KEYS or not same(f["schema"], 2) \
+                or f["run_fingerprint"] != self.fp or f["cutoff_utc"] != self.d_text():
+            raise Stop(4, "FENCE.json is not this run's fence of the D in force (its keys, schema 2, run_fingerprint, "
+                          "cutoff_utc): the root cannot be trusted, nothing is decided or started")
+        return f
+
+    def fenced(self) -> bool:
+        return self.fence_record() is not None
+
+    def fence_names(self, csha: str) -> bool:
+        f = self.fence_record()
+        return f is not None and csha in str(f["why"])
 
     def fence(self, why: str) -> None:
         p = self.root / "FENCE.json"
-        if p.exists():
-            try:
-                f = parse_canon(p.read_bytes(), "FENCE.json")
-            except ValueError as e:
-                raise Stop(4, str(e)) from None
-            if not isinstance(f, dict) or f.get("run_fingerprint") != self.fp or f.get("cutoff_utc") != self.d_text():
-                raise Stop(4, "FENCE.json is not this run's, or its cutoff_utc is not the D in force")
+        if self.fenced():
             return
         create_only(p, canon({"at_utc": T(time.time()), "cutoff_utc": self.d_text(), "run_fingerprint": self.fp,
                               "schema": 2, "why": why}))
@@ -811,8 +988,26 @@ class Guard:
 
     # ---- G6: workers, packer, groups ---------------------------------------------------------------------------
     def slot_ended(self, k: int) -> bool:
-        ln = last_line(self.root / f"w{k:03d}" / "journal.txt")
-        return isinstance(ln, dict) and ln.get("t") == "ended"
+        """R3: the worker's own end of this run's slot k: its IDENTITY.json, its ended line, the end of its chain."""
+        d = self.root / f"w{k:03d}"
+        ident = canon({"run": self.h["run"], "run_fingerprint": self.fp, "schema": 2, "slot": k})
+        try:
+            if (d / "IDENTITY.json").read_bytes() != ident:
+                return False
+        except OSError:
+            return False
+        ln = last_line(d / "journal.txt")
+        if not (isinstance(ln, dict) and sorted(ln) == ENDED_KEYS and ln["t"] == "ended"):
+            return False
+        i, s = ln["last_index"], ln["last_seal"]
+        if type(i) is not int or i < -1:
+            return False
+        if i == -1:
+            return s == self.genesis(k)
+        try:
+            return sha256_bytes((d / "closed" / f"p{i:06d}.seal.json").read_bytes()) == s
+        except OSError:
+            return False
 
     @staticmethod
     def lock_held(folder: Path) -> bool:
@@ -829,6 +1024,7 @@ class Guard:
         return False
 
     def record_group(self, g: Group, kind: str, slot) -> None:
+        self.foreign = [(p, k) for p, k in self.foreign if p != g.pid]     # that number is ours now (R6)
         with open(self.gdir / "groups.jsonl", "ab") as f:
             f.write(canon({"at_utc": T(time.time()), "boot_id": self.boot, "kind": kind, "pid": g.pid,
                            "slot": slot}))
@@ -848,7 +1044,7 @@ class Guard:
             except ValueError:
                 continue
             if isinstance(r, dict) and r.get("boot_id") == self.boot and type(r.get("pid")) is int:
-                out.append(r["pid"])
+                out.append((r["pid"], r.get("kind")))
         return out
 
     def py(self, script: str) -> list:
@@ -942,7 +1138,7 @@ class Guard:
                 return
             code = self.finish_group(self.packer)
             self.packer = None
-            last = (self.root / "FENCE.json").exists() or (self.root / "STOP_PACKER").exists()
+            last = self.fenced() or (self.root / "STOP_PACKER").exists()
             if code == 0 and last:
                 self.packer_done = True
                 self.say("the packer made its last pass")
@@ -971,16 +1167,41 @@ class Guard:
         if os.name == "nt" or not self.foreign or st != "cutoff" or not self.past_d_grace():
             return
         marks = (str(self.root), self.a.exe)       # a worker names the root; its engine names the exe
-        for pgid in self.foreign:
+        for pgid, _ in self.foreign:
             pids = linux_members(pgid, marks)
             for pid in pids:
-                try:
-                    os.kill(pid, signal.SIGKILL)
-                except (ProcessLookupError, PermissionError):
-                    pass
+                end_exact(pid, lambda: is_member(pid, pgid, marks))     # called at once: the loop's own pid
             if pids:
                 self.alarm(f"foreign{pgid}", f"group {pgid} of an earlier guard still had {len(pids)} process(es) "
                                              f"{self.a.end_grace} s after D: ended")
+
+    def marks(self) -> tuple:
+        """What a process of the day names: DIR (worker, packer), the engine file, the converter."""
+        return (str(self.root), self.a.exe, self.a.converter, str(Path(self.a.converter).resolve()))
+
+    def sweep_orphans(self) -> None:
+        """R6, Linux, every pass (before any worker is started): the groups of earlier guards of this boot are looked
+        at in one walk of /proc. A group with no member left is dropped from the list for good (a group that is gone
+        never gains a member, so its number can never point at another group of ours); a group whose leader is gone
+        has every member left that names DIR, the engine or the converter ended and verified gone (Astra 220826Z:
+        the engine of a dead worker searched on past D, beside the new worker of its slot). A group whose leader
+        lives is left to G7."""
+        if os.name == "nt" or not self.foreign:
+            return
+        marks = self.marks()
+        self.foreign, orphans = orphan_groups(self.foreign, proc_table(), marks)
+        for pgid, kind, pids in orphans:
+            t_end = time.monotonic() + self.a.allowance
+            while pids:
+                for pid in pids:
+                    end_exact(pid, lambda: is_member(pid, pgid, marks))     # called at once: the loop's own pid
+                if time.monotonic() >= t_end:
+                    break
+                time.sleep(0.02)
+                pids = linux_members(pgid, marks)
+            self.alarm(f"orphan{pgid}", f"group {pgid} of an earlier guard ({kind}) had process(es) left without its "
+                                        f"leader: ended" + (f"; {len(pids)} still live after {self.a.allowance} s"
+                                                            if pids else ""))
 
     # ---- G9 and the pass ---------------------------------------------------------------------------------------
     def hourly(self, st: str, now: float) -> None:
@@ -989,7 +1210,7 @@ class Guard:
         self.next_hour = now + HOUR
         sl = self.slots.values()
         line = canon({"alarms": self.n_alarms, "at_utc": T(time.time()), "controls": len(self.ctl),
-                      "fenced": (self.root / "FENCE.json").exists(), "free_bytes": shutil.disk_usage(self.root).free,
+                      "fenced": self.fenced(), "free_bytes": shutil.disk_usage(self.root).free,
                       "schedules": len(self.sched), "slots_ended": sum(s.ended for s in sl),
                       "slots_faulted": sum(bool(s.faulted) for s in sl), "slots_live": sum(s.g is not None for s in sl),
                       "slots_unreconciled": sum(bool(s.unreconciled) for s in sl), "standing": sorted(self.alarms),
@@ -999,19 +1220,45 @@ class Guard:
             f.flush()
 
     def boot_ok(self) -> bool:
-        if self.boot == self.h["boot_id"]:
+        why = self.resume_why()
+        if why is None:
+            self.clear("boot")
             return True
-        for p in self.root.glob("RESUME.*.json"):
-            try:
-                r = parse_canon(p.read_bytes(), p.name)
-            except (OSError, ValueError):
-                continue
-            if isinstance(r, dict) and r.get("run_fingerprint") == self.fp and r.get("new_boot_id") == self.boot:
-                self.clear("boot")
-                return True
-        self.alarm("boot", f"this machine's boot id {self.boot} is not the header's and no RESUME names it: nothing "
-                           f"is decided or started (the boot guard writes RESUME)")
+        self.alarm("boot", f"this machine's boot id {self.boot} is not admitted ({why}): nothing is decided or "
+                           f"started (the boot guard writes RESUME)")
         return False
+
+    def resume_why(self):
+        """R7: None when this boot is admitted, else why not. Every RESUME.<n>.json from 1 to n is walked as a chain
+        (canonical, schema 2, n, this run, prev, old_boot_id = the header's boot for 1 else RESUME n-1's
+        new_boot_id); admitted: no RESUME and the header's boot, or the highest names this boot with
+        instance_provable true."""
+        names = [p.name for p in self.root.glob("RESUME.*.json")]
+        if any(not re.fullmatch(r"RESUME\.[1-9][0-9]{0,2}\.json", x) for x in names):
+            return f"a RESUME file name outside the grammar: {sorted(names)[:3]}"
+        prev, boot, top = b"", self.h["boot_id"], None
+        for n in range(1, len(names) + 1):
+            p = self.root / f"RESUME.{n}.json"
+            try:
+                data = p.read_bytes()
+                r = parse_canon(data, p.name)
+            except FileNotFoundError:
+                return f"there are {len(names)} RESUME files and RESUME.{n}.json is not one of them"
+            except (OSError, ValueError) as e:
+                return f"{p.name}: {e}"
+            if not (isinstance(r, dict) and same(r.get("schema"), 2) and same(r.get("n"), n)
+                    and r.get("run_fingerprint") == self.fp
+                    and r.get("prev") == ("first" if n == 1 else sha256_bytes(prev))
+                    and r.get("old_boot_id") == boot and isinstance(r.get("new_boot_id"), str)):
+                return (f"{p.name} is not RESUME {n} of this run's chain (schema, n, run_fingerprint, prev, "
+                        f"old_boot_id, new_boot_id)")
+            prev, boot, top = data, r["new_boot_id"], r
+        if boot != self.boot:
+            return ("it is not the header's and no RESUME names it" if top is None
+                    else f"the highest RESUME names boot {boot[:40]}")
+        if top is not None and top.get("instance_provable") is not True:
+            return "the highest RESUME names this boot without instance_provable true: held for a person"
+        return None
 
     def one_pass(self) -> bool:
         """True when the day is closed."""
@@ -1025,7 +1272,7 @@ class Guard:
             self.alarm("stop", "the STOP file: no control is taken, no schedule written, nothing started")
         else:
             self.clear("stop")
-        fenced = (self.root / "FENCE.json").exists()
+        fenced = self.fenced()
         if boot and not stop and st != "hold":
             if self.pending is not None:
                 eff = self.ctl[self.pending - 1][2]
@@ -1040,10 +1287,10 @@ class Guard:
                     self.alarm("pending", f"the schedule of the accepted control {self.pending} is not made: the day "
                                           f"has ended")
                     self.pending = None
-                fenced = (self.root / "FENCE.json").exists()
+                fenced = self.fenced()
             if not fenced and st != "cutoff" and self.pending is None:
                 self.take_controls()
-                fenced = (self.root / "FENCE.json").exists()
+                fenced = self.fenced()
             if st == "cutoff" and not fenced:
                 self.fence("D")
                 fenced = True
@@ -1054,6 +1301,7 @@ class Guard:
             self.alarm("floor", f"{free} bytes free, under the floor {self.a.floor_bytes}: no schedule is written")
         else:
             self.clear("floor")
+        self.sweep_orphans()
         self.manage_workers(st, fenced, stop or not boot, now)
         self.sweep_foreign(st)
         self.manage_packer(stop or not boot, now)
@@ -1071,14 +1319,100 @@ class Guard:
             self.say(f"STOP_PACKER written: slots {unrec} are unreconciled")
         if not self.packer_done:
             return False
+        term = self.terminal()
+        if term is None:
+            return False
         create_only(self.gdir / "CLOSED.json", canon({
             "at_utc": T(time.time()), "packer": "ended", "run_fingerprint": self.fp, "schema": 2,
-            "slots_ended": [s.k for s in sl if s.ended], "slots_unreconciled": unrec, "terminal": None}))
-        self.say(f"the day is closed: {sum(s.ended for s in sl)} slot(s) ended, {len(unrec)} unreconciled")
+            "slots_ended": [s.k for s in sl if s.ended], "slots_unreconciled": unrec, "terminal": term}))
+        self.say(f"the day is closed: {sum(s.ended for s in sl)} slot(s) ended, {len(unrec)} unreconciled, terminal "
+                 f"{term['sha256'][:12]} ({term['lines']} lines)")
         return True
+
+    def terminal(self):
+        """G10 (R10): the verified terminal record once the writer has run, else None (it runs, waits or failed)."""
+        if self.term_rec is not None:
+            return self.term_rec
+        now = time.monotonic()
+        if self.term is None:
+            if now >= self.term_next:
+                self.term = Group(self.py("terminal.py") + ["--root", str(self.root)], self.gdir / "terminal.out",
+                                  "terminal writer")
+                self.record_group(self.term, "terminal", None)
+                self.say(f"terminal writer started (pid {self.term.pid})")
+            return None
+        if not self.term.exited():
+            return None
+        code = self.finish_group(self.term)
+        self.term = None
+        rec, why = self.terminal_check() if code == 0 else (None, f"the terminal writer exited with {code}")
+        if rec is None:
+            self.alarm("terminal", f"{why}: no CLOSED.json, the originals untouched, tried again in "
+                                   f"{TERMINAL_RETRY:.0f} s")
+            self.term_next = now + TERMINAL_RETRY
+            return None
+        self.clear("terminal")
+        self.term_rec = rec
+        return rec
+
+    def terminal_check(self):
+        """(record, None) or (None, why): TERMINAL.jsonl and its .zz as G10 wants them."""
+        try:
+            full = (self.root / "TERMINAL.jsonl").read_bytes()
+            zz = (self.root / "TERMINAL.jsonl.zz").read_bytes()
+            head = (self.root / "RUN.json").read_bytes()
+        except OSError as e:
+            return None, f"the terminal inventory cannot be read ({e})"
+        try:
+            if zlib.decompress(zz) != full:
+                return None, "TERMINAL.jsonl.zz does not decode to TERMINAL.jsonl"
+        except zlib.error as e:
+            return None, f"TERMINAL.jsonl.zz cannot be decoded ({e})"
+        lines = full.splitlines(keepends=True)
+        if len(lines) < 2 or not full.endswith(b"\n") or lines[0] != head:
+            return None, "TERMINAL.jsonl does not begin with RUN.json's bytes"
+        try:
+            foot = parse_canon(lines[-1], "the terminal footer")
+        except ValueError as e:
+            return None, f"TERMINAL.jsonl's last line is not a footer ({e})"
+        if not isinstance(foot, dict) or foot.get("t") != "footer" \
+                or foot.get("fingerprint") != sha256_bytes(full[:len(full) - len(lines[-1])]):
+            return None, "TERMINAL.jsonl's last line is not its footer (t footer, the fingerprint of the bytes before it)"
+        return {"lines": len(lines), "sha256": sha256_bytes(full), "zz_sha256": sha256_bytes(zz)}, None
+
+    def check_closed(self) -> None:
+        """R1: guard/CLOSED.json is this run's closing record, or Stop 4 (held for a person)."""
+        try:
+            c = parse_canon((self.gdir / "CLOSED.json").read_bytes(), "guard/CLOSED.json")
+        except (OSError, ValueError) as e:
+            raise Stop(4, f"guard/CLOSED.json is not this run's closing record ({e}): held for a person") from None
+        se, su = (c.get("slots_ended"), c.get("slots_unreconciled")) if isinstance(c, dict) else (None, None)
+        if not (isinstance(c, dict) and sorted(c) == CLOSED_KEYS and same(c["schema"], 2)
+                and c["run_fingerprint"] == self.fp and c["packer"] == "ended"
+                and isinstance(se, list) and isinstance(su, list) and all(type(x) is int for x in se + su)
+                and se == sorted(se) and su == sorted(su) and sorted(se + su) == self.h["slots"]):
+            raise Stop(4, "guard/CLOSED.json is not this run's closing record (its keys, schema 2, run_fingerprint, "
+                          "packer, the header's slots): held for a person")
+        if not self.fenced():
+            raise Stop(4, "guard/CLOSED.json stands without this run's FENCE.json: held for a person")
+        bad = [k for k in se if not self.slot_ended(k)]
+        if bad:
+            raise Stop(4, f"guard/CLOSED.json names slot(s) {bad} ended whose journal does not end: held for a person")
+        if su:
+            try:
+                sp = parse_canon((self.root / "STOP_PACKER").read_bytes(), "STOP_PACKER")
+            except (OSError, ValueError):
+                sp = None
+            if not isinstance(sp, dict) or sp.get("run_fingerprint") != self.fp or sp.get("unreconciled") != su:
+                raise Stop(4, "guard/CLOSED.json names unreconciled slots and STOP_PACKER does not: held for a person")
+        rec, why = self.terminal_check()
+        if rec is None or c["terminal"] != rec:
+            raise Stop(4, f"guard/CLOSED.json's terminal is not the inventory on disk ({why or 'other hashes'}): "
+                          f"held for a person")
 
     def run(self) -> int:
         if (self.gdir / "CLOSED.json").exists():
+            self.check_closed()
             print("guard: the day is closed already (guard/CLOSED.json)")
             return 0
         self.replay_controls()
@@ -1109,6 +1443,13 @@ def main() -> int:
                                                      (a.tick, a.allowance, a.end_grace, a.game_seconds)):
         print("STOP: --horizon is at least 2 (D2), --floor-bytes at least 0, the times finite and above 0")
         return 2
+    if os.name != "nt":                                 # R12: every end on Linux goes through a pidfd
+        try:
+            os.close(os.pidfd_open(os.getpid()))
+            signal.pidfd_send_signal  # noqa: B018
+        except (AttributeError, OSError) as e:
+            print(f"STOP: this guard ends processes only through a pidfd (Linux 5.3, Python 3.9): {e}")
+            return 2
     g = None
     try:
         g = Guard(a)

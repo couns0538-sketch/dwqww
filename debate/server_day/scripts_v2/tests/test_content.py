@@ -20,6 +20,11 @@ another run, of another seal, of another slot, not canonical; V3a, V3b, V3c, V3e
 back, another run's index (twice); V4 a receipt custody did not write; V5 drawcount 0 acts as 1 (uci.cpp 543-551);
 V6a to V6e the opening rule as the worker reads it, and --convert-seconds inf; V7 no scratch folder after a WAITS.
 Plants 22 to 37; plant 13 moves with the index() call. A plant whose text is not there exactly once: exit 2.
+VERSION 2.1 (Opus 24 Nov; Neon 20261124T004000Z; tmp/opus_scratch/content_v21/KNOWN_ANSWERS_content_v21_by_opus.md
+on the PC, written BEFORE the code): V3d, V3d2, V3d3 an index that holds rows and names no run (exit 3, content/
+byte for byte as before); V3d0 the control, an index of one empty table (a crash before the first COMMIT): judged
+as the base. Plant 38. P9's hand-made index carries its run row as index() writes it (00:51: R-T8 rightly refuses
+version 1's form, an entry and no run).
 """
 import hashlib
 import json
@@ -122,6 +127,7 @@ PLANTS = {
                 "                    v = json.loads(p.read_bytes())\n"),
     "plant37": ('                if not (isinstance(v, dict) and sorted(v) == VERDICT_KEYS and is_int(v["schema"], v["slot"], v["index"])\n',
                 '                if False and not (isinstance(v, dict) and sorted(v) == VERDICT_KEYS and is_int(v["schema"], v["slot"], v["index"])\n'),
+    "plant38": ("        if run is None and held:", "        if False:"),
 }
 CP = WORK / "tree"
 for sub in ("home", "run", "workloads", "known"):
@@ -607,6 +613,8 @@ def case_p9():
     con.execute("CREATE TABLE entries (slot INTEGER, counter INTEGER, round INTEGER, game TEXT, piece TEXT, state TEXT, "
                 "rows_digest TEXT, bind TEXT, PRIMARY KEY (slot, counter))")
     con.execute("INSERT INTO entries VALUES (?, ?, ?, ?, ?, ?, ?, ?)", planted)
+    con.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)")     # as index() makes it (2.1, R-T8)
+    con.execute("INSERT INTO meta VALUES ('run_fingerprint', ?)", (FP["fp"],))
     con.commit()
     con.close()
     kept = [e if e[1] != 4 else planted for e in entries]
@@ -845,6 +853,50 @@ def case_v3():
           (rc, stop_line(out, 3, "content/equal.sqlite")), (3, True))
 
 
+def case_v3d():
+    """R-T8 (Neon 004000Z): an index that holds rows and names no run: exit 3, content/ byte for byte as before.
+    V3d0, the control: an index of one empty table (a crash before the first COMMIT of index()) is this run's."""
+    def sql(h, *stmts):
+        con = sqlite3.connect(h / "content" / "equal.sqlite")
+        for s in stmts:
+            con.execute(s)
+        con.commit()
+        con.close()
+
+    def tree(h):
+        return {str(p.relative_to(h)): p.read_bytes() for p in sorted((h / "content").rglob("*")) if p.is_file()}
+
+    def no_verdicts(h):
+        for p in (h / "content").glob("w*/p*.verdict.json"):
+            p.unlink()
+
+    def one(name, what, prep):
+        h = judged_copy(name)
+        prep(h)
+        before = tree(h)
+        rc, out, c = content(h)
+        check(f"{name} {what}: exit 3 naming content/equal.sqlite; content/ byte for byte as before",
+              (rc, stop_line(out, 3, "content/equal.sqlite"), tree(h) == before), (3, True, True))
+    one("V3d", "P1's judged home, the meta row deleted (the table stays)", lambda h: sql(h, "DELETE FROM meta"))
+    one("V3d2", "the meta table dropped and every verdict removed (a version-1 index of another run)",
+        lambda h: (sql(h, "DROP TABLE meta"), no_verdicts(h)))
+    one("V3d3", "the meta row and every entry deleted (judged rows only)",
+        lambda h: sql(h, "DELETE FROM meta", "DELETE FROM entries"))
+    h = judged_copy("V3d0")
+    no_verdicts(h)
+    (h / "content" / "equal.sqlite").unlink()
+    sql(h, "CREATE TABLE entries (slot INTEGER, counter INTEGER, round INTEGER, game TEXT, piece TEXT, state TEXT, "
+           "rows_digest TEXT, bind TEXT, PRIMARY KEY (slot, counter))")
+    rc, out, c = content(h)
+    con = sqlite3.connect(h / "content" / "equal.sqlite")
+    try:
+        run = con.execute("SELECT value FROM meta WHERE key = 'run_fingerprint'").fetchone()
+    finally:
+        con.close()
+    check("V3d0 control: every verdict removed, an index of the empty entries table only: exit 0, judged as the base, "
+          "the index then names this run", (rc, c, run), (0, (3, 0, 6, 462, 0, 0, 0, 0), (FP["fp"],)))
+
+
 def case_v4():
     h = new_home("v4")
     p = h / "custody" / "w001" / "p000000.receipt.json"
@@ -909,7 +961,7 @@ def main() -> int:
         print("the server side failed: no pipeline case can run")
     else:
         for fn in (case_p1_to_p4, case_p4b, case_p5_p6_p7, case_p8, case_p9, case_p10, case_p11, case_p12,
-                   case_x, case_v1, case_v2, case_v3, case_v4, case_v6, case_v7):
+                   case_x, case_v1, case_v2, case_v3, case_v3d, case_v4, case_v6, case_v7):
             safe(fn)
     bad = [n for n, ok in RESULTS if not ok]
     print(f"{len(RESULTS) - len(bad)} of {len(RESULTS)} checks pass ({time.time() - t0:.0f} s)"

@@ -2,7 +2,12 @@
 (tmp/opus_scratch/launcher/KNOWN_ANSWERS_by_opus.md on the PC; FORMATS 1.1, 1.2, 0; SETUP_PLAN D3, D5, D15).
 
     test_launcher.py <run/launcher.py> <a NEW folder> exe=<engine> net=<net> pkg=<package folder with its
-                     MANIFEST.sha256> [only=L,W] [plantN]
+                     MANIFEST.sha256> [only=L,V,W] [plantN]
+
+VERSION 2 (24 Nov): part V adds the cases L7 to L9, and plants 15 to 23 are new. The known answers are in
+tmp/opus_scratch/launcher_v2/KNOWN_ANSWERS_launcher_v2_by_opus.md on the PC, written before the code. They answer
+Astra 8290095d and Neon 20261123T222600Z. Part V records a call that raises as a FAIL naming the exception, and goes
+on: version 1 raises in several of its cases.
 
 The run folder is copied; a plant is applied to the copy's launcher.py only. The launcher runs in this process with
 planted readers (boot id, synchronised, UTC) and fixture folders for /etc and the DMI files; the expected headers
@@ -25,8 +30,20 @@ PLANTS (each must make the test fail; the check expected to fail is named):
   plant7 an unprovable instance written (L5)           plant8 now before the lease start allowed (L6)
   plant9 a hard cutoff in the past allowed (L6)        plant10 the pilot counters from 0 (L0, W1)
   plant11 instance_provable left out (L0, W2)          plant12 the option lines hashed without their LF (L0, W1)
-  plant13 RUN.json overwritten, not create-only (L2)   plant14 the boot id not read (L0, W1)
+  plant13 RUN.json overwritten, not create-only (L2)   plant14 the boot id not written (L0, W1)
+V  L7a pilot rounds 10000: exit 2; L7b 9999 rounds, the worker's check_rows takes the rows; L7c piece games
+   100000000: exit 2; L7d 99999999: exit 0; L7e to L7j the manifest (a non-ASCII option line, option lines that are
+   numbers, options a text, selfgame_line a number, two option lines joined by a LF, net_sha256 not hex): exit 2,
+   each with its own words; L8a, L8b the boot reader raises OSError or UnicodeDecodeError: exit 5; L9 RUN.json.tmp a
+   folder: exit 4 naming "cannot be read or written".
+  plant15 the pilot-rounds bound gone (L7a)            plant16 the piece-games bound gone (L7c)
+  plant17 the options list check gone (L7g)            plant18 option lines not checked printable (L7e, L7i)
+  plant19 the selfgame_line check gone (L7h)           plant20 the net_sha256 form check gone (L7j)
+  plant21 the boot handler catches KeyError only (L8a, L8b)
+  plant22 the boot handler catches OSError only (L8b)  plant23 launch() does not catch OSError (L9)
 """
+import contextlib
+import io
 import calendar
 import hashlib
 import json
@@ -40,7 +57,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 if len(sys.argv) < 3:
-    print("usage: test_launcher.py <run/launcher.py> <a NEW folder> exe=.. net=.. pkg=.. [only=L,W] [plantN]")
+    print("usage: test_launcher.py <run/launcher.py> <a NEW folder> exe=.. net=.. pkg=.. [only=L,V,W] [plantN]")
     sys.exit(2)
 LA_PATH, WORK = Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve()
 OPTS, PLANT = {}, None
@@ -52,7 +69,7 @@ for x in sys.argv[3:]:
     else:
         print(f"STOP: not understood: {x}")
         sys.exit(2)
-ONLY = set(OPTS.get("only", "L,W").split(","))
+ONLY = set(OPTS.get("only", "L,V,W").split(","))
 if not all(k in OPTS for k in ("exe", "net", "pkg")):
     print("STOP: exe=, net= and pkg= are needed")
     sys.exit(2)
@@ -79,7 +96,16 @@ PLANTS = {
                 "sha256_bytes(\"\".join(opts).encode(\"ascii\"))"),
     "plant13": ("        create_only(Path(a.root) / \"RUN.json\", data)\n",
                 "        (Path(a.root) / \"RUN.json\").write_bytes(data)\n"),
-    "plant14": ("\"boot_id\": rd.boot(),", "\"boot_id\": \"none\","),
+    "plant14": ("\"boot_id\": boot,", "\"boot_id\": \"none\","),
+    "plant15": ("    if a.pilot_rounds > 9999:", "    if False:"),
+    "plant16": ("    if a.piece_games > 99999999:", "    if False:"),
+    "plant17": ("    if not isinstance(opts, list):", "    if False:"),
+    "plant18": ("isinstance(ln, str) and TEXT.fullmatch(ln) for ln in opts", "isinstance(ln, str) for ln in opts"),
+    "plant19": ("    if not (isinstance(line, str) and TEXT.fullmatch(line)):", "    if False:"),
+    "plant20": ("    if not (isinstance(want, str) and W.HEX64.fullmatch(want)):", "    if False:"),
+    "plant21": ("    except (OSError, ValueError) as e:", "    except KeyError as e:"),
+    "plant22": ("    except (OSError, ValueError) as e:", "    except OSError as e:"),
+    "plant23": ("    except OSError as e:", "    except KeyError as e:"),
 }
 if PLANT:
     if PLANT not in PLANTS:
@@ -282,6 +308,86 @@ def part_l():
     check("L6 the root missing: exit 2, nothing made", (code, (WORK / "no_such_root").exists()), (2, False))
 
 
+def attempt(a, r):
+    """(exit code, or "raised <name>"; what the launcher printed). Version 1 raises in several cases of part V, and
+    part V must go on (the known answers' rule)."""
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf):
+            code = LA.launch(a, r)
+    except Exception as e:  # noqa: BLE001
+        code = f"raised {type(e).__name__}"
+    return code, buf.getvalue()
+
+
+def refused(name, root, got, want, words):
+    code, out = got
+    check(f"{name}: exit {want} naming `{words}`, the root stays empty", (code, words in out, sorted(os.listdir(root))),
+          (want, True, []))
+
+
+def man_file(name, **change):
+    """The real manifest with keys changed, written as json.dumps writes it: ASCII bytes, a non-ASCII letter as a
+    \\u escape. So it passes the launcher's ASCII decode, as a real manifest file would."""
+    p = WORK / f"{name}.manifest.json"
+    p.write_bytes((json.dumps(dict(MANI, **change), indent=1) + "\n").encode("ascii"))
+    return str(p)
+
+
+def raising(exc):
+    def boot():
+        raise exc
+    return SimpleNamespace(boot=boot, synced=lambda: True, utc=time.time, sleep=time.sleep)
+
+
+def part_v():
+    r = fresh("l7a")
+    refused("L7a pilot_rounds 10000, round_games 1", r, attempt(ns(r, pilot_rounds=10000, round_games=1), rd()), 2,
+            "--pilot-rounds")
+    r = fresh("l7b")
+    code, _ = attempt(ns(r, pilot_rounds=9999, round_games=1, slots=1), rd())
+    rows = head_of(r)[1].get("pilot_ranges") or []
+    try:
+        W.check_rows(rows, [0], 0, "L7b")
+        taken = True
+    except W.Stop as e:
+        taken = str(e)
+    check("L7b pilot_rounds 9999, the bound itself: exit 0; 9999 rows, the last round 9999 at counter 9999; the "
+          "worker's check_rows takes them", (code, len(rows), rows[-1] if rows else None, taken),
+          (0, 9999, row(0, 9999, 9999, 9999), True))
+    r = fresh("l7c")
+    refused("L7c piece_games 100000000", r, attempt(ns(r, piece_games=100000000), rd()), 2, "--piece-games")
+    r = fresh("l7d")
+    code, _ = attempt(ns(r, piece_games=99999999), rd())
+    check("L7d piece_games 99999999, the bound itself: exit 0, written in the header",
+          (code, head_of(r)[1].get("piece_games")), (0, 99999999))
+    opts = MANI["options"]
+    two = [opts[0] + "\n" + opts[1]] + opts[2:]
+    for tag, case, change, words in (
+            ("e", "an option line with a non-ASCII letter (a JSON escape)", {"options": opts[:-1] + [opts[-1] + "é"]},
+             "option lines"),
+            ("f", "option lines that are numbers", {"options": [1, 2]}, "option lines"),
+            ("g", "options a text, not a list", {"options": opts[0]}, "not a list"),
+            ("h", "selfgame_line a number", {"selfgame_line": 5}, "selfgame_line"),
+            ("i", "the first two option lines joined by a LF into one", {"options": two}, "option lines"),
+            ("j", "net_sha256 not 64 hex", {"net_sha256": 5}, "net_sha256")):
+        r = fresh("l7" + tag)
+        refused(f"L7{tag} the manifest: {case}", r, attempt(ns(r, manifest=man_file("l7" + tag, **change)), rd()), 2,
+                words)
+    check("L7i why: the joined line hashes exactly as the two lines did (the header cannot tell them apart)",
+          sha("".join(ln + "\n" for ln in two).encode("ascii")), OPTIONS_SHA)
+    for tag, exc in (("a", OSError(5, "planted: the boot id file cannot be read")),
+                     ("b", UnicodeDecodeError("ascii", b"\xff", 0, 1, "planted"))):
+        r = fresh("l8" + tag)
+        refused(f"L8{tag} the boot reader raises {type(exc).__name__}", r, attempt(ns(r), raising(exc)), 5, "boot id")
+    r = fresh("l9")
+    (r / "RUN.json.tmp").mkdir()
+    code, out = attempt(ns(r), rd())
+    check("L9 RUN.json.tmp a folder, so the scratch name cannot be removed: exit 4 naming `cannot be read or written`, "
+          "the root as it was", (code, "cannot be read or written" in out, sorted(os.listdir(r))),
+          (4, True, ["RUN.json.tmp"]))
+
+
 def worker(root, k, boot):
     log = open(WORK / f"{root.name}.w{k}.{boot}.out", "ab")
     p = subprocess.Popen([sys.executable, "-I", "-B", str(WRAP), str(WORK / "run"), "--root", str(root), "--exe",
@@ -337,7 +443,7 @@ def part_w():
 
 
 try:
-    for part, fn in (("L", part_l), ("W", part_w)):
+    for part, fn in (("L", part_l), ("V", part_v), ("W", part_w)):
         if part in ONLY:
             try:
                 fn()

@@ -14,6 +14,9 @@ B  fresh roots, k 1: S (SELF_PLAY), O (OWNER_CHOICE, reduced target covered), O-
    without a pilot as kind fence.
 R  refusals (exit 4, nothing written) and arguments (exit 2).
 O  the order of the four files (in-process) and the .zz files.
+VERSION 2 (24 Nov, the fixture only; make_control.py unchanged): make_root writes its seal in the worker's form,
+because guard v2 counts only this run's chained seals. Known answers: tmp/opus_scratch/mc_v2/KNOWN_ANSWERS_mc_v2_by_opus.md
+on the PC.
 PLANTS: see PLANTS below (each must make the test fail).
 """
 import hashlib
@@ -162,13 +165,20 @@ EMPTY.mkdir()
 
 
 def make_root(name, hb=HB):
-    """A day's root with one sealed piece of slot 1: the guard's room test (G5) measures a game's bytes from it."""
+    """A day's root with one sealed piece of slot 1: the guard's room test (G5) measures a game's bytes from it.
+    Version 2 (24 Nov): the seal in the worker's form (the 18 keys of a real worker seal, this root's run fingerprint,
+    slot 1, index 0, the genesis link). Guard v2 counts only this run's seal of its slot, index and chain (R4); the
+    four-key stand-in of version 1 was not a seal the worker writes. Same games, raw_bytes and rows as version 1."""
     root = WORK / name
     root.mkdir()
     (root / "RUN.json").write_bytes(hb)
     (root / "w001" / "closed").mkdir(parents=True)
-    (root / "w001" / "closed" / "p000000.seal.json").write_bytes(
-        W.canon({"games": 4, "raw_bytes": 4000, "rows": 100, "schema": 2}))
+    fp = W.sha256_bytes(hb)
+    (root / "w001" / "closed" / "p000000.seal.json").write_bytes(W.canon({
+        "epoch": 1, "first_counter": 1, "first_game": "mc-w001-g00000001", "games": 4, "ids_digest": "4" * 64,
+        "index": 0, "last_counter": 4, "last_game": "mc-w001-g00000004", "prev_seal": f"genesis:{fp}:w001",
+        "raw_bytes": 4000, "raw_sha256": "5" * 64, "round": 1, "rows": 100, "run": "mc", "run_fingerprint": fp,
+        "schedule": 0, "schema": 2, "slot": 1}))
     return root
 
 

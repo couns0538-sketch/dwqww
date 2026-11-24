@@ -46,12 +46,20 @@ Nothing sealed is ever removed (D2), and there is no index file (case 13: a fetc
 time (out/LOCK). It ends with exit 0 after one more pass when FENCE.json is there and every slot of the header has
 its `ended` line (1.8.4), when STOP_PACKER is in the root (the guard's word that the other slots are unreconciled),
 or after one pass with --once. The last pass also stops on a seal missing before later ones.
+SECOND READ (Opus 2026-11-24, the seats' NOT YET: Astra 214929Z, Neon 223800Z): P1 a piece found already
+offered becomes the probe piece when its seal names rows, so a restart in fallback mode probes on schedule;
+P2 every last pass reads each slot's journal end BEFORE its seals, and an `ended` slot is complete only when
+its seals end at that line's last_index and last_seal is that seal's sha256 (the genesis text for -1), else
+exit 3; P3 --poll, --probe-every and --convert-seconds finite; P4 a wire copy only of a canonical file, else
+exit 4; P5 a piece is passed over only when its offer's wire copy gives the offer back, the offer is this
+piece's and every member's wire file is there at the size named, else exit 4.
 Exit codes: 0; 2 a wrong call; 3 a piece that cannot be trusted, or another packer holds out/LOCK; 4 a file that
 cannot be read or written, or a publication conflict. Never a traceback.
 """
 import argparse
 import hashlib
 import lzma
+import math
 import os
 import re
 import shutil
@@ -387,21 +395,13 @@ class Packer:
             o = parse_canon(ob, op.name)
         except (OSError, ValueError) as e:
             raise bad(printable(e)) from None
-        want = {"schema": 2, "run_fingerprint": self.fp, "slot": k, "index": i, "seal_sha256": sha256_bytes(sb)}
-        if not isinstance(o, dict) or sorted(o) != OFFER_KEYS or type(o["form"]) is not str \
-                or o["form"] not in FORMS or any(type(o[n]) is not type(v) or o[n] != v for n, v in want.items()):
-            raise bad("it is not this piece's offer (keys, schema, run_fingerprint, slot, index, seal_sha256, form)")
+        why = self.offer_fault(o, k, i, sha256_bytes(sb), s["rows"])    # the shape check P5 shares
+        if why:
+            raise bad(why)
         form, members = o["form"], o["members"]
-        if s["rows"] == 0 and form != "raw":
-            raise bad("it offers a piece without rows as binpack")
-        if not isinstance(members, list) or [(m.get("name"), m.get("codec")) if isinstance(m, dict) else None
-                                             for m in members] != [(name + x, c) for x, c in FORMS[form]]:
-            raise bad(f"its members are not those of the form {form}")
         own = {f"{name}.seal.json": sb, f"{name}.raw.zz": raw, f"{name}.meta.xz": meta.encode("ascii")}
         for m in members:
             wire = m["name"].endswith(".seal.json")
-            if sorted(m) != MEMBER_KEYS or m["wire_name"] != m["name"] + (".zz" if wire else ""):
-                raise bad(f"the member {m['name']} is not written as this packer writes it")
             try:
                 wd = (d / m["wire_name"]).read_bytes()
                 data = zlib.decompress(wd) if wire else wd
@@ -419,6 +419,55 @@ class Packer:
                  f"copy (a stop between the two); nothing decided again")
         self.leftovers(d, key, name, members)
         return form
+
+    def offer_fault(self, o, k: int, i: int, seal_sha: str, rows) -> str:
+        """'' when o is this piece's offer as this packer writes it (1.6), else why not (B1 and P5 share it)."""
+        name = f"p{i:06d}"
+        want = {"schema": 2, "run_fingerprint": self.fp, "slot": k, "index": i, "seal_sha256": seal_sha}
+        if not isinstance(o, dict) or sorted(o) != OFFER_KEYS or type(o["form"]) is not str \
+                or o["form"] not in FORMS or any(type(o[n]) is not type(v) or o[n] != v for n, v in want.items()):
+            return "it is not this piece's offer (keys, schema, run_fingerprint, slot, index, seal_sha256, form)"
+        form, members = o["form"], o["members"]
+        if rows == 0 and form != "raw":
+            return "it offers a piece without rows as binpack"
+        if not isinstance(members, list) or [(m.get("name"), m.get("codec")) if isinstance(m, dict) else None
+                                             for m in members] != [(name + x, c) for x, c in FORMS[form]]:
+            return f"its members are not those of the form {form}"
+        for m in members:
+            wire = m["name"].endswith(".seal.json")
+            if sorted(m) != MEMBER_KEYS or m["wire_name"] != m["name"] + (".zz" if wire else ""):
+                return f"the member {m['name']} is not written as this packer writes it"
+        return ""
+
+    def check_offered(self, k: int, i: int) -> None:
+        """P5 (Neon 223800Z): a piece whose offer's wire copy is there is passed over only when that copy gives the
+        offer back, the offer is this piece's (offer_fault) and every member's wire file is there at the size it
+        names; else exit 4, nothing written (not a re-hash of every member: B1 does that before a wire copy exists).
+        P1 (Astra 214929Z): such a piece with rows becomes the probe piece, so a restart in fallback mode probes on
+        schedule even when every piece was offered before it."""
+        key, name, d = f"w{k:03d}/p{i:06d}", f"p{i:06d}", self.out / f"w{k:03d}"
+
+        def bad(why):
+            return Stop(4, f"{key}: {name}.offer.json.zz is there but {why}; nothing is written")
+        try:
+            sb = (self.root / f"w{k:03d}" / "closed" / f"{name}.seal.json").read_bytes()
+            ob = (d / f"{name}.offer.json").read_bytes()
+            if zlib.decompress((d / f"{name}.offer.json.zz").read_bytes()) != ob:
+                raise ValueError(f"it does not give {name}.offer.json back")
+            o = parse_canon(ob, f"{name}.offer.json")
+            s = parse_canon(sb, f"{name}.seal.json")
+        except (OSError, ValueError, zlib.error) as e:
+            raise bad(printable(e)) from None
+        rows = s.get("rows") if isinstance(s, dict) else None
+        why = self.offer_fault(o, k, i, sha256_bytes(sb), rows)
+        if why:
+            raise bad(why)
+        for m in o["members"]:
+            f = d / m["wire_name"]
+            if not f.is_file() or f.stat().st_size != m["wire_bytes"]:
+                raise bad(f"the member {m['wire_name']} is not there at {m['wire_bytes']} bytes")
+        if type(rows) is int and rows > 0:
+            self.probe_piece = (k, i)
 
     def leftovers(self, d: Path, key: str, name: str, members: list) -> None:
         """B1: a member of the other form, or a temporary name, left by a stop before this piece's offer existed. No
@@ -448,23 +497,44 @@ class Packer:
             self.fails = 0
             self.set_mode("normal", "a probe passed", key)
 
-    def ended(self, k: int) -> bool:
+    def ended(self, k: int):
+        """The slot's `ended` line (1.8.4) when it is the journal's last whole line, else None."""
         try:
             data = (self.root / f"w{k:03d}" / "journal.txt").read_bytes()
         except OSError:
-            return False
+            return None
         lines = data[:data.rfind(b"\n") + 1].splitlines(keepends=True)
         try:
             last = parse_canon(lines[-1], "journal") if lines else None
         except ValueError:
-            return False
-        return isinstance(last, dict) and last.get("t") == "ended"
+            return None
+        return last if isinstance(last, dict) and last.get("t") == "ended" else None
+
+    def check_end(self, k: int, end: dict) -> None:
+        """P2 (Neon 223800Z): a slot whose journal ends with `ended` is complete only when its seals here end exactly
+        at that line's last_index and its last_seal is that seal's sha256 (the genesis text when none was sealed);
+        else exit 3. The line is read before the scan (one_pass), so every seal it names is there for the scan."""
+        slot, n = f"w{k:03d}", self.next[k]
+        if type(end.get("last_index")) is not int or end["last_index"] != n - 1:
+            raise Stop(3, f"{slot}: the journal's ended line names last_index {end.get('last_index')!r}, but the seals "
+                          f"here end at index {n - 1} (-1: none); the slot is not complete")
+        if n == 0:
+            want, what = f"genesis:{self.fp}:{slot}", "the genesis text of this slot"
+        else:
+            want = file_sha256(self.root / slot / "closed" / f"p{n - 1:06d}.seal.json")
+            what = f"the sha256 of p{n - 1:06d}.seal.json"
+        if end.get("last_seal") != want:
+            raise Stop(3, f"{slot}: the journal's ended line names last_seal {printable(end.get('last_seal'), 80)}, "
+                          f"not {what}")
 
     def one_pass(self, final: bool) -> None:
         for k in self.slots:
+            end = self.ended(k) if final else None     # P2: read BEFORE the scan
             closed, i = self.root / f"w{k:03d}" / "closed", self.next[k]
             while (closed / f"p{i:06d}.seal.json").exists():
-                if not (self.out / f"w{k:03d}" / f"p{i:06d}.offer.json.zz").exists():
+                if (self.out / f"w{k:03d}" / f"p{i:06d}.offer.json.zz").exists():
+                    self.check_offered(k, i)            # P5 and P1
+                else:
                     self.counts[self.pack(k, i)] += 1
                 i += 1
             self.next[k] = i
@@ -474,6 +544,8 @@ class Packer:
                 if later:
                     raise Stop(3, f"w{k:03d}: p{i:06d}.seal.json is missing while {len(later)} later seals are there "
                                   f"(first p{later[0]:06d}); they are not offered")
+            if end is not None:
+                self.check_end(k, end)
         self.wire_copies()
         self.probe()
 
@@ -485,7 +557,12 @@ class Packer:
             files += [f for f in ranges.iterdir() if RANGE_SEAL.match(f.name)]
         for f in sorted(files):
             if f not in self.wired and f.is_file():
-                self.member(f.parent, f.name, f.read_bytes(), "none", wire=True)
+                data = f.read_bytes()
+                try:
+                    parse_canon(data, f.name)          # P4 (Neon 223800Z): only a whole canonical record is wired
+                except ValueError as e:
+                    raise Stop(4, f"{printable(e)}: its wire copy is not written") from None
+                self.member(f.parent, f.name, data, "none", wire=True)
                 self.wired.add(f)
 
     def run(self) -> int:
@@ -511,9 +588,12 @@ def main() -> int:
     ap.add_argument("--convert-seconds", type=float, default=600.0)
     ap.add_argument("--probe-every", type=float, default=600.0)
     a = ap.parse_args()
-    if not (a.poll >= 0 and a.convert_seconds > 0 and a.probe_every >= 0):
-        print("packer: STOP (2): --poll and --probe-every must be 0 or more, --convert-seconds more than 0")
-        return 2
+    for opt, v, ok, rule in (("--poll", a.poll, a.poll >= 0, "0 or more"),
+                             ("--probe-every", a.probe_every, a.probe_every >= 0, "0 or more"),
+                             ("--convert-seconds", a.convert_seconds, a.convert_seconds > 0, "more than 0")):
+        if not (ok and math.isfinite(v)):              # P3 (Neon 223800Z): infinity is no bound
+            print(f"packer: STOP (2): {opt} {v!r}: must be a finite number, {rule}")
+            return 2
     packer = None
     try:
         packer = Packer(a)

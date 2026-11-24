@@ -46,6 +46,10 @@ pipes are the product's.
      wait can serve, and whole numbers too large for a float) no failure after a command went out leaves the
      object usable: a transcript line that cannot be written (on the real engine, and on the stand-in at three
      places), an ending test that raises inside an answer
+ U-L1 (Opus 2026-11-24, W8a: the keyword-only launcher) launcher None: the driver's one Popen gets [exe], as
+     before
+ U-L2 a launcher [python, -I, -B, <a stand-in that writes its argv>, <file>]: the child's argv after the
+     launcher's own is exactly [exe]
 """
 import queue
 import re
@@ -900,6 +904,38 @@ check("L25 an ending test that raises inside an answer: an EngineError that name
       "through), the object retired, nothing written afterwards (the parent's own writes are `isready`, `go`)",
       first[0] == "EngineError" and "ZeroDivisionError" in str(first[1]) and nxt[0] == "EngineError" and tap.data == b"isready\ngo\n",
       (first[0], str(first[1])[:100], nxt[0], tap.data[:80]))
+
+# ---------------------------------------------------------------- U-L1, U-L2 (Opus 2026-11-24, W8a: the launcher)
+ARGV = WORK / "argv_standin.py"
+ARGV.write_text("import sys\nopen(sys.argv[1], 'w', encoding='utf-8').write(repr(sys.argv[2:]))\n", encoding="utf-8")
+seen_l1 = []
+real_popen = subprocess.Popen
+
+
+def recorder(cmd, **kw):
+    seen_l1.append(list(cmd))
+    return real_popen([sys.executable, "-I", "-B", str(ARGV), str(WORK / "ul1.txt")], **kw)
+
+
+subprocess.Popen = recorder
+try:
+    e = uciproc.Engine(EXE)
+finally:
+    subprocess.Popen = real_popen
+e.kill()
+check("U-L1 launcher None: the driver's one Popen gets [exe], as before", seen_l1 == [[str(EXE)]], seen_l1)
+out_l2 = WORK / "ul2.txt"
+try:
+    e = uciproc.Engine(EXE, launcher=[sys.executable, "-I", "-B", str(ARGV), str(out_l2)])
+    t_end = time.time() + 10
+    while time.time() < t_end and not out_l2.exists():
+        time.sleep(0.05)
+    time.sleep(0.2)
+    e.kill()
+    got_l2 = out_l2.read_text(encoding="utf-8") if out_l2.exists() else "no argv written"
+except TypeError as ex:                                  # a driver without the keyword
+    got_l2 = f"TypeError: {ex}"
+check("U-L2 a launcher: the child's argv after the launcher's own is exactly [exe]", got_l2 == repr([str(EXE)]), got_l2)
 
 bad = [n for n, ok in results if not ok]
 print(f"\n{len(results) - len(bad)} of {len(results)} checks pass")

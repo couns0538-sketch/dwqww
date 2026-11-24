@@ -180,15 +180,55 @@ searches the planted game, the driver's cutoff taken before (as before a suspens
       attribute of the worker as it was; a SCHEDULE.2 that does not follow (a later D) is left: nothing set, no
       raise. watch_end with a watch whose reader_stalled is true logs "watch reader_stalled=True", and not when it
       is false.
+SECOND READ (Opus 2026-11-24; KNOWN_ANSWERS_worker_v2_by_opus.md, written before the code; the seats' 215331Z,
+223800Z 1 and 231830Z, Fable's FABLE-2311-PDEATHSIG-ANSWER). The test's own processes and the worker's engines are
+known by number AND creation time (alive(pid, created), kill(pid, created): one handle or pidfd checked before the
+end; nothing is ended by its number alone); fence() writes the guard's record (schema 2).
+ T1a-e a stand-in process: alive by number and creation time; its creation time an int; alive with another creation
+      time False; a kill with another creation time leaves it alive 1 s later; a kill with its own ends it in 10 s.
+ V38a V3's root after its run, its journal cut back to the epoch line, the range seal kept: exit 0, the seal byte for
+      byte as before, journal epoch, epoch, ended (finalizer). V38b the seal of another run (run, run_fingerprint),
+      V38c 0 bytes, V38d this run's claiming complete with done 3, V38e epoch 7: exit 4 naming
+      r0001.w000.seal.json, the seal unchanged, journal epoch, epoch, NO ended.
+ V39a the header's boot and RESUME.1 from it to "bootb": exit 4 "no RESUME record admits it", no slot folder.
+ V39b the header's boot and RESUME.1 = 5 bytes that are not a record: exit 4 naming RESUME.1.json, no slot folder.
+ V40a header boot "otherboot", RESUME.1 old_boot_id "WRONG-BOOT-ID": exit 4 naming RESUME.1.json, no slot folder.
+ V40b RESUME.1 otherboot -> bootb, RESUME.2 bootb -> this boot: exit 0, the epoch line's resume = RESUME.2's sha256.
+ V40c as V40b with RESUME.2's old_boot_id "boot9": exit 4 naming RESUME.2.json, no slot folder.
+ V40d V14b's RESUME.1 with "n": true: exit 4 naming RESUME.1.json, no slot folder.
+ V41a w000 holding closed/p000001.seal.json, no IDENTITY.json, no journal: exit 4 naming "no IDENTITY.json", the
+      folder as before (no LOCK, no IDENTITY.json). V41b w000 holding LOCK only, V41c LOCK and IDENTITY.json.tmp:
+      exit 0, the finalizer's journal epoch, ended; no .tmp left.
+ V42a lease_end_utc 2026-11-31T00:00:00Z, V42b hard_cutoff_utc one hour after lease_end_utc, V42c lease_start_utc one
+      minute after lease_end_utc: exit 4 naming that field, no slot folder.
+ V43a FENCE.json with schema 1, V43b with a key "x" more, V43c `[]`: exit 4 naming FENCE.json, no traceback, no slot
+      folder.
+ V45  V16: the engine line names pid N created C; while the worker lives created_of(N) == C; after the worker's kill,
+      kill(N, C) ends the orphan: alive(N, C) False.
+ V47  in-process: start_engine inside a second thread raises StartRefused naming "main thread"; eng stays None.
+ V48  in-process (W10, 24 Nov 00:48): check_identity on a slot folder that does not exist returns None and makes
+      nothing (the boot guard reads every slot). V48b, the control: a folder holding a stray file and no
+      IDENTITY.json: Stop 4 naming "no IDENTITY.json".
+ Linux only (the seats run them; on Windows SKIP): V44 ProcHandle's how "popen": exit 5 naming "pidfd", journal
+      epoch only. V46 the slow game, the worker SIGKILLed at `>>> selfgame`: its engine (N, C) gone within 1 s.
+      V46b the same with the launcher switched off: the engine still lives 1 s later (the instrument sees an
+      orphan). V46c a stand-in guard holding the worker, both SIGKILLed: no engine left within 1 s. V46d
+      bind_exec.py with parent 1: exit 1, no output. V46e 200 starts of /bin/true through bind_exec.py while 3
+      threads run: every Popen returns within 10 s, every exit 0.
 """
 import calendar
+import ctypes
 import hashlib
 import json
 import os
+import select
 import shutil
+import signal
 import subprocess
 import sys
+import threading
 import time
+import types
 from pathlib import Path
 
 if len(sys.argv) < 5:
@@ -268,7 +308,7 @@ def put(path: Path, data: bytes) -> None:
 
 
 def make_root(name, run, slot, rows, dispatch_in, cutoff_in, rule="list", seed="", piece_games=4,
-              engine_sha=None, game_line=None, boot=None):
+              engine_sha=None, game_line=None, boot=None, hdr=None):
     root = WORK / name
     root.mkdir()
     now = time.time()
@@ -280,6 +320,7 @@ def make_root(name, run, slot, rows, dispatch_in, cutoff_in, rule="list", seed="
          "opening_rule": ({"kind": "seed", "plies": 8, "root_seed": seed} if rule == "seed" else
                           {"kind": "list", "sha256": sha(OPENINGS.read_bytes()), "count": len(N12)}),
          "slots": [slot], "piece_games": piece_games, "pilot_ranges": rows}
+    h.update(hdr or {})
     put(root / "RUN.json", canon(h))
     if dispatch_in is not None:
         schedule(root, 1, rows, dispatch_in, cutoff_in)
@@ -296,7 +337,8 @@ def schedule(root, n, rows, dispatch_in, cutoff_in, prev=None):
         "ranges": rows}))
 
 
-def start(root, slot, manifest=MAN_PATH, openings=True, plant=None, boot=None, trace=False, audit=None):
+def start(root, slot, manifest=MAN_PATH, openings=True, plant=None, boot=None, trace=False, audit=None, inject=None,
+          dry=False):
     wp = str(TREE / "run" / "worker.py")
     args = ["--root", str(root), "--slot", str(slot), "--exe", str(EXE), "--net", str(NET), "--manifest", str(manifest),
             "--known-startup", str(KNOWN)]
@@ -307,8 +349,9 @@ def start(root, slot, manifest=MAN_PATH, openings=True, plant=None, boot=None, t
     if trace:
         args += ["--trace"]
     cmd = [sys.executable, "-I", "-B", wp, *args]
-    if boot is not None or audit is not None:   # in that process only: boot_id() replaced (this machine's boot id
-        pre = f"worker.boot_id = lambda: {boot!r}; " if boot is not None else ""     # cannot change), or every open
+    if boot is not None or audit is not None or inject is not None:   # in that process only: boot_id() replaced
+        pre = (f"worker.boot_id = lambda: {boot!r}; " if boot is not None else "") + (inject or "")   # (this
+        # machine's boot id cannot change), a case's code (inject, ending in "; "), or every open
         hook = "" if audit is None else (                                             # of SCHEDULE.1.json counted
             "import atexit; n = [0]; "
             "sys.addaudithook(lambda ev, a: n.__setitem__(0, n[0] + 1) if ev == 'open' and "
@@ -317,7 +360,7 @@ def start(root, slot, manifest=MAN_PATH, openings=True, plant=None, boot=None, t
         cmd = [sys.executable, "-I", "-B", "-c",
                f"import sys; {hook}sys.path.insert(0, {str(TREE / 'run')!r}); import worker; "
                f"{pre}sys.argv = [{wp!r}] + {args!r}; sys.exit(worker.main())"]
-    return subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    return cmd if dry else subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
 
 def d_in_force(root) -> str:
@@ -328,7 +371,7 @@ def d_in_force(root) -> str:
 
 def fence(root, cutoff=None) -> None:
     put(root / "FENCE.json", canon({"run_fingerprint": sha((root / "RUN.json").read_bytes()), "at_utc": T(time.time()),
-                                    "cutoff_utc": cutoff or d_in_force(root), "why": "a test"}))
+                                    "cutoff_utc": cutoff or d_in_force(root), "schema": 2, "why": "a test"}))
 
 
 def finish_all(P: dict, secs=240):
@@ -389,23 +432,67 @@ def field_digest(g) -> str:
     return h.hexdigest()
 
 
-def alive(pid: int) -> bool:
+IDENT_SRC = '''
+def created_of(pid, h=None):
+    # The creation time of the LIVING process of this number (read through handle h when given), or None.
     if os.name == "nt":
         import ctypes
-        k = ctypes.windll.kernel32
+        k = ctypes.WinDLL("kernel32", use_last_error=True)
         k.OpenProcess.restype = ctypes.c_void_p
-        h = k.OpenProcess(0x100000 | 0x1000, False, pid)
+        own = h is None
+        h = k.OpenProcess(0x1000, False, int(pid)) if own else h
         if not h:
-            return False
+            return None
+        t, code = [ctypes.c_ulonglong() for _ in range(4)], ctypes.c_ulong()
         try:
-            return k.WaitForSingleObject(ctypes.c_void_p(h), 0) == 258
+            ok = (k.GetProcessTimes(ctypes.c_void_p(h), *[ctypes.byref(x) for x in t])
+                  and k.GetExitCodeProcess(ctypes.c_void_p(h), ctypes.byref(code)))
+            return t[0].value if ok and code.value == 259 else None
         finally:
-            k.CloseHandle(ctypes.c_void_p(h))
+            if own:
+                k.CloseHandle(ctypes.c_void_p(h))
     try:
-        os.kill(pid, 0)
-        return True
+        with open(f"/proc/{int(pid)}/stat", "rb") as f:
+            s = f.read()
     except OSError:
-        return False
+        return None
+    s = s[s.rfind(b")") + 2:].split()
+    return int(s[19]) if s[0] != b"Z" else None
+'''
+exec(IDENT_SRC)
+
+
+def alive(pid, created):
+    "T-a (guard test R11): a process of this number lives AND it is the recorded one (its creation time)."
+    return created is not None and created_of(pid) == created
+
+
+def kill(pid, created):
+    "T-a: end the recorded process only, through ONE handle (Windows) or pidfd (Linux) checked before the end."
+    if created is None:
+        return
+    if os.name == "nt":
+        k = ctypes.WinDLL("kernel32", use_last_error=True)
+        k.OpenProcess.restype = ctypes.c_void_p
+        h = k.OpenProcess(0x1001, False, int(pid))
+        if h:
+            if created_of(pid, h) == created:
+                k.TerminateProcess(ctypes.c_void_p(h), 1)
+            k.CloseHandle(ctypes.c_void_p(h))
+        return
+    try:
+        fd = os.pidfd_open(int(pid))
+    except OSError:
+        return
+    try:
+        p = select.poll()
+        p.register(fd, select.POLLIN)
+        if created_of(pid) == created and not p.poll(0):
+            signal.pidfd_send_signal(fd, signal.SIGKILL)
+    except OSError:
+        pass
+    finally:
+        os.close(fd)
 
 
 def logtext(root, slot) -> str:
@@ -413,12 +500,28 @@ def logtext(root, slot) -> str:
     return f.read_text(encoding="ascii", errors="replace") if f.exists() else ""
 
 
+def started(root, slot) -> list:
+    """(N, C) of every engine the worker logged (W9: `engine started: pid N created C,`); C is None when the line
+    carries no creation time (an older worker)."""
+    out = []
+    for t in logtext(root, slot).split("engine started: pid ")[1:]:
+        w = t.split()
+        c = w[2].rstrip(",") if len(w) > 2 and w[1] == "created" else ""
+        out.append((int(w[0].rstrip(",")), int(c) if c.isdigit() else None))
+    return out
+
+
 def engines_left(root, slot, secs=30.0) -> list:
-    pids = [int(t.split()[0].rstrip(",")) for t in logtext(root, slot).split("engine started: pid ")[1:]]
+    """The worker's engines that still live, by number AND creation time (T-a). An engine whose line carries no
+    creation time is returned at once: nothing can prove it gone."""
+    pcs = started(root, slot)
+    unknown = [p for p, c in pcs if c is None]
+    if unknown:
+        return unknown
     end = time.time() + secs
-    while time.time() < end and any(alive(p) for p in pids):
+    while time.time() < end and any(alive(p, c) for p, c in pcs):
         time.sleep(0.5)
-    return [p for p in pids if alive(p)]
+    return [p for p, c in pcs if alive(p, c)]
 
 
 def tree_bytes(folder: Path) -> dict:
@@ -584,7 +687,8 @@ if R10:
     check("V10 no engine process left", engines_left(R10, 0) == [])
 
 # ================================================================ group 2: V3, V5, V6, V11a, V11b, V12, V14, V14b, V14c, V15
-R3 = make_root("v3", "late", 0, [row(1, 3)], -60, -30, rule="seed", seed="late") if want("V3") else None
+R3 = make_root("v3", "late", 0, [row(1, 3)], -60, -30, rule="seed", seed="late") \
+    if want("V3", "V38a", "V38b", "V38c", "V38d", "V38e") else None
 R5 = make_root("v5", "lock", 0, [row(1, 2)], 30, 45) if want("V5") else None
 R6 = make_root("v6", "hash", 0, [row(1, 2)], 30, 45, engine_sha="f" * 64) if want("V6") else None
 R11a = make_root("v11a", "chain", 0, [row(1, 2)], 30, 45) if want("V11a") else None
@@ -612,20 +716,23 @@ if R18:
 if R18b:
     hc = json.loads((R18b / "RUN.json").read_bytes())["hard_cutoff_utc"]
     fence(R18b, T(calendar.timegm(time.strptime(hc, "%Y-%m-%dT%H:%M:%SZ")) - 3600))     # a new time: one hour earlier
-R16 = make_root("v16", "doubt", 0, [row(1, 3)], 60, 75, game_line=SLOW_LINE) if want("V16", "V22") else None
+R16 = make_root("v16", "doubt", 0, [row(1, 3)], 60, 75, game_line=SLOW_LINE) if want("V16", "V22", "V45") else None
 SENT16 = J16 = OPEN16 = None
+PC16, C16, GONE16 = [], [], []
 if R16:                    # Astra 150955Z: the worker killed after its game line went out, before any record byte
     p16 = start(R16, 0, manifest=SLOW_MAN, trace=True)
     t_end = time.time() + 120
     while time.time() < t_end and ">>> selfgame" not in logtext(R16, 0) and p16.poll() is None:
         time.sleep(0.01)
+    PC16 = started(R16, 0)                              # V45: read while the worker and its engine live
+    C16 = [(p, c, created_of(p)) for p, c in PC16]
     p16.kill()
     p16.communicate()
     SENT16 = ">>> selfgame" in logtext(R16, 0)
-    for pid in [int(t.split()[0].rstrip(",")) for t in logtext(R16, 0).split("engine started: pid ")[1:]]:
-        if alive(pid):
-            os.kill(pid, 9)                             # its engine, orphaned by the kill: a game of 4,000,000 nodes
+    for p, c in PC16:
+        kill(p, c)                                      # its engine, orphaned by the kill: a game of 4,000,000 nodes
     time.sleep(1.0)
+    GONE16 = [(p, c, alive(p, c)) for p, c in PC16]
     J16 = kinds(R16, 0)
     OPEN16 = [f.name for f in (R16 / "w000" / "open").glob("*.raw") if f.stat().st_size > 0]
     fence(R16)
@@ -1476,6 +1583,299 @@ if want("V37"):
         check(f"V37 watch_end with reader_stalled {stalled}: " + ("the line `watch reader_stalled=True`" if stalled
               else "no reader_stalled line"), err is None and stalled == any("watch reader_stalled=True" in x
                                                                             for x in said), (err, said))
+
+# ================================================================ group 7 (version 2): T1, V38 to V47
+if want("T1a", "T1b", "T1c", "T1d", "T1e"):
+    # T-a: a process of the test's own is known by number AND creation time; another creation time stands in for a
+    # number Windows has given again: neither counted nor ended
+    sp = subprocess.Popen([sys.executable, "-I", "-B", "-c", "import time; time.sleep(60)"])
+    c1 = created_of(sp.pid)
+    check("T1a a stand-in: alive by its number and creation time", alive(sp.pid, c1), c1)
+    check("T1b its creation time is an integer", type(c1) is int, c1)
+    check("T1c alive by its number and ANOTHER creation time: False", not alive(sp.pid, (c1 or 0) + 1))
+    kill(sp.pid, (c1 or 0) + 1)
+    time.sleep(1.0)
+    check("T1d a kill by its number and another creation time: it still lives 1 s later", sp.poll() is None, sp.poll())
+    kill(sp.pid, c1)
+    try:
+        code1 = sp.wait(10)
+    except subprocess.TimeoutExpired:
+        code1 = None
+    check("T1e a kill by its number and creation time: ended within 10 s", code1 is not None, code1)
+    sp.kill()
+    sp.wait()
+
+
+def resume_rec(root, n, prev, old, new, last=-1, **extra):
+    fp_ = sha((root / "RUN.json").read_bytes())
+    return dict({"schema": 2, "run_fingerprint": fp_, "n": n, "prev": prev, "old_boot_id": old, "new_boot_id": new,
+                 "instance": "test-instance", "instance_provable": True, "checks": [], "at_utc": T(time.time()),
+                 "slots": [{"slot": 0, "last_index": last, "last_seal": f"genesis:{fp_}:w000"}]}, **extra)
+
+
+def fence_rec(root, **extra):
+    return dict({"run_fingerprint": sha((root / "RUN.json").read_bytes()), "at_utc": T(time.time()),
+                 "cutoff_utc": d_in_force(root), "schema": 2, "why": "a test"}, **extra)
+
+
+PROCS2, ROOTS2 = {}, {}
+# V38: a range seal that exists is judged as a piece seal is (W1); from V3's root after its run
+if R3:
+    seal3 = R3 / "ranges" / "r0001.w000.seal.json"
+    if seal3.exists():
+        s3 = json.loads(seal3.read_bytes())
+        first3 = (R3 / "w000" / "journal.txt").read_bytes().split(b"\n")[0] + b"\n"
+        for name, data in (("V38a", seal3.read_bytes()),
+                           ("V38b", canon(dict(s3, run="other", run_fingerprint="e" * 64))),
+                           ("V38c", b""),
+                           ("V38d", canon(dict(s3, complete=True, dispositions=dict(s3.get("dispositions") or {}, done=3,
+                                                                                    never_dispatched=0)))),
+                           ("V38e", canon(dict(s3, epoch=7)))):
+            if want(name):
+                r_ = WORK / name.lower()
+                shutil.copytree(R3, r_)
+                (r_ / "w000" / "journal.txt").write_bytes(first3)
+                (r_ / "ranges" / "r0001.w000.seal.json").write_bytes(data)
+                ROOTS2[name] = (r_, data)
+                PROCS2[name] = start(r_, 0, openings=False)
+    else:
+        for name in ("V38a", "V38b", "V38c", "V38d", "V38e"):
+            if want(name):
+                check(f"{name} V3's range seal exists to start from", False, "no ranges/r0001.w000.seal.json")
+
+
+def edge_root(name, boot=None):
+    return make_root(name, "edge", 0, [row(1, 1)], 20, 35, rule="seed", seed="edge2649", boot=boot)
+
+
+# V39, V40: the RESUME chain walked at every start, old_boot_id linked, n type-strict (W2, W3)
+if want("V39a"):
+    r_ = edge_root("v39a")
+    put(r_ / "RESUME.1.json", canon(resume_rec(r_, 1, "first", BOOT, "bootb")))
+    ROOTS2["V39a"], PROCS2["V39a"] = (r_, None), start(r_, 0, openings=False)
+if want("V39b"):
+    r_ = edge_root("v39b")
+    put(r_ / "RESUME.1.json", b"junk\n")
+    ROOTS2["V39b"], PROCS2["V39b"] = (r_, None), start(r_, 0, openings=False)
+if want("V40a"):
+    r_ = edge_root("v40a", "otherboot")
+    put(r_ / "RESUME.1.json", canon(resume_rec(r_, 1, "first", "WRONG-BOOT-ID", BOOT)))
+    ROOTS2["V40a"], PROCS2["V40a"] = (r_, None), start(r_, 0, openings=False)
+for name, old2 in (("V40b", "bootb"), ("V40c", "boot9")):
+    if want(name):
+        r_ = edge_root(name.lower(), "otherboot")
+        put(r_ / "RESUME.1.json", canon(resume_rec(r_, 1, "first", "otherboot", "bootb")))
+        put(r_ / "RESUME.2.json", canon(resume_rec(r_, 2, sha((r_ / "RESUME.1.json").read_bytes()), old2, BOOT)))
+        ROOTS2[name], PROCS2[name] = (r_, sha((r_ / "RESUME.2.json").read_bytes())), start(r_, 0, openings=False)
+if want("V40d"):
+    r_ = edge_root("v40d", "otherboot")
+    put(r_ / "RESUME.1.json", canon(resume_rec(r_, True, "first", "otherboot", BOOT)))   # n = true, not 1
+    ROOTS2["V40d"], PROCS2["V40d"] = (r_, None), start(r_, 0, openings=False)
+
+
+def late_root(name, hdr=None):
+    return make_root(name, "late", 0, [row(1, 3)], -60, -30, rule="seed", seed="late", hdr=hdr)
+
+
+def listing(folder: Path) -> list:
+    return sorted((str(p.relative_to(folder)), p.read_bytes() if p.is_file() else None) for p in folder.rglob("*"))
+
+
+# V41: a slot folder without IDENTITY.json holds only what claim_slot leaves before it (W4)
+for name, files in (("V41a", {"closed/p000001.seal.json": b"x\n"}), ("V41b", {"LOCK": b""}),
+                    ("V41c", {"LOCK": b"", "IDENTITY.json.tmp": b"half"})):
+    if want(name):
+        r_ = late_root(name.lower())
+        for rel, data in files.items():
+            (r_ / "w000" / rel).parent.mkdir(parents=True, exist_ok=True)
+            (r_ / "w000" / rel).write_bytes(data)
+        ROOTS2[name], PROCS2[name] = (r_, listing(r_ / "w000")), start(r_, 0, openings=False)
+# V42: the lease times are read (W5)
+if want("V42a", "V42b", "V42c"):
+    t0 = time.time()
+    for name, hdr in (("V42a", {"lease_end_utc": "2026-11-31T00:00:00Z"}),
+                      ("V42b", {"hard_cutoff_utc": T(t0 + 86400 + 3600), "lease_end_utc": T(t0 + 86400)}),
+                      ("V42c", {"lease_start_utc": T(t0 + 86400 + 60), "lease_end_utc": T(t0 + 86400)})):
+        if want(name):
+            r_ = late_root(name.lower(), hdr)
+            ROOTS2[name], PROCS2[name] = (r_, None), start(r_, 0, openings=False)
+# V43: FENCE.json is the guard's record (W6)
+for name, rec in (("V43a", "schema1"), ("V43b", "extra"), ("V43c", "list")):
+    if want(name):
+        r_ = make_root(name.lower(), "fence", 0, [row(1, 2)], 30, 45, rule="seed", seed="fence")
+        put(r_ / "FENCE.json", canon([] if rec == "list" else fence_rec(r_, schema=1) if rec == "schema1"
+                                     else fence_rec(r_, x=1)))
+        ROOTS2[name], PROCS2[name] = (r_, None), start(r_, 0, openings=False)
+OUT2, _ = finish_all(PROCS2, 180) if PROCS2 else ({}, {})
+
+for name in ("V38a", "V38b", "V38c", "V38d", "V38e"):
+    if name in ROOTS2:
+        r_, data = ROOTS2[name]
+        sp_ = r_ / "ranges" / "r0001.w000.seal.json"
+        k = kinds(r_, 0)
+        if name == "V38a":
+            common(name, OUT2[name], 0)
+            check("V38a the seal kept byte for byte; journal epoch, epoch, ended (finalizer)", sp_.read_bytes() == data
+                  and k == ["epoch", "epoch", "ended"] and ended_why(r_, 0) == "finalizer", k)
+        else:
+            common(name, OUT2[name], 4, "r0001.w000.seal.json")
+            check(f"{name} the seal unchanged; journal epoch, epoch, NO ended", sp_.read_bytes() == data
+                  and k == ["epoch", "epoch"], k)
+for name, text in (("V39a", "no RESUME record admits it"), ("V39b", "RESUME.1.json"), ("V40a", "RESUME.1.json"),
+                   ("V40c", "RESUME.2.json"), ("V40d", "RESUME.1.json"), ("V41a", "no IDENTITY.json"),
+                   ("V42a", "lease_end_utc"), ("V42b", "hard_cutoff_utc"), ("V42c", "lease_start_utc"),
+                   ("V43a", "FENCE.json"), ("V43b", "FENCE.json"), ("V43c", "FENCE.json")):
+    if name in ROOTS2:
+        r_, before = ROOTS2[name]
+        common(name, OUT2[name], 4, text)
+        if name == "V41a":
+            check("V41a the slot folder as before (no LOCK, no IDENTITY.json)", listing(r_ / "w000") == before,
+                  [x[0] for x in listing(r_ / "w000")])
+        else:
+            check(f"{name} no slot folder", not (r_ / "w000").exists())
+if "V40b" in ROOTS2:
+    r_, sha2 = ROOTS2["V40b"]
+    common("V40b", OUT2["V40b"], 0)
+    j = jlines(r_, 0)
+    check("V40b the epoch line's resume is RESUME.2's sha256", bool(j) and j[0].get("t") == "epoch"
+          and j[0].get("resume") == sha2 and j[0].get("boot_id") == BOOT, j[:1])
+for name in ("V41b", "V41c"):
+    if name in ROOTS2:
+        r_, _ = ROOTS2[name]
+        common(name, OUT2[name], 0)
+        check(f"{name} the finalizer's journal epoch, ended; no .tmp left", kinds(r_, 0) == ["epoch", "ended"]
+              and ended_why(r_, 0) == "finalizer" and not list((r_ / "w000").rglob("*.tmp")), kinds(r_, 0))
+if R16 and want("V45"):
+    check("V45 the engine line names pid N created C (W9)", len(C16) == 1 and C16[0][1] is not None, C16)
+    check("V45 while the worker lived, created_of(N) == C", len(C16) == 1 and C16[0][1] is not None
+          and C16[0][1] == C16[0][2], C16)
+    check("V45 kill(N, C) ended the orphan: alive(N, C) False", len(GONE16) == 1 and GONE16[0][1] is not None
+          and GONE16[0][2] is False, GONE16)
+if want("V47"):
+    got47 = {}
+    fake47 = types.SimpleNamespace(eng=None, ph=None, kill_engine=lambda: None)
+
+    def second():
+        try:
+            W.Worker.start_engine(fake47)
+            got47["e"] = None
+        except Exception as e:  # noqa: BLE001
+            got47["e"] = e
+
+    th47 = threading.Thread(target=second)
+    th47.start()
+    th47.join(30)
+    e47 = got47.get("e")
+    check("V47 start_engine inside a second thread: StartRefused naming `main thread`", W is not None
+          and isinstance(e47, getattr(W, "StartRefused", ())) and "main thread" in str(e47), repr(e47))
+    check("V47 eng stays None", fake47.eng is None, fake47.eng)
+
+if want("V48"):                                         # W10 (24 Nov 00:48): the combined package, test_bootguard E2
+    gone48 = WORK / "v48" / "w002"
+    try:
+        r48 = W.Worker.check_identity(types.SimpleNamespace(dir=gone48, name="w002"), b"{}\n")
+    except Exception as e:  # noqa: BLE001
+        r48 = e
+    check("V48 check_identity on a slot folder that does not exist (a slot never started, as the boot guard reads "
+          "it): returns None, the folder still absent", r48 is None and not gone48.exists(), repr(r48))
+if want("V48b"):
+    stray48 = WORK / "v48b" / "w002"
+    stray48.mkdir(parents=True)
+    (stray48 / "stray.txt").write_bytes(b"x")
+    try:
+        W.Worker.check_identity(types.SimpleNamespace(dir=stray48, name="w002"), b"{}\n")
+        e48b = None
+    except Exception as e:  # noqa: BLE001
+        e48b = e
+    check("V48b control: a folder holding a stray file and no IDENTITY.json: Stop 4 naming `no IDENTITY.json`",
+          W is not None and isinstance(e48b, W.Stop) and e48b.code == 4 and "no IDENTITY.json" in str(e48b),
+          repr(e48b))
+
+# ---- Linux only (the seats run them): V44, V46 to V46e
+LINUX = ("V44", "V46", "V46b", "V46c", "V46d", "V46e")
+if os.name == "nt":
+    for name in LINUX:
+        if want(name):
+            print(f"SKIP {name} (Linux only: the seats run it)")
+else:
+    BIND = TREE / "run" / "bind_exec.py"
+    if want("V44"):
+        r_ = make_root("v44", "pfd", 0, [row(1, 2)], 30, 45)
+        p44 = start(r_, 0, inject="worker.clockwatch.ProcHandle = type('Q', (worker.clockwatch.ProcHandle,), "
+                                  "{'__init__': lambda s, p, _P=worker.clockwatch.ProcHandle: "
+                                  "(_P.__init__(s, p), setattr(s, 'how', 'popen'))[0]}); ")
+        o44, _ = finish_all({"x": p44}, 120)
+        common("V44", o44["x"], 5, "pidfd")
+        check("V44 journal epoch only, no game", kinds(r_, 0) == ["epoch"], kinds(r_, 0))
+        check("V44 no engine process left", engines_left(r_, 0) == [])
+
+    def slow_kill(name, inject=None, via_guard=False):
+        """The slow game of V16; the worker (or a stand-in guard and its worker) SIGKILLed at `>>> selfgame`; then
+        [(N, C, alive 1 s later)] of its engines; the test itself ends nothing before that look."""
+        r_ = make_root(name, "doubt", 0, [row(1, 3)], 60, 75, game_line=SLOW_LINE)
+        if not via_guard:
+            p = start(r_, 0, manifest=SLOW_MAN, trace=True, inject=inject)
+            wpid, wc = p.pid, created_of(p.pid)
+        else:
+            cmd = start(r_, 0, manifest=SLOW_MAN, trace=True, dry=True)      # its command, run by the stand-in
+            pidf = WORK / f"{name}.worker.pid"
+            p = subprocess.Popen([sys.executable, "-I", "-B", "-c",
+                                  "import subprocess, sys, time; w = subprocess.Popen(sys.argv[2:]); "
+                                  "open(sys.argv[1], 'w').write(str(w.pid)); w.wait(); time.sleep(600)",
+                                  str(pidf), *cmd], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            t_end = time.time() + 30
+            while time.time() < t_end and not pidf.exists():
+                time.sleep(0.05)
+            wpid = int(pidf.read_text()) if pidf.exists() else None
+            wc = created_of(wpid) if wpid else None
+        t_end = time.time() + 120
+        while time.time() < t_end and ">>> selfgame" not in logtext(r_, 0) and p.poll() is None:
+            time.sleep(0.01)
+        pcs = started(r_, 0)
+        if via_guard:
+            p.kill()                                    # the stand-in guard: the test's own child, by its Popen
+        kill(wpid, wc)
+        p.communicate(timeout=10)
+        time.sleep(1.0)
+        res = [(n, c, alive(n, c)) for n, c in pcs]
+        for n, c in pcs:
+            kill(n, c)                                  # only after the look
+        return res
+
+    if want("V46"):
+        res = slow_kill("v46")
+        check("V46 the worker SIGKILLed: its engine (N, C) gone within 1 s", len(res) == 1 and res[0][1] is not None
+              and res[0][2] is False, res)
+    if want("V46b"):
+        res = slow_kill("v46b", inject="worker.Worker.launcher = lambda self: None; ")
+        check("V46b the launcher off: the engine still lives 1 s after the worker's kill (an orphan is seen)",
+              len(res) == 1 and res[0][1] is not None and res[0][2] is True, res)
+    if want("V46c"):
+        res = slow_kill("v46c", via_guard=True)
+        check("V46c a stand-in guard and its worker SIGKILLed: no engine left within 1 s", len(res) == 1
+              and res[0][1] is not None and res[0][2] is False, res)
+    if want("V46d"):
+        r46 = subprocess.run([sys.executable, "-I", "-B", str(BIND), "1", str(EXE)], capture_output=True, timeout=60)
+        check("V46d bind_exec.py with parent 1: exit 1, no output", r46.returncode == 1 and r46.stdout == b""
+              and r46.stderr == b"", (r46.returncode, r46.stdout[:200], r46.stderr[:200]))
+    if want("V46e"):
+        stop46 = threading.Event()
+        busy = [threading.Thread(target=lambda: [time.sleep(0.001) for _ in iter(stop46.is_set, True)])
+                for _ in range(3)]
+        for b in busy:
+            b.start()
+        slow, codes = [], []
+        for i in range(200):
+            t0 = time.time()
+            q = subprocess.Popen([sys.executable, "-I", "-B", str(BIND), str(os.getpid()), "/bin/true"])
+            if time.time() - t0 > 10:
+                slow.append(i)
+            codes.append(q.wait(30))
+        stop46.set()
+        for b in busy:
+            b.join()
+        check("V46e 200 starts through bind_exec.py beside 3 threads: every Popen within 10 s, every exit 0",
+              not slow and codes == [0] * 200, (slow[:5], sorted(set(codes))))
 
 bad = [n for n, ok in results if not ok]
 print(f"{len(results) - len(bad)} of {len(results)} checks pass" + (f"; FAILED: {bad}" if bad else ""))
