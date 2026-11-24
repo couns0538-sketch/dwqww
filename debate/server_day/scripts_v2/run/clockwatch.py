@@ -37,8 +37,13 @@ caller writes the alarm and leaves with exit code 8. An exit that the watch coul
 is an alarm too and says so in its own words ("first confirmed gone after D"), with the reading of the
 confirmation: the watch does not claim the process was there at D, and does not write the stop as on time
 (Astra 165616Z). No wait of the watch's own is asked to cross its limit. A bound, the hold limit, the allowance
-and the look are finite numbers or they are refused (Neon 170114Z). An error inside the watch ends the process
-too (`fired` "error", `error` set): a wait is never left unwatched without a word.
+and the look are finite numbers, never a bool, or they are refused (Neon 170114Z, 172517Z). An error inside the
+watch, in its loop or in its stop, ends the process too and CONFIRMS the exit (version 5; Astra 172124Z, 172227Z,
+Neon 172517Z): unless the wait was over before the error, the stop and the look are tried again until the exit is
+seen, for at most one allowance after the error by the system's own steady clock (so the watch always returns) and
+until D where D was still ahead; an exit not seen by then is the alarm "not confirmed gone", one seen only after
+that limit is "first confirmed gone"; `fired` is "error" (or the reason it had fired for), `error` keeps the first
+error and, counted, the first of each kind that followed. A wait is never left unwatched without a word.
 `refresh` is the caller's: it reads a newer valid schedule and calls B.set. It runs in a thread of its own, NEVER
 on the timer's path (Astra 1): a read that is slow or stalls cannot delay the stop for a bound already in force;
 a bound it tightens is judged at once, and so is a bound tightened by ANY other thread through B.set (Astra
@@ -81,7 +86,13 @@ class Clocks:
 
 
 def reading_text(r):
+    if r is None:
+        return "none"
     return "utc=%.6f steady=%.6f boot=%s" % (r[0], r[1], "none" if r[2] is None else "%.6f" % r[2])
+
+
+def _secs(x):
+    return "none" if x is None else "%.6f" % x
 
 
 class Bounds:
@@ -225,6 +236,8 @@ class Watch:
                  dispatch_end="dispatch_end"):
         if bounds.get(cutoff) is None:
             raise ValueError("the watch needs the bound %r" % cutoff)
+        if isinstance(allowance_s, bool) or isinstance(look_s, bool):
+            raise ValueError("allowance_s and look_s are numbers of seconds, not True or False")
         if not (math.isfinite(float(allowance_s)) and math.isfinite(float(look_s))
                 and allowance_s >= 0 and look_s > 0):
             raise ValueError("allowance_s >= 0 and look_s > 0, both finite")
@@ -303,15 +316,101 @@ class Watch:
                 self._wake.wait(min(self.look_s, left_t))
                 self._wake.clear()
         except BaseException as e:
-            self.error = repr(e)
+            self._after_error(e)
+
+    def _after_error(self, e):
+        """An error inside the watch, in its loop or in _fire (Astra 172124Z, 172227Z; Neon 172517Z). A watch that
+        was closed before it fired is left alone: its wait is over. Otherwise the native process is ended and its
+        exit confirmed by _end_after_error; `error` is the first error and, counted, the first of each kind that
+        followed (stop, look, clock)."""
+        self.error = repr(e)
+        more = {}                                   # kind -> [how many, the first text]
+        with self._lock:
+            if self.fired is None and not self._closed:
+                self.fired = "error"
+            act = self.fired is not None
+        try:
+            if act:
+                self._end_after_error(more)
+        except BaseException as e2:
+            more.setdefault("watch", [0, repr(e2)])[0] += 1
+            if self.alarm is None:
+                self.alarm = "the native process was not confirmed gone: the confirmation itself failed"
+        finally:
+            self.error = repr(e) + "".join("; then the %s failed %d time(s), first: %s" % (k, n, x)
+                                           for k, (n, x) in sorted(more.items()))
+
+    def _end_after_error(self, more):
+        """The stop and a look of at most 20 ms each, in turn, until the exit is seen; a look that fails is followed
+        by a pause of 20 ms (no spin). The limit: one allowance after the error by the system's own steady clock,
+        which no plant replaces, and D where D was still ahead at the error. Not seen by then: the alarm "not
+        confirmed gone"; seen only after its limit: "first confirmed gone". Every reading is the clocks' own, or,
+        where they fail, the system's (then nothing is judged with it). The record is the one _fire made, or a new
+        one with the reason "error"."""
+        h, b = self.handle, self.bounds
+        t_end = time.monotonic() + self.allowance_s
+
+        def note(kind, x):
+            more.setdefault(kind, [0, x])[0] += 1
+
+        def tried(kind, f, *a):
             try:
-                with self._lock:
-                    closed = self._closed
-                if self.fired is None and not closed:
-                    self.fired = "error"
-                    self.handle.stop()
-            except BaseException as e2:
-                self.error += "; then " + repr(e2)
+                return f(*a), True
+            except BaseException as x:
+                note(kind, repr(x))
+                return None, False
+
+        def reading():
+            got, ok = tried("clock", b.clocks.read)
+            return (got, True) if ok else ((time.time(), time.monotonic(), None), False)
+
+        r, ok = reading()
+        vd = tried("clock", lambda: b.judge(self.cutoff, reading=r)[0])[0] if ok else None
+        rec = self.record
+        if rec is None:
+            rec = {"reason": self.fired, "decided": r, "left_to_trigger_s": None, "left_to_cutoff_s": None,
+                   "late": None, "late_discovery": None, "decided_after_cutoff": None if vd is None else vd == COME,
+                   "how": getattr(h, "how", "?"), "stop_error": None, "stopped": None, "gone": None,
+                   "gone_after_cutoff": None}
+            self.record = rec
+        while True:
+            try:
+                err = h.stop()
+            except BaseException as x:
+                err = repr(x)
+            if err:
+                note("stop", err)
+                rec["stop_error"] = err
+            if rec["stopped"] is None:
+                rec["stopped"] = reading()[0]
+            room = t_end - time.monotonic()
+            if vd == OPEN:
+                left_d, ok = tried("clock", lambda: b.judge(self.cutoff)[1])
+                room = min(room, left_d) if ok else room
+            seen, ok = tried("look", h.gone, min(0.02, max(0.0, room)))
+            if seen:
+                t_seen = time.monotonic()           # the exit is judged by when the look saw it, as in _fire
+                g, real = reading()
+                rec["gone"] = g
+                if real:
+                    rec["gone_after_cutoff"] = tried("clock", lambda: b.judge(self.cutoff, reading=g)[0] == COME)[0]
+                past_d = vd == OPEN and rec["gone_after_cutoff"] is True
+                if past_d or t_seen > t_end:
+                    self.alarm = ("the native process was first confirmed gone %s, after an error inside the watch; "
+                                  "stop sent at %s, confirmed at %s, reason %s"
+                                  % ("after D" if past_d else "more than one allowance after the error",
+                                     reading_text(rec["stopped"]), reading_text(g), rec["reason"]))
+                return
+            if not ok:
+                time.sleep(min(0.02, max(0.0, t_end - time.monotonic())))
+            v, ok = tried("clock", lambda: b.judge(self.cutoff)[0]) if vd == OPEN else (None, False)
+            d_come = ok and v != OPEN
+            if d_come or time.monotonic() >= t_end:
+                self.alarm = ("the native process was not confirmed gone %s, after an error inside "
+                              "the watch; stop sent at %s, reason %s"
+                              % ("at D" if d_come else "one allowance after the error",
+                                 reading_text(rec["stopped"]), rec["reason"]))
+                return
 
     def _fire(self, reason, r, left_t):
         with self._lock:
@@ -363,9 +462,9 @@ class Watch:
         rec = self.record
         if rec is not None:
             out.append("watch decision reason=%s late=%s late_discovery=%s decided_after_cutoff=%s "
-                       "left_to_trigger_s=%.6f left_to_cutoff_s=%.6f %s"
+                       "left_to_trigger_s=%s left_to_cutoff_s=%s %s"
                        % (rec["reason"], rec["late"], rec["late_discovery"], rec["decided_after_cutoff"],
-                          rec["left_to_trigger_s"], rec["left_to_cutoff_s"], reading_text(rec["decided"])))
+                          _secs(rec["left_to_trigger_s"]), _secs(rec["left_to_cutoff_s"]), reading_text(rec["decided"])))
             if rec["stopped"] is not None:
                 out.append("watch stop sent how=%s error=%s %s"
                            % (rec["how"], rec["stop_error"], reading_text(rec["stopped"])))
