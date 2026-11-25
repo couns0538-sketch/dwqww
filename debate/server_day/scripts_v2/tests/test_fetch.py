@@ -15,6 +15,10 @@ SYN  a made-up run for the transfer-level answers: a header {"run": "syn", "sche
 F8 also runs Windows' own ssh.exe -G (it reads the given files and prints the options; it connects to nothing).
 F20 and F21 run the fetch's own sftp branch with the REAL client: Windows' own sftp.exe talks through -D to Git for
 Windows' sftp-server.exe, which serves a folder of this test (no network, no key); only the command line is replaced.
+Added 25 Nov (Fable's read FABLE-2511-READ-PKG10-FETCH, R1 and R2; known answers first in
+tmp/opus_scratch/fetch_fix/KNOWN_ANSWERS_fetch_fix_by_opus.md): F8b, the two known-hosts files in a folder named with
+TWO spaces; F22a, the real client's "Permission denied" for a local partial is not a refused login; F22b, the login
+form still is. Plants 16 to 18 take each repair back.
 """
 import datetime
 import hashlib
@@ -22,6 +26,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import time
@@ -69,6 +74,10 @@ PLANTS = {   # the stand-ins of the known answers' last section, one rule remove
     "plant14": ("            self.lock = SlotLock(fdir)                  # held until the process ends; the OS frees it\n",
                 "            self.lock = None\n"),                                            # no lock
     "plant15": ("                elif time.monotonic() - t0 > self.cap:\n", "                elif False:\n"),  # no cap
+    "plant16": ('"Permission denied (", ', '"Permission denied", '),                     # R1 taken back
+    "plant17": ("f'UserKnownHostsFile=\"{cfg[\"known_hosts\"]}\"',",
+                "f\"UserKnownHostsFile={cfg['known_hosts']}\","),                         # R2 taken back (pinned)
+    "plant18": ("f'GlobalKnownHostsFile=\"{empty}\"',", "f\"GlobalKnownHostsFile={empty}\","),  # R2 (the empty)
 }
 CP = WORK / "tree"
 for sub in ("home", "run", "workloads", "known", "tests"):
@@ -616,6 +625,18 @@ def case_hostkey():
            g.get("identitiesonly"), norm(g.get("userknownhostsfile", "")), norm(g.get("globalknownhostsfile", "")),
            g.get("connecttimeout"), g.get("serveraliveinterval"), g.get("serveralivecountmax")),
           (0, "yes", "true", "false", "yes", norm(str(pinned)), norm(str(empty)), "15", "15", "3"))
+    two = WORK / "two  spaces"                          # F8b (R2): a home whose folder name holds TWO spaces
+    two.mkdir()
+    pinned2, empty2 = two / "pinned_known", two / "ssh_empty"
+    pinned2.write_bytes(pinned.read_bytes())
+    empty2.write_bytes(b"")
+    opts2 = F.Transport.ssh_options({"known_hosts": str(pinned2), "identity": str(WORK / "no_key")}, empty2)
+    p2 = subprocess.run([str(ssh), "-G", *opts2, "-p", "2222", "-l", "tester", "example.invalid"], capture_output=True,
+                        text=True, timeout=60)
+    g2 = dict(ln.split(" ", 1) for ln in p2.stdout.lower().splitlines() if " " in ln)
+    check("F8b the pinned and the empty file in a folder named with TWO spaces: ssh -G keeps both spaces in both paths",
+          (p2.returncode, norm(g2.get("userknownhostsfile", "")), norm(g2.get("globalknownhostsfile", ""))),
+          (0, norm(str(pinned2)), norm(str(empty2))))
 
 
 def case_lock():
@@ -707,6 +728,25 @@ def case_real_sftp():
           ("reget", 0, 1000, False))
     op, res, got = get("p000009.raw.zz", WORK / "real_g4.part")
     check("F20e a member not on the server: result not 0, no bytes", (res != 0, len(got)), (True, 0))
+    ro = WORK / "real_g5.part"                          # F22a (R1): a local partial that cannot be opened for writing
+    ro.write_bytes(b"")
+    os.chmod(ro, stat.S_IREAD)
+    res, text, _ = transport(srv / "run").get("w001/p000001.raw.zz", ro, 1000)
+    os.chmod(ro, stat.S_IREAD | stat.S_IWRITE)
+    try:
+        F.judge(text)
+        got = None
+    except F.Stop as e:
+        got = e.code
+    check("F22a a local partial that cannot be opened: result not 0, 'Permission denied' in the client's text, and "
+          "judge() raises nothing (a file problem, not a refused login)", (res != 0, "Permission denied" in text, got),
+          (True, True, None))
+    try:
+        F.judge("tester@example.invalid: Permission denied (publickey).")
+        got = None
+    except F.Stop as e:
+        got = e.code
+    check("F22b the client's refused-login form still stops: Stop 6", got, 6)
     try:
         transport(srv / "gone").list("")
         got = "listed with exit 0"

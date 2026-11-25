@@ -69,7 +69,8 @@ RANGE_WIRE = re.compile(r"r[0-9]{4}\.w[0-9]{3}\.seal\.json\.zz")
 MEMBER_WIRE = re.compile(r"p[0-9]{6}\.(seal\.json\.zz|binpack|meta\.xz|raw\.zz)")
 LISTED = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,99}")
 HOSTKEY = ("Host key verification failed", "REMOTE HOST IDENTIFICATION HAS CHANGED", "host key is known",
-           "Permission denied", "Too many authentication failures")
+           "Permission denied (", "Too many authentication failures")   # R1: the login form only, "<user>@<host>:
+#            Permission denied (publickey)."; a local partial that cannot be opened says `...": Permission denied`
 UNREACHABLE = ("Connection refused", "Connection timed out", "Could not resolve hostname", "Network is unreachable",
                "No route to host", "Connection closed", "Connection reset", "Broken pipe")
 SFTP_WINDOW = 64 * 32768                                # -R 64 -B 32768: the bytes sftp may have in flight
@@ -155,7 +156,8 @@ class Transport:
     @staticmethod
     def ssh_options(cfg: dict, empty: Path) -> list:
         return ["-F", str(empty), "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes",
-                "-o", f"UserKnownHostsFile={cfg['known_hosts']}", "-o", f"GlobalKnownHostsFile={empty}",
+                "-o", f'UserKnownHostsFile="{cfg["known_hosts"]}"',   # R2: quoted, or ssh splits the path at spaces
+                "-o", f'GlobalKnownHostsFile="{empty}"',
                 "-o", "UpdateHostKeys=no", "-o", "IdentitiesOnly=yes", "-o", "ConnectTimeout=15",
                 "-o", "ServerAliveInterval=15", "-o", "ServerAliveCountMax=3", "-i", str(cfg["identity"])]
 

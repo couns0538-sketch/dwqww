@@ -115,6 +115,10 @@ on the PC): the manifest's option lines and selfgame_line must be texts of print
 rule (Stop 4 naming the rule; a carriage return or a tab inside a line was bound by the hash and SENT as it was);
 and more than one game record beyond the journal's end of the open piece holds (Stop 4, nothing cut): a crash
 leaves at most one, so the journal lost lines, and the later games' dispatch would have gone without a word.
+25 Nov (W1, Fable's FABLE-2511-READ-WORKER, her repair): a start that died between its range seals and its `ended`
+line left a slot no later start could end (the finalizer's seal holds its id in doubt, the kept one, written by the
+start that knew, does not: Stop 4 at every start). range_seal() now keeps such a seal when it is the fresh one
+without the doubt; test_worker.py V24b to V24d.
 NOT HERE: the end line's count rules (rows, moves, searches by reason) are home's (2.2); whether the clock can be
 trusted after a restart is the boot guard's (1.3); the wire copies (0) are the packer's.
 """
@@ -1009,6 +1013,23 @@ class Worker:
             "through_index": idx[-1] if idx else -1, "through_seal": self.seal_sha[idx[-1]] if idx else None,
             "games": sum(s[0] for s in sums), "rows": sum(s[1] for s in sums), "raw_bytes": sum(s[2] for s in sums),
             "dispositions": counts}
+        doubt = self.in_doubt
+        if doubt is not None and row["first"] <= doubt <= row["last"] and path.exists():
+            # W1 (Fable 25 Nov, FABLE-2511-READ-WORKER: her repair, read by Opus): a `play` start that ended its own day
+            # wrote this seal and died before its `ended` line. It knew that the id this finalizer holds in doubt was
+            # never dispatched, so its seal is kept when it is the fresh one WITHOUT the doubt; any other seal is
+            # judged against the fresh one below, as before (Stop 4 when it is neither).
+            self.in_doubt = None
+            try:
+                sure = self.dispositions(row)[0]
+            finally:
+                self.in_doubt = doubt
+            try:
+                if self.kept_seal(path, dict(fresh, dispositions=sure,
+                                             complete=not any(sure[s] for s in NOT_COMPLETE))):
+                    return
+            except Stop:
+                pass
         if not self.kept_seal(path, fresh):             # an earlier start's seal is kept; other bytes: Stop 4
             create_only(path, canon(fresh))
 

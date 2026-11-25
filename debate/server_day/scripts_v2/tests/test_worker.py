@@ -133,6 +133,17 @@ worker after its `unfinished` line, writes nothing else in between (no open game
  V24  A3 (2.7): schedules 2 and 3 written together (3 first), 3's dispatch end 5 s ago: exit 0, ended (cutoff), no
       game reserved after they appeared (done at the end <= done when 2 was written + 1, the game in flight), and
       fewer than 6 done then; the range seal names schedule 3.
+ V24b W1 (Fable 25 Nov, FABLE-2511-READ-WORKER, her proof K2; known answers written before this code): a copy of
+      V24's root whose journal lost ONLY its `ended` line (the start died between its range seal and `ended`; the
+      line removed must be `ended`): exit 0, the journal ends with `ended` why "finalizer", the range seal's bytes
+      unchanged; a second start: exit 0, "ended already", the journal unchanged. The worker before the repair: exit 4
+      naming "r0001.w000.seal.json exists and is not the seal". Needs an id without a line in V24 (fewer than 6
+      done), whose seal says never_dispatched from it; else this case FAILS as "cannot be made".
+ V24c control (her K3): a copy without the `ended` line AND without the range seal (the death before the seal):
+      exit 0, `ended` finalizer, the new seal: dispatch_unknown 1 naming the first id without a line, never
+      dispatched the ids after it.
+ V24d control (her K4): V24c's root loses its `ended` line again (a finalizer's own seal, then the death): exit 0,
+      `ended` finalizer, the seal's bytes unchanged.
  V25  A3 (2.6): a schedule 2 whose prev does not hold, written mid-play: exit 4 naming SCHEDULE.2.json, no game
       reserved after it, no `ended` line.
  V26  A5 (2.7, Neon 153430Z): V20's journal after the cut (epoch, unfinished g1) plus a `failed` line for g2, a
@@ -1214,7 +1225,7 @@ def sched_bytes(root, n, rows, dispatch_text, cutoff_text, prev_bytes):
 R20 = make_root("v20", "bar", 0, [row(1, 4)], 20, 30, game_line=SLOW_LINE) if want("V20", "V26", "V27") else None
 R21 = make_root("v21", "fin", 0, [row(1, 3)], 30, 45, rule="seed", seed="fin") if want("V21") else None
 R23 = make_root("v23", "cnt", 0, [row(1, 3), row(4, 6, rnd=2)], 40, 55) if want("V23") else None
-R24 = make_root("v24", "two", 0, [row(1, 6)], 60, 75) if want("V24") else None
+R24 = make_root("v24", "two", 0, [row(1, 6)], 60, 75) if want("V24", "V24b", "V24c", "V24d") else None
 R25 = make_root("v25", "brk", 0, [row(1, 6)], 60, 75) if want("V25") else None
 OPENS23 = WORK / "v23_schedule1_opens.txt"
 P = {}
@@ -1339,6 +1350,62 @@ if R24:
           D_AFTER["V24"] < 6 and n <= D_AFTER["V24"] + 1 and ended_why(R24, 0) == "cutoff", (D_AFTER["V24"], n, kinds(R24, 0)))
     check("V24 the range seal names schedule 3", seal_of_round(R24, 0).get("schedule") == 3, seal_of_round(R24, 0))
     check("V24 no engine process left", engines_left(R24, 0) == [])
+if R24 and want("V24b", "V24c", "V24d"):
+    SEAL24 = Path("ranges") / "r0001.w000.seal.json"
+    lined = {int(str(r["game"]).rsplit("g", 1)[1]) for r in jlines(R24, 0) if "game" in r}
+    f24 = min((c for c in range(1, 7) if c not in lined), default=None)
+
+    def died(name: str, src: Path, drop_seal: bool) -> Path:
+        """A copy of `src` whose journal lost its last line, which must be `ended` (the death before it)."""
+        r = WORK / name
+        shutil.copytree(src, r)
+        j = r / "w000" / "journal.txt"
+        lines = j.read_bytes().split(b"\n")
+        if lines[-1] != b"" or jline(lines[-2].decode("ascii", "replace")).get("t") != "ended":
+            raise SystemExit(f"STOP: {name}: the journal's last line is not `ended`: {lines[-2][:120]!r}")
+        put(j, b"\n".join(lines[:-2]) + b"\n")
+        if drop_seal:
+            (r / SEAL24).unlink()                       # this test's own copy, inside the work folder
+        return r
+
+    def once(root: Path):
+        p = start(root, 0)
+        text, _ = p.communicate(timeout=300)
+        return p.returncode, text.strip()
+
+    made = f24 is not None and (R24 / SEAL24).exists() and \
+        json.loads((R24 / SEAL24).read_bytes())["dispositions"].get("never_dispatched_first") == f24
+    if want("V24b") and check("V24b can be made: V24 left an id without a line, its seal never_dispatched from it",
+                              made, (f24, kinds(R24, 0))):
+        r = died("v24b", R24, False)
+        s0 = (r / SEAL24).read_bytes()
+        out = once(r)
+        common("V24b", out, 0)
+        check("V24b (W1) a death between the range seal and `ended`: the next start ends the slot (`ended` "
+              "finalizer), the kept seal unchanged",
+              ended_why(r, 0) == "finalizer" and (r / SEAL24).read_bytes() == s0, (kinds(r, 0), out[1][-300:]))
+        jb = (r / "w000" / "journal.txt").read_bytes()
+        rc, text = once(r)
+        check("V24b a second start: exit 0, 'ended already', the journal unchanged",
+              rc == 0 and "ended already" in text and (r / "w000" / "journal.txt").read_bytes() == jb, (rc, text[-300:]))
+    if want("V24c", "V24d") and made:
+        r = died("v24c", R24, True)
+        out = once(r)
+        common("V24c", out, 0)
+        d = json.loads((r / SEAL24).read_bytes())["dispositions"] if (r / SEAL24).exists() else {}
+        want_d = (1, 6 - f24, f24 + 1 if f24 < 6 else None, [[f"two-w000-g{f24:08d}", "dispatch_unknown"]])
+        check("V24c (control) a death before the range seal: `ended` finalizer; the new seal holds the first id "
+              "without a line in doubt, the ids after it never dispatched",
+              ended_why(r, 0) == "finalizer" and (d.get("dispatch_unknown"), d.get("never_dispatched"),
+                                                  d.get("never_dispatched_first"), d.get("not_done")) == want_d,
+              (kinds(r, 0), d, want_d))
+        if want("V24d"):
+            r2 = died("v24d", r, False)
+            s0 = (r2 / SEAL24).read_bytes()
+            out = once(r2)
+            common("V24d", out, 0)
+            check("V24d (control) a finalizer's own seal, then the death before `ended`: `ended` finalizer, the seal "
+                  "unchanged", ended_why(r2, 0) == "finalizer" and (r2 / SEAL24).read_bytes() == s0, kinds(r2, 0))
 if R25:
     common("V25", OUT["V25"], 4, "SCHEDULE.2.json")
     n = kinds(R25, 0).count("done")

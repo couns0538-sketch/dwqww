@@ -13,6 +13,9 @@ R3  the server from the day's REAL programs, as test_publish.py's R2: run "drn",
     from the SERVER's own files, never from home.
 D1 to D11 (drain.py), E1 to E6 (credit v3; E3 publish.py's own reader on drain.py's record) as the known answers.
 PLANTS (each must make the test fail): plant1 to plant10 change drain.py, plant11 to plant17 credit.py.
+Added 25 Nov (Fable's read FABLE-2511-READ-PKG9-DRAIN, D1; known answers first in
+tmp/opus_scratch/fetch_fix/KNOWN_ANSWERS_fetch_fix_by_opus.md): D12, a range seal without a piece names no piece;
+plant18 (drain.py) takes the repair back.
 """
 import hashlib
 import json
@@ -68,6 +71,7 @@ PLANTS = {
     "plant16": (C, "                if not left_out:                        # v3: only a piece the DRAIN left out skips the sums "
                    "(v2's guard)\n", "                if True:\n"),
     "plant17": (C, "                if s[\"through_index\"] in c1:\n", "                if True:\n"),
+    "plant18": (D, "        for i in range(fi, ti + 1) if fi >= 0 else ():", "        for i in range(fi, ti + 1):"),
 }
 CP = WORK / "tree"
 for sub in ("home", "run", "workloads", "known"):
@@ -372,6 +376,39 @@ def case_d9_d10():
     check("D10b an empty home folder: exit 4, nothing written", (rc, sorted(h.iterdir())), (4, []))
 
 
+def case_d12():
+    """D12 (Fable's D1): a range seal WITHOUT a piece, as worker.py's range_seal() writes it for a slot that closed no
+    piece in a round, names NO piece; the control, the server's REAL seal r0002.w001, names its pieces. The real
+    drain.missing_list of the copy, with a stand-in for custody's Home that holds nothing in custody."""
+    sys.path.insert(0, str(HOMEP))
+    import drain as DR  # noqa: E402
+    real = json.loads((SRV / "ranges" / "r0002.w001.seal.json").read_bytes())
+    empty = dict(real, complete=False, first_index=-1, first_prev_seal=None, through_index=-1, through_seal=None,
+                 games=0, rows=0, raw_bytes=0)
+
+    class Stand:
+        def __init__(self, name: str, seal: dict):
+            self.fp, self.h, self.k, self.r = seal["run_fingerprint"], {"slots": [seal["slot"]]}, seal["slot"], seal["round"]
+            self.home = WORK / name
+            self.cust, self.wire = self.home / "custody", self.home / "wire"
+            put(self.wire / "ranges" / f"r{self.r:04d}.w{self.k:03d}.seal.json.zz", zlib.compress(W.canon(seal), 6))
+
+        def inventory(self):
+            return None
+
+        def ranges(self):
+            return {0: {(self.k, self.r): (0, 0)}}
+
+    fi, ti = real["first_index"], real["through_index"]
+    got = DR.missing_list(Stand("d12_control", real))
+    check(f"D12 control: the real range seal r0002.w001, nothing in custody: exactly its pieces {fi}..{ti} by the range "
+          "seal, the last with its through_seal", [(e["index"], e["named_by"], e["seal_sha256"]) for e in got],
+          [(i, ["range_seal"], real["through_seal"] if i == ti else None) for i in range(fi, ti + 1)])
+    got = DR.missing_list(Stand("d12", empty))
+    check("D12 a range seal without a piece (first_index -1, as the worker writes it) names no piece, not p-00001",
+          got, [])
+
+
 # ---- the cases: credit v3 --------------------------------------------------------------------------------------------
 def credit(h: Path) -> tuple:
     p = subprocess.run([sys.executable, "-I", "-B", str(CRED), "--home", str(h), "--fingerprint", FP["fp"]],
@@ -458,7 +495,7 @@ def main() -> int:
     if not (server() and homes()):
         print("the fixture failed: no case can run")
     else:
-        for fn in (case_d1_d8, case_d2_d4_d11, case_d5_d6, case_d7, case_d9_d10, case_e):
+        for fn in (case_d1_d8, case_d2_d4_d11, case_d5_d6, case_d7, case_d9_d10, case_d12, case_e):
             safe(fn)
     bad = [n for n, ok in RESULTS if not ok]
     print(f"{len(RESULTS) - len(bad)} of {len(RESULTS)} checks pass ({time.time() - t0:.0f} s)"

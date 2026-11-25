@@ -128,6 +128,8 @@ V  VERSION 2 (the seats' NOT YET on version 1; tmp/opus_scratch/guard_v2/KNOWN_A
        terminal naming why, one start in the next seconds (it is tried again after 60 s).
    V11 (Linux only, R12) end_exact: ours() False: nothing sent, the child lives; True: ended within 5 s; a child that
        has exited and is not reaped (its pidfd readable), ours() True: nothing sent.
+   V12 (G-A, Fable 25 Nov; known answer written before the change, in-process) new_schedule on a stand-in guard with
+       998 schedules: the bytes of schedule n 999 (round 2 added); with 999: Held naming SCHEDULE.999 (no 1000th).
 
 PLANTS (each must make the test fail; the check expected to fail is named):
   plant1 no decision-vs-outcome check (C6)          plant2 prev not checked (C3)
@@ -154,6 +156,7 @@ PLANTS (each must make the test fail; the check expected to fail is named):
   plant40 a fence control exempt from the plan (V9) plant41 no terminal writer (PA, V10a)
   plant42 the terminal's footer not checked (V10c)
   plant43 ours() not asked (V11a, Linux)          plant44 the pidfd not polled (V11c, Linux)
+  plant45 the schedule chain without its end (V12)
 """
 import ctypes
 import hashlib
@@ -257,6 +260,7 @@ PLANTS = {
                 "the bytes before it)\"\n", '            pass\n'),
     "plant43": ('        if not ours():\n            return False\n', '        if False:\n            return False\n'),
     "plant44": ('        if p.poll(0):\n            return False\n', '        if False:\n            return False\n'),
+    "plant45": ("        if n > 999:  ", "        if False:  "),
 }
 if PLANT:
     if PLANT not in PLANTS:
@@ -1213,6 +1217,26 @@ def part_c():
     true("V9 a fence control computed from another plan: HELD inputs.plan_sha256, no FENCE.json",
          held(g, "inputs.plan_sha256") and not (root / "FENCE.json").exists(), g.alarms)
     done(g)
+
+    # V12 (G-A, Fable 25 Nov): the schedule chain ends at SCHEDULE.999 (every program's grammar); SimpleNamespace is the
+    # module's import (an import here made the name local to all of part_c: UnboundLocalError at its first use, 12:45)
+    rws =[{"first": 1, "last": 4, "round": 1, "schedule": 0, "short": False, "slot": 1}]
+
+    def stand(n_before):
+        return SimpleNamespace(rows=lambda: rws, sched=[(b"s\n", {})] * n_before, h={"slots": [1]}, fp="f" * 64)
+    cut, disp = T(time.time() + 60), T(time.time() + 30)
+    try:
+        s999 = json.loads(G.Guard.new_schedule(stand(998), "e" * 64, 2, cut, disp))
+        got999 = (s999.get("n"), max(r["round"] for r in s999["ranges"]))
+    except Exception as e:  # noqa: BLE001   the case fails with its reason
+        got999 = repr(e)[:160]
+    try:
+        G.Guard.new_schedule(stand(999), "e" * 64, 2, cut, disp)
+        got1000 = "schedule 1000 made"
+    except G.Held as e:
+        got1000 = "SCHEDULE.999" in str(e)
+    check("V12 (G-A) the chain ends at SCHEDULE.999: schedule 999 is made (n 999, round 2), a 1000th is HELD naming "
+          "it", (got999, got1000), ((999, 2), True))
 
 
 # ---- P ---------------------------------------------------------------------------------------------------------------

@@ -191,7 +191,7 @@ def missing_list(H: Home) -> list:
             gone.append({"kind": "range_seal", "round": r, "slot": k, "first": first, "last": last})
             continue
         fi, ti, through = got
-        for i in range(fi, ti + 1):
+        for i in range(fi, ti + 1) if fi >= 0 else ():   # a range without a piece (-1, -1) names none (credit.py 372)
             name(k, i, "range_seal", through if i == ti else None)
     for k in slots:
         for i in range(max(rs[k], default=-1)):

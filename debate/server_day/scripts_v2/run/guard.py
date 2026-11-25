@@ -87,6 +87,11 @@ G4 THE SCHEDULES. The guard writes every schedule after the pilot, create-only: 
    of kind pilot_decision or target, only when its effect was a schedule, up to its scope's highest round, before
    the dispatch end, without a fence and without STOP, and only when the room test passes. Its evidence is that
    control's sha256. It never moves a bound, never starts a match and never changes the target.
+   THE CHAIN ENDS AT SCHEDULE.999 (G-A, Fable 25 Nov: the grammar of the worker, packer, terminal, fetch and credit):
+   no schedule 1000 is ever written; a control that would need it is HELD, the extension ALARMs, an owed effect is
+   tried again each pass, and the day goes on in the rows of SCHEDULE.999 (about 1,000 rounds: pilot rounds +
+   horizon + 998 when every later schedule is the extension's one round, up to horizon - 1 more for each later
+   control's own schedule; the seats' question with --round-games).
 G5 ROOM (D2; row 17). A schedule is written only when (free bytes on DIR's volume) - need >= --floor-bytes, where
    need = (counters of the rows whose range seal is not there yet) x (bytes a game) + (rows) x 13,312 (a range seal,
    its wire copy, its line of the inventory) + 2 x (every schedule's bytes, its own included: the wire copy and the
@@ -782,6 +787,9 @@ class Guard:
     # ---- G4, G5: the schedules and the room ------------------------------------------------------------------
     def new_schedule(self, evidence: str, upto: int, cut_text: str, disp_text: str) -> bytes:
         rows, n = list(self.rows()), len(self.sched) + 1
+        if n > 999:                                     # G-A (Fable 25 Nov): every program's grammar ends at 999
+            raise Held(f"the schedule chain ends at SCHEDULE.999.json (the grammar of the worker, packer, terminal, "
+                       f"fetch and credit): no schedule {n}; the day goes on in the rows of the last one")
         top = max(r["round"] for r in rows)
         for rnd in range(top + 1, upto + 1):
             for k in self.h["slots"]:
