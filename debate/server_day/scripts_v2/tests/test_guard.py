@@ -131,6 +131,25 @@ V  VERSION 2 (the seats' NOT YET on version 1; tmp/opus_scratch/guard_v2/KNOWN_A
    V12 (G-A, Fable 25 Nov; known answer written before the change, in-process) new_schedule on a stand-in guard with
        998 schedules: the bytes of schedule n 999 (round 2 added); with 999: Held naming SCHEDULE.999 (no 1000th).
 
+G11 THE CLOCK FILE (v16; the clock known answers G, ADDENDUM 3's S5, ADDENDUM 4's G1' and G1b; part C in-process,
+   the guard's Bounds reading a stand-in clock the test sets, write_clock called directly; G1 also in part P):
+   G1  the first write: CLOCK.json canonical, exactly n, run_fingerprint, schema, state, utc_ms: n 1, schema 1, this
+       run, play, utc_ms = anchor UTC + run (within 1 ms). In part P after PA's day (the guard's REAL pass wrote it):
+       this run's record, n >= 1, a state of the four, utc_ms inside the day.
+   G1b UTC 25,170 s ahead, steady and boot normal, no bound crossed (D a day away): utc_ms = anchor + run (within
+       1 ms), state play; UTC 30 s BEHIND: utc_ms = that UTC.
+   G2  50 writes: each read back is the whole record, n rising by 1; no .CLOCK.json.*.part left.
+   G3  CLOCK_EVERY is 60.0; after a write, readings 30 s and 59.9 s later write nothing, 60 s later and 125 s later
+       write (n +1 each).
+   G4  a guard started again on the root continues n (its first write is n + 1); a CLOCK.json of another run, and
+       one that is not a record, are replaced from n 1.
+   G5  (S5) state is the clocks' alone: play, dispatch_end (an earlier dispatch end), cutoff; after the fence at D
+       still cutoff; UTC alone 7,300 s ahead: hold (utc_ms still anchor + run); a fence before D while the clocks
+       say play: play.
+   G6  (ADDENDUM 9, Fable's proof) CLOCK.json a FOLDER: the write returns, alarm "clock" names it, n 0, clock_at
+       None; the next pass tries again (a second alarm call, at most one scratch); the folder gone: written n 1, the
+       alarm cleared; a leftover scratch of this process, 60 s later: written n 2, no scratch left.
+
 PLANTS (each must make the test fail; the check expected to fail is named):
   plant1 no decision-vs-outcome check (C6)          plant2 prev not checked (C3)
   plant3 the evidence's sha256 not checked (C5)     plant4 owner_policy not checked (C7)
@@ -157,6 +176,10 @@ PLANTS (each must make the test fail; the check expected to fail is named):
   plant42 the terminal's footer not checked (V10c)
   plant43 ours() not asked (V11a, Linux)          plant44 the pidfd not polled (V11c, Linux)
   plant45 the schedule chain without its end (V12)
+  plant46 the clock file never written by the pass (G1 in PA)
+  plant47 utc_ms from UTC alone (G1b)              plant48 no spacing of the writes (G3)
+  plant49 n not continued on a restart (G4)
+  plant50 a failed write lets its error out (G6)   plant51 a failed write counted as a write, not tried again (G6)
 """
 import ctypes
 import hashlib
@@ -261,6 +284,15 @@ PLANTS = {
     "plant43": ('        if not ours():\n            return False\n', '        if False:\n            return False\n'),
     "plant44": ('        if p.poll(0):\n            return False\n', '        if False:\n            return False\n'),
     "plant45": ("        if n > 999:  ", "        if False:  "),
+    "plant46": ("        self.write_clock(r, st)\n", "        pass\n"),
+    "plant47": ("        return math.floor(min(t) * 1000)\n", "        return math.floor(r[0] * 1000)\n"),
+    "plant48": ("        if self.clock_at is not None and r[1] - self.clock_at < self.clock_every:\n",
+                "        if False:\n"),
+    "plant49": ("            return c[\"n\"]\n", "            return 0\n"),
+    "plant50": ("            self.alarm(\"clock\", f\"CLOCK.json not written: {e}\")\n            return\n",
+                "            raise\n"),
+    "plant51": ("            self.alarm(\"clock\", f\"CLOCK.json not written: {e}\")\n",
+                "            self.alarm(\"clock\", f\"CLOCK.json not written: {e}\")\n            self.clock_at = r[1]\n"),
 }
 if PLANT:
     if PLANT not in PLANTS:
@@ -403,6 +435,33 @@ def accepted(root, k, cb):
 
 def fp_of(root):
     return sha((root / "RUN.json").read_bytes())
+
+
+def clock_rec(root):
+    """G11: ROOT/CLOCK.json read as the canonical record, or why not (a text)."""
+    try:
+        return W.parse_canon((root / "CLOCK.json").read_bytes(), "CLOCK.json")
+    except (OSError, ValueError) as e:
+        return repr(e)[:160]
+
+
+def staged(g):
+    """G11: the guard's Bounds take a stand-in anchor (its UTC kept; steady 1000.0 and boot 2000.0, so that the
+    test's spacings are exact in binary: 60 s is 60.0, not 59.99999999999) and read no clock of their own;
+    at(run, utc_off) is a reading run seconds after the anchor on the steady and boot clocks, UTC moved by utc_off."""
+    a0 = g.B.anchor
+    a = (a0[0], 1000.0, None if a0[2] is None else 2000.0)
+    g.B.anchor = a
+    g.B.clocks = SimpleNamespace(read=lambda: a)
+
+    def at(run, utc_off=0.0):
+        return (a[0] + run + utc_off, a[1] + run, None if a[2] is None else a[2] + run)
+    return a, at
+
+
+def field(x, k):
+    """G11: field k of a clock record, or the text that says why there is none."""
+    return x.get(k) if isinstance(x, dict) else x
 
 
 def plan_in(pol):
@@ -1238,6 +1297,113 @@ def part_c():
     check("V12 (G-A) the chain ends at SCHEDULE.999: schedule 999 is made (n 999, round 2), a 1000th is HELD naming "
           "it", (got999, got1000), ((999, 2), True))
 
+    # G11 (v16): the clock file, written by write_clock from readings the test sets
+    root, pol = make_root("g11", [1], rows([1]), 86400)
+    g = guard(root, pol)
+    a, at = staged(g)
+
+    def put(run, utc_off=0.0):
+        r = at(run, utc_off)
+        g.write_clock(r, g.state(r))
+        return clock_rec(root)
+    c = put(5.0)
+    check("G1 the first write: CLOCK.json canonical with exactly its five keys; n 1, schema 1, this run, play, utc_ms "
+          "= anchor UTC + run (within 1 ms)",
+          (sorted(c) if isinstance(c, dict) else c, isinstance(c, dict) and (c["n"], c["schema"], c["run_fingerprint"]
+           == g.fp, c["state"], abs(c["utc_ms"] - (a[0] + 5.0) * 1000) <= 1)), (G.CLOCK_KEYS, (1, 1, True, "play", True)))
+    c1, c2 = put(70.0, 25170.0), put(140.0, -30.0)
+    check("G1b UTC 25,170 s ahead (no bound crossed): utc_ms = anchor + run, play; UTC 30 s behind: utc_ms = that UTC",
+          [isinstance(x, dict) and (x["n"], x["state"], abs(x["utc_ms"] - want * 1000) <= 1) for x, want in
+           ((c1, a[0] + 70.0), (c2, a[0] + 110.0))], [(2, "play", True), (3, "play", True)])
+    ns = []
+    for i in range(50):
+        x = put(200.0 + 60 * i)
+        ns.append(x["n"] if isinstance(x, dict) and sorted(x) == G.CLOCK_KEYS else x)
+    check("G2 50 writes: every read is the whole record, n rising by 1; no .CLOCK.json.*.part left",
+          (ns, sorted(q.name for q in root.glob(".CLOCK.json.*"))), (list(range(4, 54)), []))
+    last = 200.0 + 60 * 49
+    got = [field(put(last + d), "n") for d in (30.0, 59.9, 60.0, 125.0)]
+    check("G3 CLOCK_EVERY 60.0; 30 s and 59.9 s after a write nothing, 60 s and 125 s after it a write each",
+          (G.CLOCK_EVERY, got), (60.0, [53, 53, 54, 55]))
+    done(g)
+    g = guard(root, pol)
+    a, at = staged(g)
+    g4 = [g.clock_n, field(put(1.0), "n")]          # n at the start, then the first write
+    done(g)
+    for name, data in (("another run's", W.canon({"n": 7, "run_fingerprint": "0" * 64, "schema": 1,
+                                                  "state": "play", "utc_ms": 1800000000000})),
+                       ("not a record", b"not a record\n")):
+        (root / "CLOCK.json").write_bytes(data)
+        g = guard(root, pol)
+        a, at = staged(g)
+        n0 = g.clock_n
+        c = put(1.0)
+        g4.append((name, n0, isinstance(c, dict) and (c["n"], c["run_fingerprint"] == g.fp)))
+        done(g)
+    check("G4 a guard started again continues n (56 after 55); another run's CLOCK.json and one that is not a "
+          "record are replaced from n 1", g4,
+          [55, 56, ("another run's", 0, (1, True)), ("not a record", 0, (1, True))])
+    root, pol = make_root("g11s", [1], rows([1]), 7200)
+    g = guard(root, pol)
+    a, at = staged(g)
+    g.B.set("dispatch_end", a[0] + 3600)
+    sts = [field(put(100.0), "state"), field(put(3700.0), "state"), field(put(7300.0), "state")]
+    g.fence("D")
+    sts.append(field(put(7400.0), "state"))
+    done(g)
+    root, pol = make_root("g11h", [1], rows([1]), 7200)
+    g = guard(root, pol)
+    a, at = staged(g)
+    c = put(100.0, 7300.0)
+    sts.append(isinstance(c, dict) and (c["state"], abs(c["utc_ms"] - (a[0] + 100.0) * 1000) <= 1))
+    done(g)
+    root, pol = make_root("g11f", [1], rows([1]), 7200)
+    g = guard(root, pol)
+    a, at = staged(g)
+    g.fence("control 3: a stop before D")
+    sts.append(field(put(100.0), "state"))
+    done(g)
+    check("G5 (S5) state is the clocks' alone: play, dispatch_end, cutoff, cutoff after the fence at D, hold with "
+          "UTC alone 7,300 s ahead (utc_ms still anchor + run), play after a fence before D", sts,
+          ["play", "dispatch_end", "cutoff", "cutoff", ("hold", True), "play"])
+    # G6 (ADDENDUM 9, Fable's proof of 18:14 on the real guard): a write that fails is the ALARM clock, tried again
+    root, pol = make_root("g11w", [1], rows([1]), 86400)
+    (root / "CLOCK.json").mkdir()
+    g = guard(root, pol)
+    a, at = staged(g)
+    calls, real_alarm = [], g.alarm
+
+    def counted(key, text):                         # the guard writes a repeated alarm text once: the count shows a try
+        calls.append((key, "CLOCK.json not written" in text))
+        real_alarm(key, text)
+    g.alarm = counted
+
+    def tries(run):
+        r = at(run)
+        try:
+            g.write_clock(r, g.state(r))
+            return "returned"
+        except BaseException as e:  # noqa: BLE001   the answer of a method that lets its error out
+            return f"{type(e).__name__} escaped"
+
+    def scratch():
+        return sorted(q.name for q in root.glob(".CLOCK.json.*"))
+    w = [(tries(5.0), list(calls), g.clock_n, g.clock_at, (root / "CLOCK.json").is_dir())]
+    w.append((tries(6.0), list(calls), g.clock_n, g.clock_at, len(scratch()) <= 1, "clock" in g.alarms))
+    (root / "CLOCK.json").rmdir()
+    w.append((tries(7.0), field(clock_rec(root), "n"), "clock" in g.alarms, g.clock_n, g.clock_at == a[1] + 7.0,
+              scratch()))
+    (root / f".CLOCK.json.{os.getpid()}.part").write_bytes(b"left by a crash\n")
+    w.append((tries(67.0), field(clock_rec(root), "n"), scratch()))
+    done(g)
+    check("G6 (Fable's proof) CLOCK.json a folder: the write returns, alarm 'clock' names it, n 0, clock_at None, "
+          "still a folder; the next pass tries again (a second alarm call, at most one scratch, the alarm standing); "
+          "the folder gone: written n 1, the alarm cleared, clock_at the reading's; a leftover scratch of this "
+          "process, 60 s later: written n 2, no scratch left", w,
+          [("returned", [("clock", True)], 0, None, True),
+           ("returned", [("clock", True), ("clock", True)], 0, None, True, True),
+           ("returned", 1, False, 1, True, []), ("returned", 2, [])])
+
 
 # ---- P ---------------------------------------------------------------------------------------------------------------
 def part_p():
@@ -1264,6 +1430,7 @@ def part_p():
     G.RETRY = {6: 0.5, 8: 0.5, 3: 0.5, 0: 0.5}
     root, pol = fake_root("pa", [1, 2, 3, 4], {1: ["sleep:1"], 2: ["exit:4", "ended"], 3: ["orphan"],
                                                4: ["exit:6", "hang"]}, 8)
+    t_pa0 = time.time()
     g = guard(root, pol)
     seen = {}
     faulted2 = []
@@ -1277,6 +1444,12 @@ def part_p():
 
     closed = drive(g, lambda g: False, 60, each)
     check("PA the day closed", closed, True)
+    ck = clock_rec(root)
+    true("G1 (PA: the guard's REAL pass wrote it) CLOCK.json is this run's record, n >= 1, a state of the four, "
+         "utc_ms inside the day",
+         isinstance(ck, dict) and sorted(ck) == G.CLOCK_KEYS and ck["schema"] == 1 and ck["run_fingerprint"] ==
+         fp_of(root) and type(ck["n"]) is int and ck["n"] >= 1 and ck["state"] in ("play", "dispatch_end",
+         "cutoff", "hold") and t_pa0 * 1000 - 1000 <= ck["utc_ms"] <= time.time() * 1000 + 1000, ck)
     h = hdr(root)
     f = json.loads((root / "FENCE.json").read_bytes()) if (root / "FENCE.json").exists() else {}
     check("PA FENCE.json", {k: f.get(k) for k in ("cutoff_utc", "why", "schema", "run_fingerprint")} | {

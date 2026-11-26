@@ -46,9 +46,10 @@ V  version 2 (24 November; known answers tmp/opus_scratch/bootguard_v2/KNOWN_ANS
    V6 a stray closed piece in w001: 4. V7 a stale open/p000000.raw in w000: 4. V7c w001 with no journal and no closed
    piece, only open/p000000.raw: 4. V8 the package's run folder a junction (Windows) or link (Linux): 5. V9 slots []:
    4. V10 guard/CLOSED.json without FENCE.json: 4. V11 RESUME.1 written at newest + 3600, boot-c at newest + 1800: 5.
-   V12 a fresh run, UTC 100 s before the lease start: 5. V13a to V13i R1 with RESUME.1 rewritten (a forged genesis,
+   V12 a fresh run, UTC 100 s before the lease start: 5. V13a to V13m R1 with RESUME.1 rewritten (a forged genesis,
    instance_provable false, at_utc "yesterday", old_boot_id boot-z, new = old boot, an extra key, instance null, no
-   `clock` check) and V13d a hand-made RESUME.2 50 s before RESUME.1: 4. V14 a journal 7,200 s ahead, UTC newest +
+   `clock` check; v16: prev "x", n 2, schema 1, run_fingerprint 64 zeros) and V13d a hand-made RESUME.2 50 s before
+   RESUME.1: 4. V14 a journal 7,200 s ahead, UTC newest +
    3,600: 5 (the journal; plant5's case). Admitted controls: V3 R1 intact, boot-c (RESUME.2 rows [h0, h1, genesis]);
    V7b the open piece with bytes not journalled (RESUME.1 rows [h0, h1, genesis]); V11b boot-c at newest + 3610.
 
@@ -63,7 +64,7 @@ PLANTS (each must make the test fail; the check expected to fail is named):
   plant15 a slot's lock not taken (B16)              plant16 the list's sha256 not compared (B11)
   plant17 the identity not checked (B14)             plant18 the header's instance_provable ignored (T2)
   plant19 the digest line not checked (U4)          plant20 the header's keys not checked (B19)
-  plant21 no catch-all: a traceback (B20)           plant22 old_boot_id not compared in the chain (B21)
+  plant21 no catch-all: a traceback (B20)           plant22 old_boot_id not compared in the chain (V13e)
   plant23 plan.json not required in the list (U6)
   plant24 closed/ rule gone (V1, V6)                plant25 open/ index rule gone (V7)
   plant26 open/ epoch rule gone (V7c)               plant27 the ancestry check gone (V2, V4, V5)
@@ -74,6 +75,11 @@ PLANTS (each must make the test fail; the check expected to fail is named):
   plant36 its at_utc not parsed (V13c, V13d)         plant37 its at_utc order not checked (V13d)
   plant38 package paths not resolved (V8)            plant39 the slots rule gone (V9)
   plant40 CLOSED.json not looked at (V10)
+  v16 (tmp/opus_scratch/v16/KNOWN_ANSWERS_bootguard_v16_by_opus.md, Fable's G-BG-1): a RESUME's
+  plant41 schema not compared (V13l)                plant42 n not compared (V13k)
+  plant43 run_fingerprint not compared (V13m)       plant44 prev not compared (V13j)
+v16 also: when the boot guard writes no RESUME (Fable's Linux run), a RESUME the test needs and does not find is ONE
+FAIL naming it and its case is skipped: parts E and V run to their end.
 """
 import hashlib
 import json
@@ -160,6 +166,10 @@ PLANTS = {
     "plant39": ('        if not (s and all(type(x) is int and 0 <= x <= 999 for x in s) and all(x < y for x, y in '
                 'zip(s, s[1:]))):\n', '        if False:\n'),
     "plant40": ('        if (self.gdir / "CLOSED.json").exists():\n', '        if False:\n'),
+    "plant41": ('if not isinstance(r, dict) or r.get("schema") != 2 or ', 'if not isinstance(r, dict) or '),
+    "plant42": ('r.get("n") != k or ', ''),
+    "plant43": ('r.get("run_fingerprint") != fp \\\n', 'False \\\n'),
+    "plant44": ('or r.get("prev") != ("first" if k == 1 else sha256_bytes(prev)) \\\n', 'or False \\\n'),
 }
 if PLANT:
     if PLANT not in PLANTS:
@@ -498,7 +508,7 @@ def part_e():
           (True, [0], None, "boot-b"))
     every = whole(root)
     check("E5 the boot guard again under boot-b: exit 0, no RESUME.2, RESUME.1 unchanged",
-          (bg(root, "boot-b"), resumes(root), (root / "RESUME.1.json").read_bytes() == r1b),
+          (bg(root, "boot-b"), resumes(root), maybe(root / "RESUME.1.json") == r1b),
           (0, ["RESUME.1.json"], True))
     check("E5 every file of the root unchanged", changed(every, whole(root), but=()), [])
     h0b = head(root, 0)
@@ -678,12 +688,27 @@ def case_of(src, name):
     return c
 
 
+def maybe(p):
+    """A file's bytes, or None when it is not there (v16: a run whose boot guard wrote no RESUME FAILs its checks and
+    the test goes on)."""
+    try:
+        return p.read_bytes()
+    except FileNotFoundError:
+        return None
+
+
 def rewrite(root, k, fn):
-    """RESUME.k rewritten canonically after fn(record) changed it."""
+    """RESUME.k rewritten canonically after fn(record) changed it; True. When RESUME.k is not there: ONE FAIL naming
+    it, False (the caller skips its case)."""
     p = root / f"RESUME.{k}.json"
-    r = json.loads(p.read_bytes())
+    data = maybe(p)
+    if data is None:
+        true(f"{root.name}: RESUME.{k}.json is there to be rewritten", False, "the boot guard wrote no RESUME")
+        return False
+    r = json.loads(data)
     fn(r)
     p.write_bytes(W.canon(r))
+    return True
 
 
 def dir_link(link: Path, target: Path) -> None:
@@ -715,8 +740,9 @@ def part_v():
     j.write_bytes(b"".join(ln + b"\n" for ln in lines[:cut]))
     held_v("V4 R1, w000's journal cut before its last closed line", c, lambda: bg(c, "boot-c"), 4, ("w000", "RESUME.1"))
     c = case_of("state_r1", "v5")
-    rewrite(c, 1, lambda r: r["slots"][1].update(last_seal="ab" * 32))
-    held_v("V5 R1, slot 1's admitted seal forged", c, lambda: bg(c, "boot-c"), 4, ("w001", "RESUME.1", "another seal"))
+    if rewrite(c, 1, lambda r: r["slots"][1].update(last_seal="ab" * 32)):
+        held_v("V5 R1, slot 1's admitted seal forged", c, lambda: bg(c, "boot-c"), 4,
+               ("w001", "RESUME.1", "another seal"))
     c = case("v6")
     stray = f"p{h1['last_index'] + 5:06d}.raw"
     shutil.copyfile(c / "w001" / "closed" / "p000000.raw", c / "w001" / "closed" / stray)
@@ -774,18 +800,26 @@ def part_v():
             ("V13f new_boot_id = old_boot_id", lambda r: r.update(new_boot_id="boot-a"), ("new_boot_id is its old",)),
             ("V13g an extra key", lambda r: r.update(note="x"), ("eleven",)),
             ("V13h instance null", lambda r: r.update(instance=None), ("instance is not",)),
-            ("V13i no clock check", lambda r: r["checks"].pop("clock"), ("seven",))):
+            ("V13i no clock check", lambda r: r["checks"].pop("clock"), ("seven",)),
+            ("V13j prev x", lambda r: r.update(prev="x"), ("not RESUME 1 of this run",)),
+            ("V13k n 2", lambda r: r.update(n=2), ("not RESUME 1 of this run",)),
+            ("V13l schema 1", lambda r: r.update(schema=1), ("not RESUME 1 of this run",)),
+            ("V13m run_fingerprint 64 zeros", lambda r: r.update(run_fingerprint="0" * 64),
+             ("not RESUME 1 of this run",))):
         c = case_of("state_r1", name.split()[0].lower())
-        rewrite(c, 1, fn)
-        held_v(f"{name} in RESUME.1, boot-c", c, lambda: bg(c, "boot-c"), 4, ("RESUME.1.json",) + words)
+        if rewrite(c, 1, fn):
+            held_v(f"{name} in RESUME.1, boot-c", c, lambda: bg(c, "boot-c"), 4, ("RESUME.1.json",) + words)
     c = case_of("state_r1", "v13d")
-    r1b = (c / "RESUME.1.json").read_bytes()
-    r1r = json.loads(r1b)
-    r2 = dict(r1r, n=2, prev=sha(r1b), old_boot_id="boot-b", new_boot_id="boot-c",
-              at_utc=T(W.utc(r1r["at_utc"], "RESUME.1 at_utc") - 50))
-    (c / "RESUME.2.json").write_bytes(W.canon(r2))
-    held_v("V13d a hand-made RESUME.2 50 s before RESUME.1, boot-d", c, lambda: bg(c, "boot-d"), 4,
-           ("RESUME.2.json", "at_utc"))
+    r1b = maybe(c / "RESUME.1.json")
+    if r1b is None:
+        true("v13d: RESUME.1.json is there to make a RESUME.2 from", False, "the boot guard wrote no RESUME")
+    else:
+        r1r = json.loads(r1b)
+        r2 = dict(r1r, n=2, prev=sha(r1b), old_boot_id="boot-b", new_boot_id="boot-c",
+                  at_utc=T(W.utc(r1r["at_utc"], "RESUME.1 at_utc") - 50))
+        (c / "RESUME.2.json").write_bytes(W.canon(r2))
+        held_v("V13d a hand-made RESUME.2 50 s before RESUME.1, boot-d", c, lambda: bg(c, "boot-d"), 4,
+               ("RESUME.2.json", "at_utc"))
     c = case("v14")
     newest = max(p.stat().st_mtime for p in c.glob("w*/journal.txt"))
     os.utime(c / "w000" / "journal.txt", (newest + 7200, newest + 7200))

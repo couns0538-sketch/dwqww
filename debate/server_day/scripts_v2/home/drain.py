@@ -10,8 +10,14 @@ ONE CALL, made by the home guard or a person when the fetch will bring nothing m
    arrived and a record would name nothing;
  3 home/DRAIN.json already there: this run's, nothing is written (exit 0; the authority is not asked again); another
    run's (exit 3: a home folder serves one run); not the home guard's record (exit 4). It is never replaced;
- 4 THE AUTHORITY (refused: exit 4): "lease ended" only when the PC's clock in UTC is at or after the header's
-   lease_end_utc; "source gone since T" only when T is not after that clock; "declared stop" is a person's word;
+ 4 THE AUTHORITY (refused: exit 4): "lease ended" only when the SERVER's clock is at or after the header's
+   lease_end_utc; "source gone since T" only when T is not after that clock; "declared stop" is a person's word.
+   v16 (K1): the server's clock is home/clock.py's server_text, measured from the guard's CLOCK.json (the PC's
+   clock runs about 7 hours ahead of UTC and accepted "lease ended" 7 hours early). It runs late by up to about
+   75 s, never early, so both reasons are accepted late, never early. No usable clock line: both are REFUSED, the
+   helper's text named, and the text ends "; or, when the server's guard has ended, drain with --why \"declared
+   stop\"" (D7: after a PC restart late in the day no new line can come). "declared stop" needs no clock: its
+   at_utc is the server's time when the helper gives one, else the PC's clock, a stamp (D5);
  5 custody's receipts and fork records read and bound (custody's check_records: exit 3 or 4);
  6 WAITS (exit 0, nothing written): a check on data already in custody runs: a receipt without its content verdict,
    or an offer whose every member is at home and intact without a receipt (custody's next pass receipts it). The
@@ -40,6 +46,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "run"))
 sys.path.insert(0, str(HERE))
+from clock import ClockRefused, server_text  # noqa: E402   v16 K1: the server's time, measured
 from custody import HEX64, OFFER, RECEIPT, Bad, Home, Waits, canon_of, is_int, unzz, utc  # noqa: E402
 from packer import MEMBER_KEYS  # noqa: E402
 from worker import Stop, canon, create_only, parse_canon, sha256_bytes  # noqa: E402
@@ -81,9 +88,9 @@ def authority(H: Home, why: str, now: str):
         if type(end) is not str or not UTC.fullmatch(end):
             return "the run header at home has no lease_end_utc of the form YYYY-MM-DDTHH:MM:SSZ"
         if now < end:
-            return f"the lease ends at {end}; the PC's clock reads {now} (UTC)"
+            return f"the lease ends at {end}; the server's clock reads {now} (UTC)"
     elif why != "declared stop" and GONE.fullmatch(why)[1] > now:
-        return f"'{why}' names a time after the PC's clock ({now}, UTC)"
+        return f"'{why}' names a time after the server's clock ({now}, UTC)"
     return None
 
 
@@ -245,7 +252,14 @@ def main() -> int:
         if got:
             print(f"drain: DRAIN.json of this run is at home (sha256 {got[0][:12]}): nothing written")
             return 0
-        now = utc()
+        try:
+            now = server_text(home, a.fingerprint)      # v16 K1: the SERVER's time (late, never early)
+        except ClockRefused as e:
+            if a.why != "declared stop":
+                print(f"drain: REFUSED (4): the server's time is not known: {e}; or, when the server's guard has "
+                      f"ended, drain with --why \"declared stop\"; nothing written")
+                return 4
+            now = utc()                                 # D5: a person's word; the PC's clock, a stamp only
         refused = authority(H, a.why, now)
         if refused:
             print(f"drain: REFUSED (4): {refused}; nothing written")

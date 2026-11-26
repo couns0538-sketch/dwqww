@@ -18,8 +18,11 @@ DIR/deliver/: LOCK (one delivery or observe at a time, else exit 8), journal.jso
 BEFORE its first byte travels; it is what tools/make_control.py gets as --accepted), back/ (bytes read back, removed
 after each compare). DIR/control/ is THE SEEN CHAIN: observe alone writes it.
 PROBE (H4), once after the admission: two names are put into the inbox, `rename -l` of one onto the other must fail,
-both are removed and the inbox is listed without them; a journal line. Exit 0: the rename is create-only; 3: it
-replaced the other name, or a name stayed. Send holds while the journal has no passed probe of this run.
+and (v16, P3a: the positive control) `rename -l` of it onto a FREE third name must succeed, the listing showing
+the second and the third name and not the first; all three are removed and the inbox is listed without them; a
+journal line with refused, kept, moved and gone. Exit 0: the rename is create-only and it works; 3: it replaced
+the other name, did not move onto a free one, or a name stayed (the text names the step). Send holds while the
+journal has no passed probe of this run.
 SEND takes ONE decision that make_control.py wrote into NEWDIR and refuses (exit 4, nothing written) anything else:
 not exactly EVIDENCE.<e>.json, CONTROL.<k>.json and their .zz; a .zz that is not one whole zlib stream (at most 16
 MiB) of its .json; an evidence whose name is not its sha256 (make_control writes without a flush: a short file) or
@@ -30,8 +33,12 @@ control's sha256; another control under the same k in sent/; the newest sent con
 the fence) and not seen yet, for any kind but fence (an effect none, kind matches or outcome UNQUALIFIED, is never
 visible at home: the next one is built on it and the guard's chain rule decides; H1); a bound later than the one in
 force (the newest SCHEDULE.<n>.json.zz in DIR/wire/, else the header's hard cutoff) or a dispatch end after its
-cutoff; the clock at or past the cutoff in force, for any kind but fence (a stop is never held at home); no passed
-probe. The same bytes again are a retry: they pass (bounds are not checked again).
+cutoff; the SERVER's clock at or past the cutoff in force, or no usable clock line, for any kind but fence (a stop
+is never held at home); no passed probe. The same bytes again are a retry: they pass (bounds are not checked
+again). v16 (K3): the server's clock is home/clock.py's server_now, measured from the guard's CLOCK.json (the PC's
+clock runs about 7 hours ahead and held every control from 7 hours before the cutoff). It runs late by up to about
+75 s, never early: a control may leave up to about 75 s after the real cutoff, which is harmless, since the
+server's guard takes no control after the cutoff by its own clocks (guard.py, one_pass).
 THE TRANSFER: the inbox is listed FIRST (no "-": a missing inbox is exit 7; a host key or login failure ends here with
 6, before any put). Then every sent control above the seen chain up to k, in order, its evidence first and the
 control LAST: a final name in the inbox already is read back and compared (equal: nothing put; other bytes: exit 3
@@ -52,7 +59,6 @@ import os
 import re
 import subprocess
 import sys
-import time
 import zlib
 from pathlib import Path
 
@@ -60,6 +66,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "tools"))
 sys.path.insert(0, str(HERE))
 import fetch as F  # noqa: E402   the connection; it puts run/ on the path for worker
+import clock as CK  # noqa: E402   v16 K3: the server's time, measured (home/clock.py)
 import make_control as MC  # noqa: E402   the chain check, the names and the keys, as the control maker reads them
 from worker import SlotLock, Stop, canon, create_only, parse_canon, sha256_bytes  # noqa: E402
 
@@ -249,8 +256,17 @@ class Home:
         if c_cut > cut or c_disp > disp or c_disp > c_cut:
             raise Stop(3, f"HELD: a bound later than the one in force (cutoff {c['cutoff_utc']} against {MC.T(cut)}, "
                           f"dispatch end {c['dispatch_end_utc']} against {MC.T(disp)}) or a dispatch end after the cutoff")
-        if time.time() >= cut and c["kind"] != "fence":
-            raise Stop(3, f"HELD: D has come ({MC.T(cut)}, the cutoff in force): no new playing time; a fence still goes")
+        if c["kind"] != "fence":                        # v16 K3: the SERVER's time (late, never early)
+            try:
+                now = CK.server_now(self.home, self.fp)
+            except CK.ClockRefused as e:
+                raise Stop(3, f"HELD: the server's time is not known ({e}): a control other than a fence waits "
+                              f"for a clock line (clock.py measure); a fence still goes") from None
+            if now >= cut:
+                raise Stop(3, f"HELD: D has come ({MC.T(cut)}, the cutoff in force) by home's reading of the "
+                              f"server's clock, which is late by up to about 75 s; the guard takes no control "
+                              f"after the cutoff by its own clocks (guard.py, one_pass): no new playing time; a "
+                              f"fence still goes")
 
     # ---- DV4 and DV5 the transfer ----------------------------------------------------------------------------------
     def listing(self, w: Wire) -> dict:
@@ -307,7 +323,7 @@ class Home:
 
 def probe(home: Home, w: Wire) -> str:
     home.listing(w)                                     # the host key and the login first
-    a, b = f"probe.{os.getpid()}.a", f"probe.{os.getpid()}.b"
+    a, b, c = f"probe.{os.getpid()}.a", f"probe.{os.getpid()}.b", f"probe.{os.getpid()}.c"
     local = home.back / "probe.bytes"
     local.write_bytes(b"probe\n")
     rc, text = w.run([f'put "{local.as_posix()}" "{w.inbox}/{a}"', f'put "{local.as_posix()}" "{w.inbox}/{b}"'])
@@ -318,15 +334,23 @@ def probe(home: Home, w: Wire) -> str:
     refused = rc != 0
     both = home.listing(w)
     kept = a in both and b in both
-    w.run([f'-rm "{w.inbox}/{a}"', f'-rm "{w.inbox}/{b}"'])
-    gone = not ({a, b} & set(home.listing(w)))
+    rc, text = w.run([f'rename -l "{w.inbox}/{a}" "{w.inbox}/{c}"'])     # P3a: the positive step, a FREE name
+    after = home.listing(w)
+    moved = rc == 0 and b in after and c in after and a not in after
+    w.run([f'-rm "{w.inbox}/{a}"', f'-rm "{w.inbox}/{b}"', f'-rm "{w.inbox}/{c}"'])
+    gone = not ({a, b, c} & set(home.listing(w)))
     local.unlink(missing_ok=True)
-    passed = refused and kept and gone
-    home.note(t="probe", run_fingerprint=home.fp, passed=passed, refused=refused, kept=kept, gone=gone)
+    passed = refused and kept and moved and gone
+    home.note(t="probe", run_fingerprint=home.fp, passed=passed, refused=refused, kept=kept, moved=moved,
+              gone=gone)
     if not passed:
-        raise Stop(3, f"the probe FAILED: the server's `rename -l` {'refused' if refused else 'REPLACED the name'}, "
-                      f"both names there before the removal {kept}, both gone after it {gone}: no send goes out")
-    return "deliver: probe passed (`rename -l` refuses an existing name; both probe names removed)"
+        steps = [s for s, ok in (("the rename onto an existing name was NOT refused (it REPLACED the name)", refused),
+                                 ("a probe name was missing before the move", kept),
+                                 ("the move onto a free name failed", moved),
+                                 ("a probe name stayed after the removal", gone)) if not ok]
+        raise Stop(3, f"the probe FAILED: {'; '.join(steps)}: no send goes out")
+    return ("deliver: probe passed (`rename -l` refuses an existing name and moves to a free one; the probe names "
+            "removed)")
 
 
 def send(home: Home, w: Wire, newdir: Path) -> str:

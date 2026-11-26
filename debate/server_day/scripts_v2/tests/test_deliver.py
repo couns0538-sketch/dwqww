@@ -44,7 +44,18 @@ L   the process: observe while the test holds DIR/deliver/LOCK: exit 8; send wit
     that is not zlib: exit 4 and nothing made there; L7 the control: this run's header alone, the folders are made.
     L4b (Fable) a --home that does not exist: exit 2, still not there; L6b (Fable) a header that is zlib and has the
     fingerprint but is no record: exit 4, no traceback, nothing made.
-PLANTS: see PLANTS below (each must make the test fail).
+v16 (25 Nov; the clock known answers tmp/opus_scratch/clock/KNOWN_ANSWERS_clock_by_opus.md, DL1 to DL3, ADDENDUM 2's
+P3 and ADDENDUM 7): deliver's D check takes the SERVER's time (home/clock.py's server_now). Every home gets ONE ok
+clock line of its run in the test's world (the server's time = the PC's), so every check above keeps its meaning.
+P3b the probe's positive step through the real client: moved true, exactly two `rename -l` lines (a onto b, a
+    onto the free c), the inbox empty. P3c a client whose every `rename -l` fails: the probe FAILS, exit 3, naming
+    the move onto a free name (v15's probe passed it).
+DL  the PC 25,178 s AHEAD of the server; a schedule in wire/ whose cutoff is 30 s after the server's now (25,148 s
+    before the PC's): DL1 a SELF_PLAY control with those bounds is SENT (v15: HELD); DL1b the server's clock 1 s
+    past the cutoff: HELD "D has come", a fence with the same bounds sent; DL2 no clock line: HELD naming "no clock
+    line of this run", a fence sent without a clock.
+PLANTS: see PLANTS below (each must make the test fail). v16: plant14 the move forced true (P3d: P3c FAILs);
+plant15 deliver's now from the PC's clock again (DL3: DL1 FAILs).
 """
 import hashlib
 import json
@@ -97,10 +108,14 @@ PLANTS = {
                  "            if got != data:\n"
                  "                raise Stop(7, f\".{name}.part read back with other bytes ({len(got)} of {len(data)}): no "
                  "rename\")\n")],
-    "plant12": [("w.run([f'rename -l \"{w.inbox}/{a}\"", "w.run([f'rename \"{w.inbox}/{a}\"")],
+    "plant12": [("w.run([f'rename -l \"{w.inbox}/{a}\" \"{w.inbox}/{b}\"'])",
+                 "w.run([f'rename \"{w.inbox}/{a}\" \"{w.inbox}/{b}\"'])")],
     "plant13": [('        p = self.wire / "RUN.json.zz"\n',
                  '        self.ddir.mkdir(exist_ok=True)\n        self.seen.mkdir(exist_ok=True)\n'
                  '        p = self.wire / "RUN.json.zz"\n')],   # the folders before the header (D2)
+    "plant14": [("    moved = rc == 0 and b in after and c in after and a not in after\n", "    moved = True\n")],
+    "plant15": [("                now = CK.server_now(self.home, self.fp)\n",
+                 "                now = __import__(\"time\").time()\n")],
 }
 DP = TREE / "home" / "deliver.py"
 text = DP.read_bytes().decode("ascii")
@@ -220,11 +235,23 @@ def done(g):
     g.log.close()
 
 
+def clock_line(h: Path, fp: str, behind_s: float = 0.0) -> None:
+    """v16 (ADDENDUM 7): ONE ok clock line of run fp in h/clock/journal.jsonl, as home/clock.py's measure writes
+    it: the server's time = the PC's now - behind_s."""
+    wall, mono = time.time(), time.monotonic()
+    line = W.canon({"impl": time.get_clock_info("monotonic").implementation, "look": 2, "mono": mono, "n": 1,
+                    "ok": True, "platform": sys.platform, "run": fp, "state": "play", "t": "clock",
+                    "utc_ms": int((wall - behind_s) * 1000), "wall": wall, "why": None})
+    (h / "clock").mkdir(parents=True, exist_ok=True)
+    (h / "clock" / "journal.jsonl").write_bytes(line)
+
+
 def new_home(name, hb=HB) -> Path:
     h = WORK / name
     (h / "wire").mkdir(parents=True)
     (h / "deliver" / "sent").mkdir(parents=True)
     (h / "wire" / "RUN.json.zz").write_bytes(zlib.compress(hb, 6))
+    clock_line(h, sha(hb))                            # v16: the server's time = the PC's (ADDENDUM 7)
     return h
 
 
@@ -352,11 +379,33 @@ def part_p():
                           [(r.get("passed"), r.get("refused"), r.get("gone")) for r in j], inbox(root)),
           (0, True, [(True, True, True)], {}))
     check("P1 its batch lines name `rename -l`", any(ln.startswith('rename -l "') for ln in w.lines), True)
+    pre = f"{w.inbox}/probe.{os.getpid()}."
+    check("P3b (v16) the positive step through the real client: the line's passed and moved true; exactly two "
+          "`rename -l` lines (a onto b, a onto the free c); the inbox empty",
+          ([(r.get("passed"), r.get("moved")) for r in j], [ln for ln in w.lines if ln.startswith("rename -l")],
+           inbox(root)), ([(True, True)], [f'rename -l "{pre}a" "{pre}b"', f'rename -l "{pre}a" "{pre}c"'], {}))
     root3, home3 = make_root("root_p3"), new_home("home_p3")
     mk(RP_S, P_S, home3, "pilot_decision", WORK / "out_p3")
     rc, out = call("send", home3, wire(home3, root3), WORK / "out_p3")
     check("P3 a send without a passed probe: exit 3 naming the probe, nothing in the inbox, sent/ empty",
           (rc, "no passed probe" in out, inbox(root3), tree(home3 / "deliver" / "sent")), (3, True, {}, {}))
+    fails = WORK / "rename_fails.py"
+    fails.write_text("import subprocess, sys\n"
+                     "args = sys.argv[1:]\n"
+                     "lines = open(args[args.index('-b') + 1], encoding='ascii').read().splitlines()\n"
+                     "if any(ln.startswith('rename -l') for ln in lines):\n"
+                     "    print(\"Couldn't rename file\", file=sys.stderr)\n"
+                     "    sys.exit(1)\n"
+                     "sys.exit(subprocess.run(args).returncode)\n", encoding="ascii")
+    root, home = make_root("root_p3c"), new_home("home_p3c")
+    w = wire(home, root, cmd=[sys.executable, "-I", "-B", str(fails), str(SFTP), "-b",
+                              str(home / "deliver" / "sftp_batch.txt"), "-D", f'"{SERVER}"'])
+    rc, out = call("probe", home, w)
+    check("P3c (v16) a client whose every `rename -l` fails: the probe FAILS, exit 3, naming the move onto a free "
+          "name; the line passed false, moved false; the inbox empty",
+          (rc, "the move onto a free name failed" in out,
+           [(r.get("passed"), r.get("moved")) for r in journal(home, "probe")], inbox(root)),
+          (3, True, [(False, False)], {}))
 
 
 def part_u():
@@ -675,6 +724,54 @@ def part_d5():
               (6, 1, 'ls -ln "', {}, True, []))
 
 
+AHEAD = 25178                                         # v16: the PC's clock ahead of the server's (measured 25 Nov)
+
+
+def part_dl():
+    """DL1, DL1b, DL2 (ADDENDUM 7): the PC 25,178 s AHEAD of the server; the schedule's cutoff 30 s after the
+    server's now, 25,148 s before the PC's."""
+    def setup(name):
+        root, home = ready(name)
+        o = WORK / f"out_{name}"
+        mk(RP_S, P_S, home, "pilot_decision", o)
+        c = json.loads((o / "CONTROL.1.json").read_bytes())
+        now = int(time.time())
+        cut, disp = T(now - AHEAD + 30), T(now - AHEAD - 30)
+        (home / "wire" / "SCHEDULE.1.json.zz").write_bytes(zlib.compress(W.canon({
+            "cutoff_utc": cut, "dispatch_end_utc": disp, "evidence": "0" * 64, "n": 1, "prev": "first",
+            "ranges": [], "run_fingerprint": FP, "schema": 2}), 6))
+        ctl = rewrite(o, f"{name}_ctl", control=dict(c, cutoff_utc=cut, dispatch_end_utc=disp))
+        of = WORK / f"out_{name}_f"
+        subprocess.run([sys.executable, "-I", "-B", str(TREE / "tools" / "make_control.py"), "--report",
+                        str(RP_S), "--header", str(WORK / "RUN.json"), "--policy", str(P_S["plan"]), "--accepted",
+                        str(home / "deliver" / "sent"), "--kind", "fence", "--out", str(of)], capture_output=True)
+        cf = json.loads((of / "CONTROL.1.json").read_bytes())
+        fence = rewrite(of, f"{name}_fence", control=dict(cf, cutoff_utc=cut, dispatch_end_utc=disp))
+        return root, home, ctl, fence
+
+    root, home, ctl, fence = setup("dl1")
+    clock_line(home, FP, behind_s=AHEAD)              # the server's now = the cutoff - 30 s
+    rc, out = call("send", home, wire(home, root), ctl)
+    check("DL1 the server's clock 30 s before the cutoff in force, the PC 25,178 s ahead (past it): a SELF_PLAY "
+          "control is SENT, the inbox holds its two .zz", (rc, sorted(inbox(root)) == sorted(zz(ctl))), (0, True))
+    root, home, ctl, fence = setup("dl1b")
+    clock_line(home, FP, behind_s=AHEAD - 31)         # the server's now = the cutoff + 1 s
+    rc, out = call("send", home, wire(home, root), ctl)
+    got = (rc, "D has come" in out, inbox(root))
+    rc, out = call("send", home, wire(home, root), fence)
+    check("DL1b the server's clock 1 s past the cutoff: the same control HELD 'D has come', the inbox empty; a fence "
+          "with the same bounds is sent", (got, rc, sorted(inbox(root)) == sorted(zz(fence))),
+          ((3, True, {}), 0, True))
+    root, home, ctl, fence = setup("dl2")
+    (home / "clock" / "journal.jsonl").unlink()
+    rc, out = call("send", home, wire(home, root), ctl)
+    got = (rc, "no clock line of this run" in out, inbox(root))
+    rc, out = call("send", home, wire(home, root), fence)
+    check("DL2 no clock line: the SELF_PLAY control HELD naming 'no clock line of this run', the inbox empty; a "
+          "fence with the same bounds is sent without a clock", (got, rc, sorted(inbox(root)) == sorted(zz(fence))),
+          ((3, True, {}), 0, True))
+
+
 def part_l():
     home = new_home("home_l")
     lock = W.SlotLock(home / "deliver")
@@ -731,7 +828,8 @@ def part_l():
 
 
 for nm, fn in (("P", part_p), ("U", part_u), ("U2", part_u2), ("W", part_w), ("R", part_r), ("C", part_c),
-               ("D1", part_d1), ("D2", part_d2), ("D3", part_d3), ("D5", part_d5), ("L", part_l)):
+               ("D1", part_d1), ("D2", part_d2), ("D3", part_d3), ("D5", part_d5), ("DL", part_dl),
+               ("L", part_l)):
     safe(nm, fn)
 leftover = [str(p) for p in TREE.rglob("__pycache__")]
 check("no __pycache__ in the copied tree", leftover, [])

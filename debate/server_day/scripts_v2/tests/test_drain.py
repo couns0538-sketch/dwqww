@@ -16,6 +16,15 @@ PLANTS (each must make the test fail): plant1 to plant10 change drain.py, plant1
 Added 25 Nov (Fable's read FABLE-2511-READ-PKG9-DRAIN, D1; known answers first in
 tmp/opus_scratch/fetch_fix/KNOWN_ANSWERS_fetch_fix_by_opus.md): D12, a range seal without a piece names no piece;
 plant18 (drain.py) takes the repair back.
+Added 25 Nov (v16; the clock known answers tmp/opus_scratch/clock/KNOWN_ANSWERS_clock_by_opus.md, D1 to D7 and
+ADDENDUM 7): drain decides by the SERVER's time (home/clock.py's server_text). Every home gets ONE ok clock line
+of its run in the test's world (the server's time = the PC's), so every check above keeps its meaning. CD1 to CD7
+(the known answers' D1 to D7) make the PC 25,178 s AHEAD of the server: CD1 a lease that ends in 3 h by the
+server's clock is refused; CD2 one that ended 60 s ago is accepted, at_utc the server's; CD3 source gone since
+T, by the server's clock; CD4 no clock line: both reasons refused with the helper's text and D7's ending; CD5 a
+declared stop without a line (the PC's at_utc) and with one (the server's); CD7 a line the helper refuses (a
+restart): lease ended refused with D7's ending, a declared stop written. plant19 takes drain's now from the PC's
+clock again (CD6: CD1 FAILs).
 """
 import hashlib
 import json
@@ -72,6 +81,8 @@ PLANTS = {
                    "(v2's guard)\n", "                if True:\n"),
     "plant17": (C, "                if s[\"through_index\"] in c1:\n", "                if True:\n"),
     "plant18": (D, "        for i in range(fi, ti + 1) if fi >= 0 else ():", "        for i in range(fi, ti + 1):"),
+    "plant19": (D, "            now = server_text(home, a.fingerprint)      # v16 K1: the SERVER's time (late, never "
+                  "early)\n", "            now = utc()\n"),
 }
 CP = WORK / "tree"
 for sub in ("home", "run", "workloads", "known"):
@@ -230,8 +241,21 @@ def homes() -> bool:
     return ok
 
 
+def clock_line(h: Path, fp: str, behind_s: float = 0.0, mono_ahead_s: float = 0.0) -> None:
+    """v16 (ADDENDUM 7): ONE ok clock line of run fp in h/clock/journal.jsonl, as home/clock.py's measure writes
+    it: the server's time = the PC's now - behind_s; its mono = the PC's monotonic clock now + mono_ahead_s."""
+    wall, mono = time.time(), time.monotonic()
+    line = W.canon({"impl": time.get_clock_info("monotonic").implementation, "look": 2,
+                    "mono": mono + mono_ahead_s, "n": 1, "ok": True, "platform": sys.platform, "run": fp,
+                    "state": "play", "t": "clock", "utc_ms": int((wall - behind_s) * 1000), "wall": wall,
+                    "why": None})
+    (h / "clock").mkdir(parents=True, exist_ok=True)
+    (h / "clock" / "journal.jsonl").write_bytes(line)
+
+
 def copy(name: str, src: str) -> Path:
     shutil.copytree(WORK / src, WORK / name)
+    clock_line(WORK / name, FP["fp"])               # v16: the server's time = the PC's (ADDENDUM 7)
     return WORK / name
 
 
@@ -333,6 +357,7 @@ def case_d7():
                       pilot_ranges=[{"slot": 1, "round": 1, "first": 1, "last": 4, "short": False, "schedule": 0}]))
     h = WORK / "d7"
     put(h / "wire" / "RUN.json.zz", zlib.compress(hb, 6))
+    clock_line(h, sha(hb))                            # v16: the server's time = the PC's (ADDENDUM 7)
     rc, last, out = drain(h, "lease ended", sha(hb))
     d = record(h)
     check("D7 only a header whose lease ended 60 s ago, lease ended: exit 0, why, missing round 1's range seal",
@@ -355,6 +380,85 @@ def case_d7():
     got = [drain(h, w)[0] for w in ("stopped", "source gone since yesterday")]
     check("D7d --why stopped and source gone since yesterday: exit 2 each, no DRAIN.json",
           (got, (h / "DRAIN.json").exists()), ([2, 2], False))
+
+
+AHEAD = 25178                                         # v16: the PC's clock ahead of the server's (measured 25 Nov)
+
+
+def case_cd():
+    """The clock known answers' D1 to D7 as CD1 to CD7 (ADDENDUM 7): the PC 25,178 s AHEAD of the server."""
+    def fresh(name: str, end_from_server_s: int):
+        srv = int(time.time()) - AHEAD
+        end = T(srv + end_from_server_s)
+        hb = W.canon(dict(FP["hdr"], run="drn" + name, lease_start_utc=T(srv - 3600), lease_end_utc=end,
+                          hard_cutoff_utc=end,
+                          pilot_ranges=[{"slot": 1, "round": 1, "first": 1, "last": 4, "short": False,
+                                         "schedule": 0}]))
+        h = WORK / name
+        put(h / "wire" / "RUN.json.zz", zlib.compress(hb, 6))
+        clock_line(h, sha(hb), behind_s=AHEAD)
+        return h, sha(hb), end
+
+    def srv_text(d: float) -> str:
+        return T(time.time() - AHEAD + d)
+
+    d7 = 'drain with --why "declared stop"'
+    h, fp, end = fresh("cd1", 3 * 3600)
+    rc, last, out = drain(h, "lease ended", fp)
+    check("CD1 a lease that ends in 3 h by the server's clock (4 h before the PC's now): exit 4, 'the lease ends at "
+          "<end>; the server's clock reads', no DRAIN.json",
+          (rc, f"the lease ends at {end}; the server's clock reads " in out, (h / "DRAIN.json").exists()),
+          (4, True, False))
+    h, fp, end = fresh("cd2", -60)
+    lo = srv_text(-2)
+    rc, last, out = drain(h, "lease ended", fp)
+    hi = srv_text(2)
+    d = record(h)
+    check("CD2 a lease that ended 60 s ago by the server's clock: exit 0, why, at_utc the server's time (within 2 s)",
+          (rc, d.get("why"), lo <= str(d.get("at_utc")) <= hi), (0, "lease ended", True))
+    h = copy("cd3a", "H_FULL")
+    clock_line(h, FP["fp"], behind_s=AHEAD)
+    rc, last, out = drain(h, "source gone since " + srv_text(3600))
+    got = [rc, (h / "DRAIN.json").exists()]
+    h = copy("cd3b", "H_FULL")
+    clock_line(h, FP["fp"], behind_s=AHEAD)
+    why = "source gone since " + srv_text(-3600)
+    rc, last, out = drain(h, why)
+    check("CD3 source gone since the server's now + 1 h (before the PC's now): exit 4, no DRAIN.json; since its now "
+          "- 1 h: exit 0, why exactly that text", (got, rc, record(h).get("why")), ([4, False], 0, why))
+    h = copy("cd4", "H_FULL")
+    (h / "clock" / "journal.jsonl").unlink()
+    got = []
+    for w in ("lease ended", "source gone since " + srv_text(-3600)):
+        rc, last, out = drain(h, w)
+        got.append((rc, "no clock line of this run" in last, last.endswith(d7 + "; nothing written")))
+    check("CD4 no clock line: lease ended and source gone since: exit 4 each, the helper's text and D7's ending "
+          "named, no DRAIN.json", (got, (h / "DRAIN.json").exists()), ([(4, True, True), (4, True, True)], False))
+    h = copy("cd5a", "H_FULL")
+    (h / "clock" / "journal.jsonl").unlink()
+    lo = T(time.time() - 1)
+    rc1, last, out = drain(h, "declared stop")
+    hi = T(time.time() + 1)
+    pc = lo <= str(record(h).get("at_utc")) <= hi
+    h = copy("cd5b", "H_FULL")
+    clock_line(h, FP["fp"], behind_s=AHEAD)
+    lo = srv_text(-2)
+    rc2, last, out = drain(h, "declared stop")
+    hi = srv_text(2)
+    check("CD5 a declared stop without a clock line: exit 0, at_utc the PC's (within the call); with a line 25,178 s "
+          "behind: exit 0, at_utc the server's (within 2 s)",
+          (rc1, pc, rc2, lo <= str(record(h).get("at_utc")) <= hi), (0, True, 0, True))
+    h = copy("cd7", "H_FULL")
+    clock_line(h, FP["fp"], mono_ahead_s=3600)
+    rc, last, out = drain(h, "lease ended")
+    got = (rc, "the PC restarted since the last clock line" in last, last.endswith(d7 + "; nothing written"),
+           (h / "DRAIN.json").exists())
+    lo = T(time.time() - 1)
+    rc, last, out = drain(h, "declared stop")
+    hi = T(time.time() + 1)
+    check("CD7 a line the helper refuses (its mono 1 h ahead: a restart): lease ended exit 4 with the restart text and "
+          "D7's ending, no DRAIN.json; then declared stop: exit 0, at_utc the PC's",
+          (got, rc, lo <= str(record(h).get("at_utc")) <= hi), ((4, True, True, False), 0, True))
 
 
 def case_d9_d10():
@@ -495,7 +599,7 @@ def main() -> int:
     if not (server() and homes()):
         print("the fixture failed: no case can run")
     else:
-        for fn in (case_d1_d8, case_d2_d4_d11, case_d5_d6, case_d7, case_d9_d10, case_d12, case_e):
+        for fn in (case_d1_d8, case_d2_d4_d11, case_d5_d6, case_d7, case_cd, case_d9_d10, case_d12, case_e):
             safe(fn)
     bad = [n for n, ok in RESULTS if not ok]
     print(f"{len(RESULTS) - len(bad)} of {len(RESULTS)} checks pass ({time.time() - t0:.0f} s)"

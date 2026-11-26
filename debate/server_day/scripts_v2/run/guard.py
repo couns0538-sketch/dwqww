@@ -141,6 +141,21 @@ G10 THE CLOSE (R10). When the fence is there, every slot is ended or unreconcile
    its last a canonical footer whose fingerprint is sha256 of every byte before it: guard/CLOSED.json with terminal
    {lines, sha256, zz_sha256}. Anything else: no CLOSED.json, an ALARM naming why, the originals untouched, tried
    again after 60 s.
+G11 THE CLOCK FILE (v16; the clock known answers G and ADDENDA 3 and 4 on the PC). ROOT/CLOCK.json, canonical,
+   exactly {n, run_fingerprint, schema 1, state, utc_ms}: home's clock.py measure fetches it to take the SERVER's
+   time for its decisions (the PC's own clock is never judged). Written whole (create-new .CLOCK.json.<pid>.part,
+   flushed, os.replace) at the first pass and then at most once every 60 s of the steady clock, in every state; n
+   goes up by 1 a write and continues from this run's CLOCK.json when a guard starts again (another run's file, or
+   one that is not the record, is replaced from n 1). utc_ms is the guard's time by its three clocks at ONE
+   reading, the same one that gives state: the EARLIEST of UTC, anchor + steady run and anchor + boot run, rounded
+   down to the millisecond. A UTC that jumps ahead never enters it; one set back does (home then decides late,
+   never early). clockwatch judges a BOUND by the clock furthest AHEAD (stop early); CLOCK.json takes the one
+   furthest BEHIND (decide late): two safe sides for two purposes, never to be made the same. Its limit: an anchor
+   read inside a jump lets a later jump pass the minimum; such a guard fences at once when the jump is large (its
+   steady clocks say every bound within the jump has come: COME, not UTC alone), a small jump is harmless, and the
+   boot guard's "clock synchronised" stands before every start. state is state() of the three clocks; a fence
+   does not change it (after the fence at D it is cutoff). A write that fails is the ALARM clock and is tried again
+   at the next pass; nothing of the guard depends on it.
 EXIT CODES: 0 the day is closed (CLOSED.json, this run's closing record: a guard started after it exits 0 at once);
 2 a wrong call; 3 another guard holds the lock; 4 the header, the policy, the schedule chain, the accepted controls,
 FENCE.json, CLOSED.json or a file the guard must write cannot be trusted. Never a traceback.
@@ -183,6 +198,8 @@ ENDED_KEYS = ["epoch", "last_index", "last_seal", "t", "why"]
 CLOSED_KEYS = ["at_utc", "packer", "run_fingerprint", "schema", "slots_ended", "slots_unreconciled", "terminal"]
 LEADER = {"worker": "worker.py", "packer": "packer.py", "terminal": "terminal.py"}
 TERMINAL_RETRY = 60.0
+CLOCK_EVERY = 60.0                                  # G11: CLOCK.json at most once a minute of the steady clock
+CLOCK_KEYS = ["n", "run_fingerprint", "schema", "state", "utc_ms"]
 
 
 def same(v, want) -> bool:
@@ -454,6 +471,8 @@ class Guard:
         self.next_hour = 0.0
         self.boot = boot_id()
         self.foreign = self.earlier_groups()
+        self.clock_every, self.clock_at = CLOCK_EVERY, None      # G11: the steady reading of the last write
+        self.clock_n = self.clock_start()
 
     # ---- the log ------------------------------------------------------------------------------------------------
     def say(self, text: str, alarm: bool = False) -> None:
@@ -563,9 +582,10 @@ class Guard:
     def d_text(self) -> str:
         return self.sched[-1][1]["cutoff_utc"] if self.sched else self.h["hard_cutoff_utc"]
 
-    def state(self) -> str:
-        """play | dispatch_end | cutoff | hold, by all three clocks (the worker's clock_state)."""
-        r = self.B.clocks.read()
+    def state(self, r=None) -> str:
+        """play | dispatch_end | cutoff | hold, by all three clocks (the worker's clock_state). r: a reading the caller
+        took (one_pass: the same reading gives CLOCK.json's utc_ms); without one, it is taken here."""
+        r = r if r is not None else self.B.clocks.read()
         vd = self.B.judge("dispatch_end", reading=r)[0]
         vc = self.B.judge("cutoff", reading=r)[0]
         if cw.HOLD in (vd, vc):
@@ -573,6 +593,57 @@ class Guard:
         if vc == cw.COME:
             return "cutoff"
         return "dispatch_end" if vd == cw.COME else "play"
+
+    # ---- G11: the clock file (v16) -------------------------------------------------------------------------------
+    def clock_start(self) -> int:
+        """G4: the n of ROOT/CLOCK.json when it is this run's clock record (the next write is n + 1); else 0, so the
+        next write is 1 (another run's file, or one that is not the record, is replaced by it)."""
+        try:
+            c = parse_canon((self.root / "CLOCK.json").read_bytes(), "CLOCK.json")
+        except FileNotFoundError:
+            return 0
+        except (OSError, ValueError) as e:
+            self.say(f"CLOCK.json is not read ({e}): it is written again, n begins at 1")
+            return 0
+        if (isinstance(c, dict) and sorted(c) == CLOCK_KEYS and same(c["schema"], 1)
+                and c["run_fingerprint"] == self.fp and type(c["n"]) is int and c["n"] >= 1):
+            return c["n"]
+        self.say("CLOCK.json is not this run's clock record: it is written again, n begins at 1")
+        return 0
+
+    def clock_utc_ms(self, r) -> int:
+        """G1': the guard's time by its three clocks at ONE reading, the EARLIEST of UTC, anchor + steady run and
+        anchor + boot run, in whole milliseconds rounded down (the furthest BEHIND: home decides late, never early)."""
+        a = self.B.anchor
+        t = [r[0], a[0] + (r[1] - a[1])]
+        if r[2] is not None and a[2] is not None:
+            t.append(a[0] + (r[2] - a[2]))
+        return math.floor(min(t) * 1000)
+
+    def write_clock(self, r, st: str) -> None:
+        """G11: ROOT/CLOCK.json, whole, at most once every clock_every seconds of the steady clock (r[1]), in every
+        state; a failed write is the ALARM clock and is tried again at the next pass."""
+        if self.clock_at is not None and r[1] - self.clock_at < self.clock_every:
+            return
+        rec = canon({"n": self.clock_n + 1, "run_fingerprint": self.fp, "schema": 1, "state": st,
+                     "utc_ms": self.clock_utc_ms(r)})
+        tmp = self.root / f".CLOCK.json.{os.getpid()}.part"
+        try:
+            try:
+                tmp.unlink()                            # this guard's own scratch name, left by a crash
+            except FileNotFoundError:
+                pass
+            with open(tmp, "xb") as f:
+                f.write(rec)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp, self.root / "CLOCK.json")
+        except OSError as e:
+            self.alarm("clock", f"CLOCK.json not written: {e}")
+            return
+        self.clear("clock")
+        self.clock_n += 1
+        self.clock_at = r[1]
 
     # ---- G3: the control record --------------------------------------------------------------------------------
     def check_control(self, k: int, data: bytes, evidence: bytes, replay: bool):
@@ -1273,7 +1344,9 @@ class Guard:
         now = time.monotonic()
         stop = (self.root / "STOP").exists()
         boot = self.boot_ok()
-        st = self.state()
+        r = self.B.clocks.read()
+        st = self.state(r)
+        self.write_clock(r, st)
         if st == "hold":
             self.alarm("hold", "the guard's clocks are in a HOLD (UTC alone ahead): no control, schedule or start")
         if stop:
