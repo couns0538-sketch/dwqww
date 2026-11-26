@@ -5,15 +5,15 @@ BEFORE it (tmp/opus_scratch/home_a1/KNOWN_ANSWERS_by_opus.md on the PC). Standar
 
 The tree above home/ (home/, run/, workloads/, known/) is copied; a plant is applied to the copy's custody.py only.
 The server side is made by the day's REAL programs: run "cust", slot 1, piece_games 2, the list rule with N12's six
-openings (rows 86, 101, 0, 127, 81, 67). The worker plays round 1 (counters 1 to 4: pieces p0 = g1 g2, p1 = g3 g4) and
+openings (rows 28, 76, 0, 112, 256, 221). The worker plays round 1 (counters 1 to 4: pieces p0 = g1 g2, p1 = g3 g4) and
 ends by the STOP file once its range seal is there; SCHEDULE.1 adds round 2 (5 to 6); the second start (epoch 2) plays
 p2 = g5 g6 and ends by FENCE.json ("D"); the packer --once with the official converter (three binpack offers); the
 terminal inventory. The fetch is stood in by a byte copy of the files a fetch takes (the root's and ranges' wire
 copies, every offer's wire file LAST after the member files it names).
-H1 the full home: 3 receipts as 2.1, RECEIVED 3/462, C1 3/462. H2 a second pass: nothing new, the receipts unchanged.
-H3 p0 and p2 before p1: RECEIVED 2/335 and C1 1/187, then 3/462. H4 all six arrival orders: C1 after each arrival
+H1 the full home: 3 receipts as 2.1, RECEIVED 3/693, C1 3/693. H2 a second pass: nothing new, the receipts unchanged.
+H3 p0 and p2 before p1: RECEIVED 2/581 and C1 1/104, then 3/693. H4 all six arrival orders: C1 after each arrival
 is the longest held run from p0; the receipts equal at the end. H5 epochs [1, 2, 1] by index (forged): C1 never past
-p1 (314) in all six orders. H6 a forged inventory naming another offer for p1: a fork record, C1 1/187; the same with
+p1 (216) in all six orders. H6 a forged inventory naming another offer for p1: a fork record, C1 1/104; the same with
 its footer not made right: no fork. R1 to R12 the refusals, waits, conflicts and confirmations of the known answers.
 PLANTS (each must make the test fail): see PLANTS below; the numbers are those of the known answers.
 VERSION 2 (tmp/opus_scratch/custody_v2/KNOWN_ANSWERS_custody_v2_by_opus.md on the PC, written before the code; the
@@ -162,7 +162,7 @@ N12 = [ln.split()[3:] for ln in (CP / "workloads" / "n12_batch.uci").read_text(e
        if ln.startswith("position startpos moves ")]
 OPENINGS = WORK / "n12_openings.txt"
 OPENINGS.write_bytes("".join(" ".join(o) + "\n" for o in N12).encode("ascii"))
-ROWS = [187, 127, 148]                                  # p0 = g1 g2 (86 + 101), p1 = g3 g4 (0 + 127), p2 = g5 g6 (81 + 67)
+ROWS = [104, 112, 477]                                  # p0 = g1 g2 (28 + 76), p1 = g3 g4 (0 + 112), p2 = g5 g6 (256 + 221)
 NOW = time.time()
 SRV = WORK / "srv"
 COUNTS = re.compile(r"custody: RECEIVED (\d+) pieces (\d+) rows; C1 (\d+) pieces (\d+) rows; new receipts (\d+); "
@@ -220,7 +220,7 @@ def server() -> bool:
     closed = SRV / "w001" / "closed"
     seals = [json.loads((closed / f"p{i:06d}.seal.json").read_bytes()) for i in range(3)
              if (closed / f"p{i:06d}.seal.json").exists()]
-    if not check("server: two starts exit 0, pieces of 187, 127, 148 rows, epochs [1, 1, 2], rounds [1, 1, 2], "
+    if not check("server: two starts exit 0, pieces of 104, 112, 477 rows, epochs [1, 1, 2], rounds [1, 1, 2], "
                  "schedules [0, 0, 1]",
                  (rc1, rc2, [s["rows"] for s in seals], [s["epoch"] for s in seals], [s["round"] for s in seals],
                   [s["schedule"] for s in seals]),
@@ -318,7 +318,7 @@ def case_h1_h2():
     h = new_home("h")
     t0 = time.time()
     rc, out, c = custody(h)
-    check("H1 the full home: exit 0, RECEIVED 3/462, C1 3/462, new 3, nothing else", (rc, c),
+    check("H1 the full home: exit 0, RECEIVED 3/693, C1 3/693, new 3, nothing else", (rc, c),
           (0, counts_want([0, 1, 2], 3, 3)))
     rs = receipts(h)
     check("H1 three receipt files, nothing else in custody/w001", sorted(rs), [f"p{i:06d}.receipt.json" for i in range(3)])
@@ -367,9 +367,9 @@ def case_orders():
               no_time(receipts(h)), STATE.get("h_receipts"))
         if order == (0, 2, 1):
             h3 = new_home("h3", pieces=(0, 2))
-            check("H3 p0 and p2 only: RECEIVED 2/335, C1 1/187", custody(h3)[2], counts_want([0, 2], 1, 2))
+            check("H3 p0 and p2 only: RECEIVED 2/581, C1 1/104", custody(h3)[2], counts_want([0, 2], 1, 2))
             fetch_piece(h3, 1)
-            check("H3 then p1: RECEIVED 3/462, C1 3/462", custody(h3)[2], counts_want([0, 1, 2], 3, 1))
+            check("H3 then p1: RECEIVED 3/693, C1 3/693", custody(h3)[2], counts_want([0, 1, 2], 3, 1))
 
 
 def case_h5():
@@ -388,7 +388,7 @@ def case_h5():
                 (full / "wire" / "out" / "w001" / f"p{i:06d}.offer.json.zz").read_bytes())
             rc, out, c = custody(h)
             c1s.append(c[2] if c else None)
-        check(f"H5 epochs [1, 2, 1], order {order}: C1 never past p1, 2 pieces 314 rows at the end, the line names it",
+        check(f"H5 epochs [1, 2, 1], order {order}: C1 never past p1, 2 pieces 216 rows at the end, the line names it",
               (max(x or 0 for x in c1s), custody(h)[2], "C1 w001 stops before p000002: epoch 1 after epoch 2" in out),
               (2, counts_want([0, 1, 2], 2, 0), True))
 
@@ -419,7 +419,7 @@ def case_h6():
     rc, out, c = custody(h)
     fork = h / "custody" / "w001" / "p000001.fork.json"
     f = json.loads(fork.read_bytes()) if fork.exists() else {}
-    check("H6 an inventory naming another offer for p1 (footer made right): exit 0, a fork, C1 1/187, forks 1",
+    check("H6 an inventory naming another offer for p1 (footer made right): exit 0, a fork, C1 1/104, forks 1",
           (rc, c, f.get("found_offer_sha256"), f.get("receipt_offer_sha256") == STATE["h_receipts"]
            ["p000001.receipt.json"]["offer_sha256"]), (0, counts_want([0, 1, 2], 1, 3, forks=1), "f" * 64, True))
     check("H6 a third pass: the fork record unchanged, forks 1", (custody(h)[2], fork.read_bytes() == W.canon(f)),
@@ -427,7 +427,7 @@ def case_h6():
     h2 = new_home("h6b")
     forged_inventory(h2, False)
     rc, out, c = custody(h2)
-    check("H6 the same with the footer NOT made right: no fork, C1 3/462, the line says it does not verify",
+    check("H6 the same with the footer NOT made right: no fork, C1 3/693, the line says it does not verify",
           (rc, c, "does not verify" in out), (0, counts_want([0, 1, 2], 3, 3), True))
 
 
@@ -558,7 +558,7 @@ def case_v2_run():
     put(h / "wire" / "RUN.json.zz", a_zz)
     rc, out, c = custody(h)
     rc2, out2, c2 = custody(h, "--confirm", "w001/p000000")
-    check("K1a run A again: a pass exit 0, 3/462, C1 3/462, new 0; --confirm exit 0 CONFIRMED (control)",
+    check("K1a run A again: a pass exit 0, 3/693, C1 3/693, new 0; --confirm exit 0 CONFIRMED (control)",
           (rc, c, rc2, "CONFIRMED w001/p000000" in out2), (0, counts_want([0, 1, 2], 3, 0), 0, True))
     (h / "wire" / "RUN.json.zz").unlink()
     got = []
@@ -691,7 +691,7 @@ def case_v2_inventory():
         h = new_home(name.split()[0])
         forged_inventory_v2(h, mode)
         rc, out, c = custody(h)
-        if not check(f"{name} (footer made right): no fork, C1 3/462, the line says why", (rc, c, text in out),
+        if not check(f"{name} (footer made right): no fork, C1 3/693, the line says why", (rc, c, text in out),
                      (0, counts_want([0, 1, 2], 3, 3), True)):
             print(out[-600:])
     h = new_home("K8", inventory=False)

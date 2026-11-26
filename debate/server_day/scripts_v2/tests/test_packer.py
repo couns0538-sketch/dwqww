@@ -9,8 +9,8 @@ library only.
 a PLAIN interpreter, not a venv launcher: the packer runs a .py stand-in converter with its own interpreter, and on
 Windows a timeout kills that one process only. One engine for the fixture (about 30 s), then one converter at a time.
 
-THE FIXTURE R6: the worker, slot 0, run "pk", piece_games 1, counters 1 to 6: six pieces p000000 to p000005 with 86,
-101, 0, 127, 81 and 67 rows (N12's games, known/n12_batch.json), the range seal r0001.w000, the journal ended
+THE FIXTURE R6: the worker, slot 0, run "pk", piece_games 1, counters 1 to 6: six pieces p000000 to p000005 with 28,
+76, 0, 112, 256 and 221 rows (N12's games, known/n12_batch.json), the range seal r0001.w000, the journal ended
 "ranges done". Every case works on a copy of it.
 
 Known answers, written before the first run:
@@ -281,8 +281,8 @@ CLOSED = R6 / "w000" / "closed"
 ROWS = [sum(len(g["rows"]) for g in record.parse((CLOSED / f"p{i:06d}.raw").read_bytes(), FP))
         if (CLOSED / f"p{i:06d}.raw").is_file() else None for i in range(6)]
 JOURNAL = (R6 / "w000" / "journal.txt").read_bytes() if (R6 / "w000" / "journal.txt").is_file() else b""
-if not check("fixture: the worker made six pieces with 86, 101, 0, 127, 81, 67 rows, a range seal, and ended",
-             fx.returncode == 0 and ROWS == [86, 101, 0, 127, 81, 67] and b'"t":"ended"' in JOURNAL.splitlines()[-1:][0]
+if not check("fixture: the worker made six pieces with 28, 76, 0, 112, 256, 221 rows, a range seal, and ended",
+             fx.returncode == 0 and ROWS == [28, 76, 0, 112, 256, 221] and b'"t":"ended"' in JOURNAL.splitlines()[-1:][0]
              and (R6 / "ranges" / "r0001.w000.seal.json").is_file(), (fx.returncode, ROWS, fx.stdout[-300:])):
     print("STOP: no fixture, no case can run")
     sys.exit(1)

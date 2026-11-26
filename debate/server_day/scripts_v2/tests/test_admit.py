@@ -66,6 +66,8 @@ PLANTS = {
     "plant24": ("    if is_link(os.path.normpath(root)) or not os.path.isdir(root):",
                 "    if not os.path.isdir(root):"),                                           # root a link
     "plant25": ("            if d != \"YES\":", "            if d is None:"),                     # NOT YET as YES
+    "plant27": (" or not t[2].startswith(PREFIX):", " or False:"),                              # prefix unchecked
+    "plant28": ("            t[2] = t[2][len(PREFIX):]", "            t[2] = t[2]"),             # prefix kept
 }
 
 text = SRC.read_text(encoding="utf-8")
@@ -143,7 +145,8 @@ def put_list(root: Path, data: bytes) -> str:
 def write_ledger(path: Path, lines) -> None:
     body = ["# APPROVALS: the three-YES ledger (a heading carries no decision)",
             "AGREE 0000 astra FORMATS.md (a document vote is no file YES)"]
-    body += [" ".join(x) if isinstance(x, tuple) else x for x in lines]
+    body += [" ".join(x[:-1] + ("scripts_v2/" + x[-1],)) if isinstance(x, tuple) else x   # the branch's form
+             for x in lines]
     path.write_text("\n".join(body) + "\n", encoding="utf-8")
 
 
@@ -227,15 +230,17 @@ def k1():
     check("K1d fable's only YES names OTHER bytes: REFUSED", first(run_check(root, pin, ledger)[1], c, "fable", "no decision"))
     write_ledger(ledger, without_f + [("YES", old, "fable", c), ("NOT", "YET", old, "fable", c), ("YES", sc, "fable", c)])
     check("K1d a NOT YET on other bytes takes nothing away from a YES on these: ADMITTED", run_check(root, pin, ledger)[1] == [])
-    for label, line in (("another path", f"YES {sc} fable home/policy2.json"),
-                        ("an AGREE line", f"AGREE {sc} fable {c}"),
+    for label, line in (("another path", f"YES {sc} fable scripts_v2/home/policy2.json"),
+                        ("an AGREE line", f"AGREE {sc} fable scripts_v2/{c}"),
                         ("three fields", f"YES {sc} fable"),
-                        ("a capital seat", f"YES {sc} Fable {c}"),
-                        ("an unknown seat", f"YES {sc} opus {c}"),
-                        ("a note after the path", f"YES {sc} fable {c} (read)")):
+                        ("a capital seat", f"YES {sc} Fable scripts_v2/{c}"),
+                        ("an unknown seat", f"YES {sc} opus scripts_v2/{c}"),
+                        ("a note after the path", f"YES {sc} fable scripts_v2/{c} (read)"),
+                        ("the path without scripts_v2/ (no vote line on the branch is written so)", f"YES {sc} fable {c}"),
+                        ("a path in scripts_v3/ (a folder name of the same length)", f"YES {sc} fable scripts_v3/{c}")):
         write_ledger(ledger, without_f + [line])
         check(f"K1e {label}: no decision, REFUSED", first(run_check(root, pin, ledger)[1], c, "fable"))
-    write_ledger(ledger, without_f + [f"YES {sc} fable {c}"])
+    write_ledger(ledger, without_f + [f"YES {sc} fable scripts_v2/{c}"])
     check("K1e control: the exact line ADMITTED", run_check(root, pin, ledger)[1] == [])
 
 

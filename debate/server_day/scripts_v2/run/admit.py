@@ -16,7 +16,8 @@ my proposal for the seats, because without it site's .pth files import foreign m
 The hash list <root>/MANIFEST.sha256 is the publisher's form, the one the boot guard reads: `<sha256>  <path>` lines,
 the last line `digest <sha256 of the lines before it>`, LF only. Its own sha256 is the pin, given from OUTSIDE (D6):
 the value the boot guard compares with the run header's `package`. The ledger lies outside the root. A vote line is
-`YES <sha256> <seat> <path>` or `NOT YET <sha256> <seat> <path>` (seats astra, neon, fable); any other line (a
+`YES <sha256> <seat> scripts_v2/<path>` or `NOT YET <sha256> <seat> scripts_v2/<path>` (seats astra, neon, fable;
+the prefix as every vote line on the branch writes it; a line without it carries no decision, Fable's read of 25 Nov); any other line (a
 heading, AGREE, a publisher's note, a line with more or fewer fields) carries no decision. A seat's decision on a
 file is its LAST line for that path and those exact bytes (the spec: "the latest decision ... on its exact bytes"):
 a vote on other bytes neither gives nor takes away.
@@ -32,6 +33,7 @@ import sysconfig
 SEATS = ("astra", "neon", "fable")
 LIST = "MANIFEST.sha256"
 HEX = re.compile(r"[0-9a-f]{64}")
+PREFIX = "scripts_v2/"                               # a vote line's path as on the branch: scripts_v2/<hash-list path>
 LINE = re.compile(r"([0-9a-f]{64})  ([A-Za-z0-9_./-]+)")   # the boot guard's line (bootguard.py, package())
 
 
@@ -147,6 +149,9 @@ def decisions(ledger) -> dict:
                 dec, t = "YES", t[1:]
             else:
                 continue
+            if len(t) < 3 or not t[2].startswith(PREFIX):    # no scripts_v2/: no decision (Fable 25 Nov)
+                continue
+            t[2] = t[2][len(PREFIX):]                         # three fields exactly: the next line alone decides
             if len(t) == 3 and HEX.fullmatch(t[0]) and t[1] in SEATS:
                 last[(t[1], t[2], t[0])] = dec
     return last

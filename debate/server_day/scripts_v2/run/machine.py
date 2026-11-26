@@ -17,7 +17,8 @@ unit's AllowedCPUs, then the smallest quota. So the check runs after the unit is
 nothing. Volumes are budgeted per device (summed), on ext4 and xfs only.
 
 Exit: 0 QUALIFIED, 1 UNQUALIFIED, 2 a wrong call (an --out that exists, a request that is not the form, not Linux),
-4 the record cannot be written. Every failure is one line naming the minimum, the value read and the value needed,
+4 no record (it cannot be written, or the check failed inside itself: Fable's M2 of 25 Nov). Every failure is one
+line naming the minimum, the value read and the value needed,
 in the table's order (processor, memory, room, processes and files, service, kernel, tools): the first line is the
 first failing minimum. A value that cannot be read or parsed fails, naming its file; it is never "no limit".
 """
@@ -485,8 +486,8 @@ def admit(rd, req):
     # tools
     if not rd.get("sshd"):
         fails.append("tools: no sshd found (PATH and /usr/sbin)")
-    if not any((rd.get("compiler") or {}).values()):
-        fails.append("tools: no C++ compiler (g++ or clang++) answers --version")
+    if not (rd.get("compiler") or {}).get("g++"):            # M3 (Fable 25 Nov): the day's build calls g++
+        fails.append("tools: g++ does not answer --version (the day's Linux build calls g++; a clang++ alone is not it)")
     for c, ok in sorted((rd.get("codecs") or {}).items()):
         if not ok:
             fails.append(f"tools: the {c} round trip failed")
@@ -546,8 +547,12 @@ def main(argv=None, ops=None) -> int:
             print(f"STOP: the machine check reads a Linux machine; this is {sys.platform}")
             return 2
         ops = Ops()
-    rd = probe(ops, req)
-    fails, notes = admit(rd, req)
+    try:
+        rd = probe(ops, req)
+        fails, notes = admit(rd, req)
+    except Exception as e:  # noqa: BLE001  M2 (Fable 25 Nov): a crash must never look like UNQUALIFIED's exit 1
+        print(f"STOP: the machine check failed inside itself, no record: {type(e).__name__}: {e}")
+        return 4
     verdict = "UNQUALIFIED" if fails else "QUALIFIED"
     rec = {"failures": fails, "notes": notes, "readings": rd, "request": req, "schema": 1, "verdict": verdict}
     try:

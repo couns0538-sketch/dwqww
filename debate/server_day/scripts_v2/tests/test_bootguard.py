@@ -361,7 +361,39 @@ def held_case(name, root, got, want_code):
           ["guard/bootguard.log"])
 
 
+def part_b1():
+    """B1 and B2 (Fable's read of 25 Nov of bootguard.py 61aa78d45ac7; KNOWN_ANSWERS_bootguard_b1_by_opus.md): the
+    ALARM line in every case, a missing root included; a reason with a line break written once, as one line."""
+    import contextlib
+    import io
+    for name, root, made in (("B1a a root that does not exist", WORK / "b1_no_such_root", False),
+                             ("B1b control: an empty existing root", WORK / "b1_empty_root", True)):
+        if made:
+            root.mkdir()
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            got = safe(lambda: bg(root, "boot-a"))
+        al = [ln for ln in buf.getvalue().splitlines() if ln.startswith("ALARM bootguard: HELD exit 4")]
+        check(f"{name}: exit 4, one ALARM line, " + ("it says the log is" if not made else "the log is not said to be")
+              + " not written", (got, len(al), all("not written" in ln for ln in al) if not made else
+                                 any("not written" in ln for ln in al)), (4, 1, not made))
+        log = root / "guard" / "bootguard.log"
+        check(f"{name}: " + ("the root is still not there" if not made else "the log holds one HELD exit 4 line"),
+              root.exists() if not made else [ln.count("HELD exit 4") for ln in log.read_text(encoding="ascii").splitlines()]
+              if log.exists() else None, False if not made else [1])
+    r2 = WORK / "b2_root"
+    r2.mkdir()
+    g = BG.BootGuard(SimpleNamespace(root=str(r2)), SimpleNamespace())
+    with contextlib.redirect_stdout(io.StringIO()):
+        for _ in range(2):
+            g.alarm(5, "first line\nsecond line")
+    lines = (r2 / "guard" / "bootguard.log").read_text(encoding="ascii").splitlines()
+    check("B2 two alarms with a reason holding a line break: the log holds ONE line, the reason as one line",
+          (len(lines), "first line / second line" in (lines[0] if lines else "")), (1, True))
+
+
 def part_u():
+    part_b1()
     check("U1 read_instance: sha256 of the texts", BG.read_instance(INST / "ok" / "etc", INST / "ok" / "dmi"), INST_H)
     none3 = {"machine_id": None, "product_uuid": None, "board_serial": None}
     for name in ("ph1", "ph2", "ph3"):

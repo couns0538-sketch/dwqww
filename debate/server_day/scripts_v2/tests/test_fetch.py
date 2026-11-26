@@ -134,7 +134,7 @@ N12 = [ln.split()[3:] for ln in (CP / "workloads" / "n12_batch.uci").read_text(e
        if ln.startswith("position startpos moves ")]
 OPENINGS = WORK / "n12_openings.txt"
 OPENINGS.write_bytes("".join(" ".join(o) + "\n" for o in N12).encode("ascii"))
-ROWS = [187, 127, 148]
+ROWS = [104, 112, 477]
 NOW = time.time()
 SRV = WORK / "srv"
 FP = {}
@@ -191,7 +191,7 @@ def server() -> bool:
     closed = SRV / "w001" / "closed"
     seals = [json.loads((closed / f"p{i:06d}.seal.json").read_bytes()) for i in range(3)
              if (closed / f"p{i:06d}.seal.json").exists()]
-    if not check("server: two starts exit 0, pieces of 187, 127, 148 rows", (rc1, rc2, [s["rows"] for s in seals]),
+    if not check("server: two starts exit 0, pieces of 104, 112, 477 rows", (rc1, rc2, [s["rows"] for s in seals]),
                  (0, 0, ROWS)):
         print(out1, out2)
         return False
@@ -341,8 +341,8 @@ def case_full():
     check("F16 wire/ holds exactly what test_custody's stand-in fetch copies, byte for byte", wire(h), stand)
     check("F16 no partial is left", sorted(p.name for p in (h / "fetch" / "part").rglob("*") if p.is_file()), [])
     rc, out2, cc = custody(h)
-    check("F16 custody afterwards: exit 0, RECEIVED and C1 3 pieces 462 rows, 3 new receipts", (rc, cc),
-          (0, (3, 462, 3, 462, 3, 0, 0, 0, 0)))
+    check("F16 custody afterwards: exit 0, RECEIVED and C1 3 pieces 693 rows, 3 new receipts", (rc, cc),
+          (0, (3, 693, 3, 693, 3, 0, 0, 0, 0)))
     before = wire(h)
     rc, out, c, _ = fetch(h, SRV, FP["fp"])
     check("F15 a second pass over the complete fetch: exit 0, every count 0 (the 9 plain names ignored again)",

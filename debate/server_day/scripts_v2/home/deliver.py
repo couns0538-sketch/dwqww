@@ -12,7 +12,7 @@ connects back.
 THE CONNECTION is home/fetch.py's Transport (the pinned sftp.exe options, R1 and R2, judge(): an unknown or changed
 host key or a refused login is exit 6, an unreachable server 7), imported, not copied; FILE is fetch.py's config
 (transport sftp); <remote_root>/inbox/ is the guard's (G3). DIR is fetch.py's home folder: wire/RUN.json.zz must
-decode to bytes whose sha256 is HEX64 (else exit 4).
+decode to bytes whose sha256 is HEX64 (else exit 4, and nothing is made there: Fable's D2 of 25 Nov).
 DIR/deliver/: LOCK (one delivery or observe at a time, else exit 8), journal.jsonl (one canonical line a step), sent/
 (THE SENT CHAIN: create-only copies of every decision sent, EVIDENCE.<e>.json, CONTROL.<k>.json and both .zz, written
 BEFORE its first byte travels; it is what tools/make_control.py gets as --accepted), back/ (bytes read back, removed
@@ -139,6 +139,14 @@ class Home:
         self.home, self.fp = home, fp
         self.ddir, self.seen, self.wire = home / "deliver", home / "control", home / "wire"
         self.sent, self.back, self.journal = self.ddir / "sent", self.ddir / "back", self.ddir / "journal.jsonl"
+        # the run header FIRST: nothing is made in a folder that is not this run's home (Fable's D2 of 25 Nov: a
+        # mistyped --home got deliver/ and control/ before the refusal). Read before the lock, and safely so: fetch.py
+        # places wire/RUN.json.zz first and never replaces it during a run.
+        p = self.wire / "RUN.json.zz"
+        data = unzz(p.read_bytes(), "wire/RUN.json.zz") if p.is_file() else b""
+        if sha256_bytes(data) != fp:
+            raise Stop(4, "DIR/wire/RUN.json.zz is not this run's header (the fingerprint; fetch.py places it first)")
+        self.h = record(data, "RUN.json")
         self.ddir.mkdir(exist_ok=True)
         try:
             self.lock = SlotLock(self.ddir)             # held until the process ends; the OS frees it
@@ -146,11 +154,6 @@ class Home:
             raise Stop(8, f"another delivery holds {self.ddir / 'LOCK'}: nothing done") from None
         for d in (self.sent, self.back, self.seen):
             d.mkdir(exist_ok=True)
-        p = self.wire / "RUN.json.zz"
-        data = unzz(p.read_bytes(), "wire/RUN.json.zz") if p.is_file() else b""
-        if sha256_bytes(data) != fp:
-            raise Stop(4, "DIR/wire/RUN.json.zz is not this run's header (the fingerprint; fetch.py places it first)")
-        self.h = record(data, "RUN.json")
 
     def note(self, **rec) -> None:
         rec["at_utc"] = F.utc()

@@ -160,14 +160,22 @@ class BootGuard:
         print(text, flush=True)
 
     def alarm(self, code: int, text: str) -> None:
-        """One ALARM line in guard/bootguard.log, not repeated while the reason stays the same."""
-        body = f"HELD exit {code}: {text}"
+        """One ALARM line in guard/bootguard.log, not repeated while the reason stays the same. The ALARM line is
+        printed in EVERY case: where the log cannot be written (the root missing, a volume not mounted or read-only,
+        a full disk) the line says so and the held code stays (B1, Fable's read of 25 Nov: before, the error escaped
+        as a traceback and exit 1). A reason's line breaks are written as " / ", so the same reason is seen as the
+        same (B2)."""
+        body = f"HELD exit {code}: " + " / ".join(str(text).splitlines())
         log = self.gdir / "bootguard.log"
-        last = log.read_bytes().decode("ascii", "replace").rstrip("\n").rsplit("\n", 1)[-1] if log.exists() else ""
-        if last.split("] ", 1)[-1] != body:
-            self.gdir.mkdir(exist_ok=True)
-            with open(log, "a", encoding="ascii", errors="replace", newline="\n") as f:
-                f.write(f"[{T(time.time())}] {body}\n")
+        try:
+            last = log.read_bytes().decode("ascii", "replace").rstrip("\n").rsplit("\n", 1)[-1] if log.exists() else ""
+            if last.split("] ", 1)[-1] != body:
+                self.gdir.mkdir(exist_ok=True)
+                with open(log, "a", encoding="ascii", errors="replace", newline="\n") as f:
+                    f.write(f"[{T(time.time())}] {body}\n")
+        except OSError as e:
+            self.say(f"ALARM bootguard: {body} (guard/bootguard.log not written: {type(e).__name__}: {e})")
+            return
         self.say(f"ALARM bootguard: {body}")
 
     def resumes(self, fp: str, boot0: str, slots: list) -> list:

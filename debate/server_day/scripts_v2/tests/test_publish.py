@@ -11,8 +11,18 @@ R2  the server from the day's REAL programs, as test_credit.py builds it: run "p
     rule with N12's six openings, pilot ranges round 1 = 1..4 and round 2 = 5..12; worker, fence, packer with the
     official converter, a1 (custody.py) and a2 (content.py) at home (BASE), then credit.py on a copy (BASEC).
 FP  the fixture's own control: credit decided rounds 1 and 2 complete; ids 1, 2, 4, 5, 6 are the credited games with
-    rows; none of them can be changed by the after-game rules (a drawn end with 5 pieces or fewer, or a lone king) or
-    left out by the ply-limit rule, so every count of C3 is known: no change, no game left out, no probe.
+    rows; the after-game rules can touch exactly two of them (P1, 25 Nov): game 4 ends drawn by the draw
+    adjudication in 8/4K3/8/2p5/5B2/7k/8/8 b - - 0 60 (KBvKP), game 5 by the fifty-move rule in
+    8/8/k7/8/8/5B2/1b6/5K2 w - - 100 133 (KBvKB); none can be left out by the ply-limit rule. The loop's rule
+    (nnloop/datagen_uci.py lines 336 to 339: result 0 and adjudicate_bare_king or adjudicate_tablebase; publish's
+    draw_adjudicated is reason drawadj AND the game line's drawcount > 0, 8 here) probes WDL twice for each game: its
+    end with the clock set to 0, and its start after the last capture or pawn move. All four are 0 (a table draw), so
+    no DTZ probe, no outcome changes, no game is left out: every count of C3 is known, probes_made 2 in round 1 and 2
+    in round 2 (PROBES). Derived outside the test: tmp/opus_scratch/v15/p1/derive_fixture.py on the PC.
+    THESE FACTS BELONG TO THE INPUTS: the workloads of the frozen config d3c4f4eec16e (51 option lines), and the
+    engine and net the chains pass (v3-r15dsg-sp-clang, round 67's net). Other inputs, another engine or another net
+    play other games: then FP FAILS, and the facts are derived again before any other case is believed (the inputs of
+    23 November touched no game; P1 made the fixture again for the new ones).
 B1 to B9, U1 to U4 as the known answers (CHANGED before the first run: B4b, B4c, B4d, B5b, B5c, U4; see that file).
 PLANTS (each must make the test fail): see PLANTS below.
 """
@@ -68,6 +78,7 @@ PLANTS = {
     "plant14": ("    if sys.flags.hash_randomization != 0 or len(argv) != 5:\n", "    if len(argv) != 5:\n"),
     "plant15": ("                raise Hold(f\"{what}: an entry of ids is not as credit.py writes it: {str(e)[:160]}\")\n",
                 "                pass\n"),
+    "plant16": ("\"probes_made\": corr.rec.made, ", "\"probes_made\": 0, "),     # P1: the report's probe count
 }
 CP = WORK / "tree"
 for sub in ("home", "run", "workloads", "known"):
@@ -145,8 +156,9 @@ REPORT_KEYS = sorted(("schema", "run_fingerprint", "round", "status", "credit_sh
                       "outcomes_changed", "games_left_out", "probes_made", "probes_failed", "raw_rows", "kept_rows",
                       "marked", "kept_form", "kept_sha256", "frozen", "attempts_failed", "drain_sha256"))
 # the tables the cases use: COPIES of these files of the Syzygy folder (U1 Astra 151513Z's board and its two child
-# tables; U2 K+Q against K; KRvK only so that the B cases' folder holds more than one ending)
-TB_FILES = ["KQPvKQ", "KQvKP", "KPvK", "KQvK", "KRvK"]
+# tables; U2 K+Q against K; KRvK only so that the B cases' folder holds more than one ending; P1: KBvKP and KBvKB, the
+# tables of the fixture's two drawn endings, games 4 and 5, whose probed positions hold no capture: no other table)
+TB_FILES = ["KQPvKQ", "KQvKP", "KPvK", "KQvK", "KRvK", "KBvKP", "KBvKB"]
 TB = WORK / "tb"
 
 
@@ -295,6 +307,8 @@ def lines(h: Path) -> list:
 
 # ---- the known answers from the server's own records ----------------------------------------------------------------
 ROUND_GAMES = {1: [1, 2, 4], 2: [5, 6]}           # the credited ids with rows (ids 3, 9 have none; 7, 8, 10, 11, 12 repeat)
+TOUCHED = {4: "drawn end 8/4K3/8/2p5/5B2/7k/8/8 b - - 0 60", 5: "drawn end 8/8/k7/8/8/5B2/1b6/5K2 w - - 100 133"}  # P1
+PROBES = {1: 2, 2: 2}                             # P1: the loop's probes per round (games 4 and 5: two WDL each)
 
 
 def end_of(g: dict) -> tuple:
@@ -391,8 +405,9 @@ def case_fp_b1_b2_b3_b9():
     c2 = json.loads((BASEC / "stage" / "r0002" / "credit.json").read_bytes())
     got = {r: [e["counter"] for e in c["ids"] if e["state"] == "credited" and e["rows"]] for r, c in ((1, c1), (2, c2))}
     check("FP credit's credited ids with rows are ids 1 2 4 | 5 6", got, ROUND_GAMES)
-    check("FP no credited game can be changed or left out by the after-game rules (else C3's counts are unknown)",
-          {c: changeable(g[c]) for c in (1, 2, 4, 5, 6)}, {c: "" for c in (1, 2, 4, 5, 6)})
+    check("FP the after-game rules can touch exactly games 4 and 5 (drawn, four pieces), none by the ply-limit rule "
+          "(else the fixture is not the one of these inputs: derive it again, see the docstring, before a B case)",
+          {c: changeable(g[c]) for c in (1, 2, 4, 5, 6)}, {c: TOUCHED.get(c, "") for c in (1, 2, 4, 5, 6)})
     want = {}
     for r in (1, 2):
         text = my_text(ROUND_GAMES[r], g)
@@ -420,7 +435,7 @@ def case_fp_b1_b2_b3_b9():
             "schema": 2, "run_fingerprint": FP["fp"], "round": r, "status": "complete", "credit_sha256": sha(cb),
             "range_seals": c["range_seals"], "games_in": c["games_in"], "raw_rows_in": c["raw_rows_in"],
             "missing_ids": [], "set_aside_ids": [], "conflict_ids": [], "repeat_games": c["repeat_games"],
-            "games_examined": len(ROUND_GAMES[r]), "outcomes_changed": {}, "games_left_out": {}, "probes_made": 0,
+            "games_examined": len(ROUND_GAMES[r]), "outcomes_changed": {}, "games_left_out": {}, "probes_made": PROBES[r],
             "probes_failed": 0, "raw_rows": text.count("\ne\n"), "kept_rows": kept, "marked": marked,
             "kept_form": "plain.gz", "kept_sha256": sha(kb), "frozen": frozen_want(), "attempts_failed": 0,
             "drain_sha256": None})

@@ -319,7 +319,7 @@ def case_u():
 # ---- S: the server and the homes -----------------------------------------------------------------------------------
 NOW = time.time()
 SRV, SRVZ = WORK / "srv", WORK / "srvz"
-ROWS = [187, 127, 148]                                  # p0 = g1 g2 (86 + 101), p1 = g3 g4 (0 + 127), p2 = g5 g6 (81 + 67)
+ROWS = [104, 112, 477]                                  # p0 = g1 g2 (28 + 76), p1 = g3 g4 (0 + 112), p2 = g5 g6 (256 + 221)
 FP = {}
 CUST_COUNTS = re.compile(r"custody: RECEIVED (\d+) pieces (\d+) rows; C1 (\d+) pieces")
 COUNTS = re.compile(r"content: judged (\d+) pieces \((\d+) refused\); accepted (\d+) games (\d+) rows; "
@@ -375,7 +375,7 @@ def server() -> bool:
     closed = SRV / "w001" / "closed"
     seals = [json.loads((closed / f"p{i:06d}.seal.json").read_bytes()) for i in range(3)
              if (closed / f"p{i:06d}.seal.json").exists()]
-    if not check("server: exit 0, pieces of 187, 127, 148 rows, epoch 1, round 1, schedule 0",
+    if not check("server: exit 0, pieces of 104, 112, 477 rows, epoch 1, round 1, schedule 0",
                  (rc, [s["rows"] for s in seals], [(s["epoch"], s["round"], s["schedule"]) for s in seals]),
                  (0, ROWS, [(1, 1, 0)] * 3)):
         print(out)
@@ -506,20 +506,20 @@ def case_p1_to_p4():
     want, entries = expected()
     h = new_home("s")
     rc, out, c = content(h)
-    check("P1 S home: exit 0, judged 3 (0 refused), accepted 6 games 462 rows, nothing set aside or waiting",
-          (rc, c, out.splitlines()[:-1]), (0, (3, 0, 6, 462, 0, 0, 0, 0), []))
-    check("P1 the three verdicts, byte for byte as the known answers (rows 86 101 0 127 81 67, the server's digests)",
+    check("P1 S home: exit 0, judged 3 (0 refused), accepted 6 games 693 rows, nothing set aside or waiting",
+          (rc, c, out.splitlines()[:-1]), (0, (3, 0, 6, 693, 0, 0, 0, 0), []))
+    check("P1 the three verdicts, byte for byte as the known answers (rows 28 76 0 112 256 221, the server's digests)",
           verdicts(h), want)
     check("P2 the index: 6 entries, g3 with a null digest, each with its state and bind", index_rows(h), entries)
     time.sleep(1.1)
     rc, out, c = content(h)
     check("P3 a second pass: exit 0, the same counts, the verdicts and the index unchanged",
           (rc, c, out.splitlines()[:-1], verdicts(h), index_rows(h)),
-          (0, (3, 0, 6, 462, 0, 0, 0, 0), [], want, entries))
+          (0, (3, 0, 6, 693, 0, 0, 0, 0), [], want, entries))
     (h / "content" / "w001" / "p000001.verdict.json").unlink()
     rc, out, c = content(h)
     check("P4 p1's verdict removed: a pass writes the same bytes again, still 6 entries",
-          (rc, c, verdicts(h), index_rows(h)), (0, (3, 0, 6, 462, 0, 0, 0, 0), want, entries))
+          (rc, c, verdicts(h), index_rows(h)), (0, (3, 0, 6, 693, 0, 0, 0, 0), want, entries))
 
 
 def case_p4b():
@@ -534,7 +534,7 @@ def case_p4b():
     blocker.rmdir()
     rc, out, c = content(h)
     check("P4b the folder removed: exit 0, p1's and p2's verdicts as P1's, 6 entries",
-          (rc, c, verdicts(h), index_rows(h)), (0, (3, 0, 6, 462, 0, 0, 0, 0), want, entries))
+          (rc, c, verdicts(h), index_rows(h)), (0, (3, 0, 6, 693, 0, 0, 0, 0), want, entries))
 
 
 def case_p5_p6_p7():
@@ -542,7 +542,7 @@ def case_p5_p6_p7():
     z = new_home("z", SRVZ)
     rc, out, c = content(z)
     check("P5 Z home (raw offers): exit 0, the same verdicts as S's byte for byte, the same index",
-          (rc, c, verdicts(z), index_rows(z)), (0, (3, 0, 6, 462, 0, 0, 0, 0), want, entries))
+          (rc, c, verdicts(z), index_rows(z)), (0, (3, 0, 6, 693, 0, 0, 0, 0), want, entries))
     h = new_home("s6")
     rc, out, c = content(h, conv=WORK / "no_converter.exe")
     check("P6 the converter missing: exit 0, waits 3 (a local outage), no verdict, no index entry",
@@ -550,7 +550,7 @@ def case_p5_p6_p7():
           (0, (0, 0, 0, 0, 0, 0, 3, 0), 3, {}, []))
     rc, out, c = content(h)
     check("P6 then with the converter: the three verdicts as P1's", (rc, c, verdicts(h)),
-          (0, (3, 0, 6, 462, 0, 0, 0, 0), want))
+          (0, (3, 0, 6, 693, 0, 0, 0, 0), want))
     h = new_home("s7")
     p = h / "wire" / "out" / "w001" / "p000001.binpack"
     b = bytearray(p.read_bytes())
@@ -560,7 +560,7 @@ def case_p5_p6_p7():
     check("P7 a kept member changed after a1: WAITS for p1 naming its kept bytes, p0 and p2 judged",
           (rc, c, "WAITS w001/p000001: the kept member p000001.binpack is not the bytes of its receipt" in out,
            sorted(verdicts(h))),
-          (0, (2, 0, 4, 335, 0, 0, 1, 0), True, ["p000000.verdict.json", "p000002.verdict.json"]))
+          (0, (2, 0, 4, 581, 0, 0, 1, 0), True, ["p000000.verdict.json", "p000002.verdict.json"]))
 
 
 def refused_case(name: str, forge, key: str, prefix: bool = False):
@@ -570,9 +570,9 @@ def refused_case(name: str, forge, key: str, prefix: bool = False):
     rc, out, c = content(h)
     v = json.loads(verdicts(h).get("p000001.verdict.json", b"{}"))
     why = v.get("why") or ""
-    check(f"{name}: exit 0, judged 3 (1 refused), accepted 4 games 335 rows; p1 refused, no game, the why names it",
+    check(f"{name}: exit 0, judged 3 (1 refused), accepted 4 games 581 rows; p1 refused, no game, the why names it",
           (rc, c, v.get("piece"), v.get("games"), why.startswith(key) if prefix else key in why),
-          (0, (3, 1, 4, 335, 0, 0, 0, 0), "refused", [], True))
+          (0, (3, 1, 4, 581, 0, 0, 0, 0), "refused", [], True))
     print(f"     why: {why}")
 
 
@@ -628,17 +628,17 @@ def case_p9():
           "keeps the planted entry, one CONFLICT line",
           (rc, c, verdicts(h), index_rows(h),
            sum(ln.startswith("CONFLICT cont-w001-g00000004:") for ln in out.splitlines())),
-          (0, (3, 0, 6, 462, 0, 0, 0, 1), want, kept, 1))
+          (0, (3, 0, 6, 693, 0, 0, 0, 1), want, kept, 1))
     check("P9 the conflict record: first the planted entry (no receipt: seal null), second p1's g4 with its seal",
           read(one), rec("f" * 64))
     rc, out, c = content(h)
     check("P9 a second pass: exit 0, nothing judged again, the record unchanged, conflicts 1",
-          (rc, c, out.splitlines()[:-1], read(one)), (0, (3, 0, 6, 462, 0, 0, 0, 1), [], rec("f" * 64)))
+          (rc, c, out.splitlines()[:-1], read(one)), (0, (3, 0, 6, 693, 0, 0, 0, 1), [], rec("f" * 64)))
     (h / "content" / "w001" / "p000001.verdict.json").unlink()
     one.unlink()
     rc, out, c = content(h)
     check("P9b p1's verdict and the record removed: the pass finds the conflict again, the same bytes, conflicts 1",
-          (rc, c, read(one), verdicts(h), index_rows(h)), (0, (3, 0, 6, 462, 0, 0, 0, 1), rec("f" * 64), want, kept))
+          (rc, c, read(one), verdicts(h), index_rows(h)), (0, (3, 0, 6, 693, 0, 0, 0, 1), rec("f" * 64), want, kept))
     con = sqlite3.connect(h / "content" / "equal.sqlite")
     con.execute("UPDATE entries SET rows_digest = ? WHERE slot = 1 AND counter = 4", ("d" * 64,))
     con.commit()
@@ -648,7 +648,7 @@ def case_p9():
     check("P9c the first entry changed, p1 judged again: conflicts 2, the first record unchanged, the second name "
           "holds the new pair",
           (rc, c, sorted(p.name for p in cdir.iterdir()), read(one), read(two)),
-          (0, (3, 0, 6, 462, 0, 0, 0, 2), ["cont-w001-g00000004.2.json", "cont-w001-g00000004.json"], rec("f" * 64),
+          (0, (3, 0, 6, 693, 0, 0, 0, 2), ["cont-w001-g00000004.2.json", "cont-w001-g00000004.json"], rec("f" * 64),
            rec("d" * 64)))
 
 
@@ -675,7 +675,7 @@ def case_p10():
     check("P10 a process stopped inside an index transaction (its journal left): the next pass exit 0, P1's 6 entries "
           "without the stopped one, p1's verdict as P1's",
           (rc, p.returncode, p.stderr, journal, rc2, c2, index_rows(h), verdicts(h)),
-          (0, 0, "", True, 0, (3, 0, 6, 462, 0, 0, 0, 0), entries, want))
+          (0, 0, "", True, 0, (3, 0, 6, 693, 0, 0, 0, 0), entries, want))
 
 
 CONV_SCORE = """import re, subprocess, sys
@@ -710,7 +710,7 @@ def case_p11():
         print(f"     {waits[0] if waits else out[-300:]}")
     rc, out, c = content(h)
     check("P11c then the official converter: P1's three verdicts and index, conflicts 0",
-          (rc, c, verdicts(h), index_rows(h)), (0, (3, 0, 6, 462, 0, 0, 0, 0), want, entries))
+          (rc, c, verdicts(h), index_rows(h)), (0, (3, 0, 6, 693, 0, 0, 0, 0), want, entries))
 
 
 def case_p12():
@@ -727,7 +727,7 @@ def case_p12():
     (h / "content").rename(h / "content.lost")
     rc3, out3, c3 = content(h)
     check("P12 content/ moved aside: a pass judges again, P1's verdicts byte for byte and P2's 6 entries",
-          (rc3, c3, verdicts(h), index_rows(h)), (0, (3, 0, 6, 462, 0, 0, 0, 0), want, entries))
+          (rc3, c3, verdicts(h), index_rows(h)), (0, (3, 0, 6, 693, 0, 0, 0, 0), want, entries))
 
 
 def case_x():
@@ -764,7 +764,7 @@ def judged_copy(name: str) -> Path:
     if not base.exists():
         new_home("v_base")
         rc, out, c = content(base)
-        check("V0 the base home of the V cases: exit 0, judged as P1", (rc, c), (0, (3, 0, 6, 462, 0, 0, 0, 0)))
+        check("V0 the base home of the V cases: exit 0, judged as P1", (rc, c), (0, (3, 0, 6, 693, 0, 0, 0, 0)))
     h = WORK / name
     shutil.copytree(base, h)
     return h
@@ -837,7 +837,7 @@ def case_v3():
     check("V3b p0 judged (p1, p2 WAIT), the index copied aside, p1 and p2 judged, the older index put back: exit 4 "
           "naming p1's verdict",
           (rc1, c1, rc2, c2, rc3, stop_line(out3, 4, "content/w001/p000001.verdict.json")),
-          (0, (1, 0, 2, 187, 0, 0, 2, 0), 0, (3, 0, 6, 462, 0, 0, 0, 0), 4, True))
+          (0, (1, 0, 2, 104, 0, 0, 2, 0), 0, (3, 0, 6, 693, 0, 0, 0, 0), 4, True))
     h = judged_copy("V3c")
     sql(h, ("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)", ()),
         ("INSERT OR REPLACE INTO meta VALUES ('run_fingerprint', ?)", ("b" * 64,)))
@@ -894,7 +894,7 @@ def case_v3d():
     finally:
         con.close()
     check("V3d0 control: every verdict removed, an index of the empty entries table only: exit 0, judged as the base, "
-          "the index then names this run", (rc, c, run), (0, (3, 0, 6, 462, 0, 0, 0, 0), (FP["fp"],)))
+          "the index then names this run", (rc, c, run), (0, (3, 0, 6, 693, 0, 0, 0, 0), (FP["fp"],)))
 
 
 def case_v4():

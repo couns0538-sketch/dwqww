@@ -8,16 +8,16 @@ one change is tested the same way. Every case has its own root under the work fo
 group's workers at once (at most six engines at a time, one thread each, four of them for seconds; run it behind
 the build gate).
 
-Known answers, written before the first run. Sources: N12's six games (known/n12_batch.json: 462 rows in all);
+Known answers, written before the first run. Sources: N12's six games (known/n12_batch.json: 693 rows in all);
 Astra's 135234Z for the two zero-row controls (FORMATS 1.4 names both as fixtures); FORMATS 1.3 to 1.8 for the files.
  V1   N12's six openings as a list rule (count 6), slot 1, piece_games 4, one range (round 1, counters 1 to 6),
-      dispatch end in 30 s: exit 0; every game as n12_batch.json (rows, end line, digest), 462 rows in all;
+      dispatch end in 30 s: exit 0; every game as n12_batch.json (rows, end line, digest), 693 rows in all;
       closed/p000000.raw = games 1 to 4, p000001.raw = games 5 and 6, open/ empty; both seals equal, byte for
       byte, to the record recomputed here (1.5); the journal is exactly epoch, done x4, closed, done x2, closed,
       ended; the epoch line {1, prev 0, last_index -1, genesis, this machine's boot id, resume null}; the ended line
       {epoch 1, last_index 1, seal 1's sha256, why "ranges done"}; every done line names its record's end, bind
       and rows; every record's bind is record.bind of its own fields; the range seal r0001.w001 (1.7): complete,
-      done 6, games 6, rows 462, raw_bytes of both pieces, pieces 0 to 1; IDENTITY.json; the heartbeat canonical
+      done 6, games 6, rows 693, raw_bytes of both pieces, pieces 0 to 1; IDENTITY.json; the heartbeat canonical
       with 6 games and no .part left; no .tmp file; no engine left.
  V2   Astra's case 8: a copy of V1's slot folder under ANOTHER run's header (run "other"): exit 4 naming
       IDENTITY.json; the slot folder unchanged byte for byte.
@@ -39,7 +39,7 @@ Astra's 135234Z for the two zero-row controls (FORMATS 1.4 names both as fixture
  V7   a REAL kill of the worker after two of V1's games, then an unfinished line appended to the journal and
       garbage to the open piece; the restart drops the line and cuts the garbage off (both named in worker.log):
       exit 0, every id once, the pieces byte for byte V1's, ended "ranges done", no engine left.
- V7b  Fable's reading 9 (a softer 1.8.3, 23 Nov): a REAL kill after three of V1's games (counter 4, 127 rows, is
+ V7b  Fable's reading 9 (a softer 1.8.3, 23 Nov): a REAL kill after three of V1's games (counter 4, 112 rows, is
       being played), the start of g4's record (`game n12-w001-g00000004 opening <its moves>` + its sent line)
       appended to the open piece, FENCE.json: the restart is a finalizer start: exit 0, worker.log names the cut
       and g4's failed line; after the epoch-2 line the journal is failed g4 (why "its bytes lay beyond the
@@ -76,7 +76,7 @@ Astra's 135234Z for the two zero-row controls (FORMATS 1.4 names both as fixture
  V11b while the worker waits after its range, a SCHEDULE.2 that lengthens the started range: exit 4 naming the
       started range; both games played before.
  V12  plant swap_final at counter 2 (A23): exit 7, the journal is epoch, done g1, refused g2 (binding).
- V13  plant kill_engine at counter 4 (127 rows; counter 3 is N12's zero-row game, which ends before any kill can
+ V13  plant kill_engine at counter 4 (112 rows; counter 3 is N12's zero-row game, which ends before any kill can
       reach it: the first run, 13:31): exit 0, one failed line for g4 then its done line, the pieces V1's.
  V13b plant bad_row at counter 4 (Fable 13:59: a record.text / bind refusal is a game failure): g4's first row gets
       " x" appended, the record module refuses it: exit 0, g4 failed once (why begins "row: a row of
@@ -310,7 +310,7 @@ assert len(N12) == 6 and all(len(o) == 8 for o in N12), N12
 OPENINGS = WORK / "n12_openings.txt"
 OPENINGS.write_bytes("".join(" ".join(o) + "\n" for o in N12).encode("ascii"))
 K_BATCH = json.loads((TREE / "known" / "n12_batch.json").read_text(encoding="ascii"))["games"]
-assert sum(g[0] for g in K_BATCH) == 462, "n12_batch.json is not the file of 462 rows"
+assert sum(g[0] for g in K_BATCH) == 693, "n12_batch.json is not the file of 693 rows"
 EXE_SHA = sha(EXE.read_bytes())
 SLOW_LINE = MAN["selfgame_line"].replace("softnodes 2000 ", "softnodes 4000000 ")
 assert SLOW_LINE != MAN["selfgame_line"]
@@ -600,8 +600,8 @@ if R1:
     common("V1", OUT["V1"], 0)
     fp = sha((R1 / "RUN.json").read_bytes())
     rs = recs(R1, 1)
-    check("V1 six games as n12_batch.json (rows, end line, digest), 462 rows",
-          [[len(g["rows"]), g["end"], field_digest(g)] for g in rs] == K_BATCH and sum(len(g["rows"]) for g in rs) == 462,
+    check("V1 six games as n12_batch.json (rows, end line, digest), 693 rows",
+          [[len(g["rows"]), g["end"], field_digest(g)] for g in rs] == K_BATCH and sum(len(g["rows"]) for g in rs) == 693,
           [(len(g["rows"]), g["end"][:40]) for g in rs])
     cp = pieces(R1, 1)
     check("V1 p000000.raw holds games 1 to 4 and p000001.raw games 5 and 6; open/ is empty",
@@ -647,7 +647,7 @@ if R1:
     check("V1 the range seal (1.7), byte for byte", rsp.exists() and rsp.read_bytes() == canon({
         "schema": 2, "run": "n12", "run_fingerprint": fp, "round": 1, "slot": 1, "epoch": 1, "schedule": 1,
         "first": 1, "last": 6, "short": False, "complete": True, "first_index": 0, "first_prev_seal": gen,
-        "through_index": 1, "through_seal": last_seal, "games": 6, "rows": 462,
+        "through_index": 1, "through_seal": last_seal, "games": 6, "rows": 693,
         "raw_bytes": sum(len(b) for b in cp.values()),
         "dispositions": {"dispatch_unknown": 0, "done": 6, "never_dispatched": 0, "never_dispatched_first": None,
                          "noselfgame": 0, "refused": 0, "unfinished": 0, "not_done": []}}), rsp.read_bytes()[:400] if rsp.exists() else "missing")

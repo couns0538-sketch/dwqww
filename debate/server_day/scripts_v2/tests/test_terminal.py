@@ -4,14 +4,14 @@ BEFORE it (tmp/opus_scratch/terminal/KNOWN_ANSWERS_by_opus.md on the PC). Standa
     test_terminal.py <run/terminal.py> <engine exe> <net file> <converter exe> <a NEW folder> [plantN]
 
 The run folder of terminal.py is copied; a plant is applied to the copy's terminal.py only. The fixtures are made by the
-REAL worker of that folder (the real engine, N12's openings: rows 86, 101, 0, 127, 81, 67 for games 1 to 6), its REAL
+REAL worker of that folder (the real engine, N12's openings: rows 28, 76, 0, 112, 256, 221 for games 1 to 6), its REAL
 finalizer (the worker's seal_only start) and the REAL packer (the official converter, or none): the inventory reads
 what the day's own programs write. <tree> = the folder above run/ holds workloads/ and known/.
 
 A  run "term", list rule, piece_games 2, slots [1, 2] (counters 1 to 6 and 1 to 3), SCHEDULE.1: slot 1 plays all six
-   (pieces 187, 127, 148 rows), FENCE.json (why "D"), slot 2's start under the fence (seal_only: never_dispatched 3),
+   (pieces 104, 112, 477 rows), FENCE.json (why "D"), slot 2's start under the fence (seal_only: never_dispatched 3),
    the packer --once with the official converter (three offers, binpack). 11 lines; footer: slots ended 2, pieces 3,
-   offered 3, raw_rows 462, ids done 6 and never_dispatched 3, cutoff_reached true, stop_reason "D".
+   offered 3, raw_rows 693, ids done 6 and never_dispatched 3, cutoff_reached true, stop_reason "D".
 K  the state a kill of slot 1 leaves while g4 plays (a copy of A once slot 1 ended by the fence, FENCE.json removed:
    the journal cut after g3's done line, p1's raw moved back to open/ and cut to g3's end, the later seals, p2's raw
    and the range seal removed). Slots 1 and N end by a fence written once their range seal is there: no dispatch end.
@@ -178,7 +178,7 @@ N12 = [ln.split()[3:] for ln in (TREE / "workloads" / "n12_batch.uci").read_text
        if ln.startswith("position startpos moves ")]
 OPENINGS = WORK / "n12_openings.txt"
 OPENINGS.write_bytes("".join(" ".join(o) + "\n" for o in N12).encode("ascii"))
-GAME_ROWS = [86, 101, 0, 127, 81, 67]                  # N12's six games (known/n12_batch.json: 462 rows)
+GAME_ROWS = [28, 76, 0, 112, 256, 221]                 # N12's six games (known/n12_batch.json: 693 rows)
 DOUBT = "no line: in doubt after an earlier play epoch (1.8 point 3)"
 CUT = "its bytes lay beyond the journal's end and were cut at a restart"
 NOW = time.time()
@@ -328,9 +328,9 @@ def fixtures():
     closed = a / "w001" / "closed"
     rows = [json.loads((closed / f"p{i:06d}.seal.json").read_bytes())["rows"] for i in range(3)
             if (closed / f"p{i:06d}.seal.json").exists()]
-    if not check("fixture A: slot 1 exit 0, three pieces of 187, 127, 148 rows, ended \"ranges done\"",
+    if not check("fixture A: slot 1 exit 0, three pieces of 104, 112, 477 rows, ended \"ranges done\"",
                  (rc, rows, jlines(a, 1)[-1].get("why") if (a / "w001" / "journal.txt").exists() else None),
-                 (0, [187, 127, 148], "ranges done")):
+                 (0, [104, 112, 477], "ranges done")):
         print(out)
         return
     k = copy(a, "k_base")                               # slot 1 ended, slot 2 untouched; K's fence goes below
@@ -412,14 +412,14 @@ def part_inventories():
                        slot_line(a, 2, "ended", -1), rd(a, "ranges/r0001.w002.seal.json")], 11,
               {"cutoff_reached": True, "ids": ids(done=6, never_dispatched=3),
                "offered_bytes": sum(json.loads(piece_line(a, 1, i))["offered_bytes"] for i in range(3)), "pieces": 3,
-               "pieces_offered": 3, "raw_rows": 462, "slots": {"ended": 2, "unreconciled": 0}, "stop_reason": "D"}, t0)
+               "pieces_offered": 3, "raw_rows": 693, "slots": {"ended": 2, "unreconciled": 0}, "stop_reason": "D"}, t0)
     STATE["a_inv"] = a
     u = STATE["u"]
     inventory("U", u, [rd(u, "RUN.json"), rd(u, "SCHEDULE.1.json"), rd(u, "FENCE.json"),
                        slot_line(u, 1, "unreconciled", 0), piece_line(u, 1, 0), slot_line(u, 2, "ended", -1),
                        rd(u, "ranges/r0001.w002.seal.json")], 8,
               {"cutoff_reached": True, "ids": ids(never_dispatched=3), "offered_bytes": 0, "pieces": 1,
-               "pieces_offered": 0, "raw_rows": 187, "slots": {"ended": 1, "unreconciled": 1}, "stop_reason": "D"},
+               "pieces_offered": 0, "raw_rows": 104, "slots": {"ended": 1, "unreconciled": 1}, "stop_reason": "D"},
               time.time())
     check("U the unoffered piece: offer null, offered_bytes 0, packed_bytes null",
           {k: json.loads(piece_line(u, 1, 0))[k] for k in ("offer", "offered_bytes", "packed_bytes")},
@@ -432,7 +432,7 @@ def part_inventories():
                        slot_line(b, 2, "ended", -1), rd(b, "ranges/r0001.w002.seal.json")], 11,
               {"cutoff_reached": False, "ids": ids(done=3, unfinished=1, never_dispatched=5),
                "offered_bytes": sum(json.loads(piece_line(b, 1, i))["offered_bytes"] for i in range(2)), "pieces": 2,
-               "pieces_offered": 2, "raw_rows": 187, "slots": {"ended": 2, "unreconciled": 0}, "stop_reason": why_b},
+               "pieces_offered": 2, "raw_rows": 104, "slots": {"ended": 2, "unreconciled": 0}, "stop_reason": why_b},
               time.time())
     c = STATE["c_run"]
     inventory("C", c, [rd(c, "RUN.json"), rd(c, "SCHEDULE.1.json"), rd(c, "FENCE.json"), slot_line(c, 1, "ended", 1),
@@ -440,7 +440,7 @@ def part_inventories():
                        W.canon({"game": "term-w001-g00000004", "state": "dispatch_unknown", "t": "id", "why": DOUBT}),
                        slot_line(c, 2, "ended", -1), rd(c, "ranges/r0001.w002.seal.json")], 11,
               {"cutoff_reached": True, "ids": ids(done=3, dispatch_unknown=1, never_dispatched=5), "offered_bytes": 0,
-               "pieces": 2, "pieces_offered": 0, "raw_rows": 187, "slots": {"ended": 2, "unreconciled": 0},
+               "pieces": 2, "pieces_offered": 0, "raw_rows": 104, "slots": {"ended": 2, "unreconciled": 0},
                "stop_reason": "D"}, time.time())
     n = STATE["n"]
     inventory("N", n, [rd(n, "RUN.json"), W.canon({"n": 0, "t": "schedule"}), rd(n, "FENCE.json"),
@@ -498,7 +498,7 @@ def part_refusals():
     refused("R9 an offer of p000007", r, "an offer of p000007")
     r = copy(a, "r13")
     j = (r / "w001" / "journal.txt").read_bytes().split(b"\n")
-    j[1] = j[1].replace(b'"rows":86', b'"rows":86.0')
+    j[1] = j[1].replace(b'"rows":28', b'"rows":28.0')
     (r / "w001" / "journal.txt").write_bytes(b"\n".join(j))
     refused("R13 a decimal number in slot 1's journal line 2", r, "w001/journal.txt line 2")
     r = copy(STATE["c"], "r14")
@@ -568,7 +568,7 @@ def part_v():
           [(a / (x + ".zz")).exists() for x in (R1, R2)], [True, True])
     foot_a = {"cutoff_reached": True, "ids": ids(done=6, never_dispatched=3),
               "offered_bytes": sum(json.loads(piece_line(a, 1, i))["offered_bytes"] for i in range(3)), "pieces": 3,
-              "pieces_offered": 3, "raw_rows": 462, "slots": {"ended": 2, "unreconciled": 0}, "stop_reason": "D"}
+              "pieces_offered": 3, "raw_rows": 693, "slots": {"ended": 2, "unreconciled": 0}, "stop_reason": "D"}
     # T-A: each seal against the schedule it names; an ended slot against schedule L
     r = copy(a, "va1")
     put(r / "ranges" / "r0002.w001.seal.json", W.canon(dict(json.loads(rd(r, R1)), round=2)))
@@ -692,7 +692,7 @@ def part_v():
                         slot_line(v, 1, "ended", 2), piece_line(v, 1, 0), piece_line(v, 1, 1), piece_line(v, 1, 2),
                         rd(v, R1), slot_line(v, 2, "ended", -1), rd(v, R2), rd(v, "ranges/r0002.w002.seal.json")], 13,
               {"cutoff_reached": True, "ids": ids(done=6, never_dispatched=6), "offered_bytes": 0, "pieces": 3,
-               "pieces_offered": 0, "raw_rows": 462, "slots": {"ended": 2, "unreconciled": 0}, "stop_reason": "D"},
+               "pieces_offered": 0, "raw_rows": 693, "slots": {"ended": 2, "unreconciled": 0}, "stop_reason": "D"},
               time.time())
     rc, out = terminal(v)
     check("VL a second run: exit 0, the output names slot 1's round 2 as without a range seal",

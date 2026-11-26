@@ -532,12 +532,12 @@ def meta(h: Path) -> list:
 def case_k16_k17():
     g = raw_games()
     want_table = ([(g[c][1], gid(c), 1) for c in (1, 2, 4)] + [(g[c][1], gid(c), 2) for c in (5, 6)],
-                  [(1, "complete", 4, 314), (2, "complete", 3, 148)])
+                  [(1, "complete", 4, 216), (2, "complete", 3, 477)])
     h = home("k16")
     credit(h)
     want = decided(h)
     check("K4b the table after K1: 5 credited digests (ids 1 2 4 of round 1, 5 6 of round 2); rounds (1, complete, 4, "
-          "314) and (2, complete, 3, 148)", table(h), want_table)
+          "216) and (2, complete, 3, 477)", table(h), want_table)
     check("K4c the table names its run: meta holds exactly ('run_fingerprint', the pinned fingerprint)",
           meta(h), [("run_fingerprint", FP["fp"])])
     h21 = home("k21a")

@@ -32,7 +32,7 @@ C   C1 CONFLICT: the inbox holds CONTROL.1.json.zz with other bytes: exit 3 nami
     overwritten, the final equal, no dot-name left. C6 (H4) a two-space HOME and NEWDIR: probe and send exit 0.
 D1  refused input, exit 4, sent/ and the inbox empty: a fifth file; a missing .zz; a .zz of the other file; a short
     evidence (name not its sha256); another run's control; an evidence with local_only; owner_policy not the
-    evidence's plan; a home whose wire/RUN.json.zz is another run's.
+    evidence's plan; a home whose wire/RUN.json.zz is another run's (and nothing made by that refusal: Fable's D2).
 D2  k 2 on an empty sent chain: HELD; another control under the same k: HELD; a retry of the same bytes: exit 0, no
     `put` line in its batches.
 D3  a cutoff one second later than the one in force: HELD; D come (a schedule in wire/ whose cutoff passed): a
@@ -40,7 +40,10 @@ D3  a cutoff one second later than the one in force: HELD; D come (a schedule in
 D5  the host key and the refused login (a stand-in client printing ssh's texts): exit 6, the ONLY batch line an
     `ls -ln "`, the inbox empty, sent/ holds the decision (written before the first byte), no file line.
 L   the process: observe while the test holds DIR/deliver/LOCK: exit 8; send without --config: exit 2; observe:
-    exit 0 and a line "deliver: observe".
+    exit 0 and a line "deliver: observe". L4 to L6 (Fable's D2): a new empty folder, another run's header, a header
+    that is not zlib: exit 4 and nothing made there; L7 the control: this run's header alone, the folders are made.
+    L4b (Fable) a --home that does not exist: exit 2, still not there; L6b (Fable) a header that is zlib and has the
+    fingerprint but is no record: exit 4, no traceback, nothing made.
 PLANTS: see PLANTS below (each must make the test fail).
 """
 import hashlib
@@ -95,6 +98,9 @@ PLANTS = {
                  "                raise Stop(7, f\".{name}.part read back with other bytes ({len(got)} of {len(data)}): no "
                  "rename\")\n")],
     "plant12": [("w.run([f'rename -l \"{w.inbox}/{a}\"", "w.run([f'rename \"{w.inbox}/{a}\"")],
+    "plant13": [('        p = self.wire / "RUN.json.zz"\n',
+                 '        self.ddir.mkdir(exist_ok=True)\n        self.seen.mkdir(exist_ok=True)\n'
+                 '        p = self.wire / "RUN.json.zz"\n')],   # the folders before the header (D2)
 }
 DP = TREE / "home" / "deliver.py"
 text = DP.read_bytes().decode("ascii")
@@ -597,8 +603,11 @@ def part_d1():
         check(f"{name}: exit 4 naming it; sent/ and the inbox empty",
               (rc, words in out, tree(home / "deliver" / "sent"), inbox(root)), (4, True, {}, {}))
     hx = new_home("home_d1h", hb=HB2)
+    before = sorted(str(p.relative_to(hx)) for p in hx.rglob("*"))
     rc, out = call("send", hx, wire(hx, root), o)
     check("D1h a home whose wire/RUN.json.zz is another run's: exit 4", (rc, "not this run's header" in out), (4, True))
+    check("D1h nothing made by that refusal: the home's whole listing unchanged (Fable's D2)",
+          sorted(str(p.relative_to(hx)) for p in hx.rglob("*")), before)
 
 
 def part_d2():
@@ -682,6 +691,43 @@ def part_l():
     r = subprocess.run([sys.executable, "-I", "-B", str(DP), "observe", "--home", str(home), "--fingerprint", FP],
                        capture_output=True, text=True)
     check("L3 observe: exit 0, its line", (r.returncode, r.stdout.startswith("deliver: observe")), (0, True))
+    for name, made, words in (("L4 a NEW EMPTY folder", None, "not this run's header"),
+                              ("L5 a folder with another run's header", zlib.compress(HB2, 6), "not this run's header"),
+                              ("L6 a folder with a header that is not zlib", b"not zlib at all\n", "not a zlib stream")):
+        h = WORK / ("home_" + name[:2].lower())
+        h.mkdir()
+        if made is not None:
+            (h / "wire").mkdir()
+            (h / "wire" / "RUN.json.zz").write_bytes(made)
+        before = sorted(str(p.relative_to(h)) for p in h.rglob("*"))
+        r = subprocess.run([sys.executable, "-I", "-B", str(DP), "observe", "--home", str(h), "--fingerprint", FP],
+                           capture_output=True, text=True)
+        check(f"{name}: exit 4 naming it, and nothing made there (Fable's D2)",
+              (r.returncode, words in r.stdout, sorted(str(p.relative_to(h)) for p in h.rglob("*")) == before),
+              (4, True, True))
+    h = WORK / "home_l7"
+    (h / "wire").mkdir(parents=True)
+    (h / "wire" / "RUN.json.zz").write_bytes(zlib.compress(HB, 6))
+    r = subprocess.run([sys.executable, "-I", "-B", str(DP), "observe", "--home", str(h), "--fingerprint", FP],
+                       capture_output=True, text=True)
+    check("L7 control: this run's header alone: exit 0, and deliver/ (sent/, back/, LOCK) and control/ are made",
+          (r.returncode, [n for n in ("deliver", "deliver/sent", "deliver/back", "deliver/LOCK", "control")
+                          if not (h / n).exists()]), (0, []))
+    nr = b"not a record\n"
+    h = WORK / "home_l6b"
+    (h / "wire").mkdir(parents=True)
+    (h / "wire" / "RUN.json.zz").write_bytes(zlib.compress(nr, 6))
+    before = sorted(str(p.relative_to(h)) for p in h.rglob("*"))
+    r = subprocess.run([sys.executable, "-I", "-B", str(DP), "observe", "--home", str(h), "--fingerprint", sha(nr)],
+                       capture_output=True, text=True)
+    check("L6b a header that is zlib and has the fingerprint but is no record: exit 4, no traceback, nothing made",
+          (r.returncode, "Traceback" in r.stdout + r.stderr,
+           sorted(str(p.relative_to(h)) for p in h.rglob("*")) == before), (4, False, True))
+    h = WORK / "home_l4b_does_not_exist"
+    r = subprocess.run([sys.executable, "-I", "-B", str(DP), "observe", "--home", str(h), "--fingerprint", FP],
+                       capture_output=True, text=True)
+    check("L4b a --home that does not exist: exit 2 naming it, and it is still not there",
+          (r.returncode, "no such home folder" in r.stdout, h.exists()), (2, True, False))
 
 
 for nm, fn in (("P", part_p), ("U", part_u), ("U2", part_u2), ("W", part_w), ("R", part_r), ("C", part_c),

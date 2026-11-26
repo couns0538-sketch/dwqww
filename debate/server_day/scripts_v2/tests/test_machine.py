@@ -29,7 +29,9 @@ the unit level skipped (MQ23); plant24 an existing --out checked only as a link 
 accepted (MQ24); plant26 cpu.stat not recorded (MQ16); plant27 any boot_id accepted (MQ13); plant28 an empty sshd
 path accepted (MQ15); plant29 an active unit's own use not read (MQ23b); plant30 an empty value read as no limit
 (MQ14b); plant32 PID 1 not read (MQ10); plant33 pidfd not read (MQ11); plant34 a float in the record (MQ17); plant35
-the link probe leaves its files (the real probe).
+the link probe leaves its files (the real probe); plant36 a clang++ alone accepted (MQ15b, Fable's M3); plant37 a
+crash inside the check let out (Fable's M2). There is no plant31 (the number was never used): the plants are 1 to 30
+and 32 to 37.
 """
 import copy
 import hashlib
@@ -91,6 +93,9 @@ PLANTS = {
     "plant33": ('    if rd.get("pidfd") != "ok":', '    if rd.get("pidfd") is None:'),
     "plant34": ('"schema": 1, "verdict": verdict}', '"schema": 1.0, "verdict": verdict}'),
     "plant35": ("                q.unlink()\n", "                pass\n"),
+    "plant36": ('    if not (rd.get("compiler") or {}).get("g++"):', '    if not any((rd.get("compiler") or {}).values()):'),
+    "plant37": ('        print(f"STOP: the machine check failed inside itself, no record: {type(e).__name__}: {e}")\n'
+                '        return 4\n', "        raise\n"),
 }
 if PLANT:
     text = MOD.read_bytes().decode("utf-8")
@@ -466,7 +471,12 @@ def cases():
     case("MQ15 no sshd", fx, ["tools: no sshd found (PATH and /usr/sbin)"])
     fx = clean()
     fx["compilers"] = {}
-    case("MQ15 no compiler", fx, ["tools: no C++ compiler (g++ or clang++) answers --version"])
+    case("MQ15 no compiler", fx, ["tools: g++ does not answer --version (the day's Linux build calls g++; a clang++ alone "
+                                  "is not it)"])
+    fx = clean()
+    fx["compilers"] = {"clang++": "Ubuntu clang version 18.1.3 (1ubuntu1)\n"}
+    case("MQ15b clang++ alone (Fable's M3)", fx, ["tools: g++ does not answer --version (the day's Linux build calls g++; a clang++ alone "
+                                  "is not it)"])
     case("MQ15 the lzma round trip fails", clean(), ["tools: the lzma round trip failed"],
          after=lambda rd: rd["codecs"].__setitem__("lzma", False))
     check("MQ15 the real codecs here", M.codecs(), {"lzma": True, "sha256": True, "zlib": True})
@@ -564,6 +574,17 @@ def calls_main():
     rc = M.main(["--request", str(rq), "--out", str(o)], ops=ops)
     check("MQ24 an --out that exists: exit 2, unchanged, nothing read", (rc, o.read_bytes(), ops.calls),
           (2, b"keep\n", []))
+    # M2 (Fable 25 Nov): a crash inside the check is exit 4 with one line and no record, never UNQUALIFIED's exit 1
+    class Boom(FakeOps):
+        def run(self, argv):
+            raise RuntimeError("planted inside the check")
+    import contextlib
+    import io
+    o, buf = WORK / "record_boom.json", io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        rc = M.main(["--request", str(rq), "--out", str(o)], ops=Boom(clean()))
+    check("M2 a crash inside the check: exit 4, no record, one line naming it",
+          (rc, o.exists(), "failed inside itself" in buf.getvalue()), (4, False, True))
 
 
 def real_link_probe():
