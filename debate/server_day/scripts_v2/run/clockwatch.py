@@ -140,6 +140,17 @@ class Bounds:
         with self._lock:
             return self._b.get(name)
 
+    def earliest_ms(self, r):
+        """v17 (G1' and C-R1): the time by the three clocks at ONE reading r, the EARLIEST of UTC, anchor + steady run
+        and anchor + boot run (when both boot readings exist), in whole milliseconds rounded down: the furthest
+        BEHIND. The guard's CLOCK.json utc_ms and the worker's t0_ms use this one rule, so home compares like with
+        like; a UTC that jumps ahead never enters."""
+        a = self.anchor
+        t = [r[0], a[0] + (r[1] - a[1])]
+        if r[2] is not None and a[2] is not None:
+            t.append(a[0] + (r[2] - a[2]))
+        return math.floor(min(t) * 1000)
+
     def hold(self):
         with self._lock:
             return HOLD in self._latch.values()

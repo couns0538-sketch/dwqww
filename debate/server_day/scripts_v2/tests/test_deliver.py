@@ -237,9 +237,11 @@ def done(g):
 
 def clock_line(h: Path, fp: str, behind_s: float = 0.0) -> None:
     """v16 (ADDENDUM 7): ONE ok clock line of run fp in h/clock/journal.jsonl, as home/clock.py's measure writes
-    it: the server's time = the PC's now - behind_s."""
+    it: the server's time = the PC's now - behind_s.
+    v17 (CL1): with mono0, the steady clock read right BEFORE, as measure writes it."""
+    mono0 = time.monotonic()
     wall, mono = time.time(), time.monotonic()
-    line = W.canon({"impl": time.get_clock_info("monotonic").implementation, "look": 2, "mono": mono, "n": 1,
+    line = W.canon({"impl": time.get_clock_info("monotonic").implementation, "look": 2, "mono0": mono0, "mono": mono, "n": 1,
                     "ok": True, "platform": sys.platform, "run": fp, "state": "play", "t": "clock",
                     "utc_ms": int((wall - behind_s) * 1000), "wall": wall, "why": None})
     (h / "clock").mkdir(parents=True, exist_ok=True)

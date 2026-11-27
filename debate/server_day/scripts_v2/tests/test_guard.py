@@ -2,7 +2,7 @@
 FORMATS 2.9 1.2 and 1.8, SETUP_PLAN D2 and D5, and Astra 160235Z, 161634Z, 171134Z, 171332Z, 172109Z. Standard
 library only; run it with a PLAIN interpreter (it starts python processes itself).
 
-    test_guard.py <run/guard.py> <a NEW folder> [exe=<engine> net=<net file>] [only=C,P,E] [plant1 ... plant44]
+    test_guard.py <run/guard.py> <a NEW folder> [exe=<engine> net=<net file>] [only=C,P,E,J] [plant1 ... plant66]
 
 The run folder of <run/guard.py> is copied into the new folder (a plant changes the copy only) and imported from
 there. C and P need nothing else; E needs the engine and its net and the tree's workloads/ and known/ (the folder
@@ -45,6 +45,9 @@ C  THE CONTROL RECORD, in-process, no process started (take_controls, extend and
        is NOT the action: (a) action "stop": the fence; (b) "reduced_target" 1500 rows, covered, scope 1500: a
        schedule; (c) the same with scope 1600: HELD ("more rows"); (d) uncovered and if_uncovered "stop": the fence;
        (e) uncovered and no if_uncovered: HELD ("names no action"); (f) an action the guard does not know: HELD.
+       F2 (Opus 26 Nov; tmp/opus_scratch/v17/KNOWN_ANSWERS_F2_by_opus.md): (g) action "self_play" (the owner's 1A),
+       the report's label "stop", scope 1,000,000 = the policy's full target: a schedule; (h) the same with scope
+       1,000,001: HELD ("more rows").
    C14 kind matches, decision = the report's matches: accepted, no schedule, an ALARM "no match runner"; the
        decision other than the report's matches: HELD ("pairs").
    C14b kind fence: the fence, why names that control.
@@ -91,6 +94,11 @@ P  THE PROCESSES, stand-in worker and packer scripts started by the guard's own 
        released: the packer starts.
    PF  a day of 4 s whose slot lock is held all the time: no worker start at all; at D + grace the slot is
        UNRECONCILED (its lock still held), STOP_PACKER names [1], CLOSED.json slots_unreconciled [1], within 30 s.
+   PG7 (G7, v17: Neon's catch, 26 Nov evening; tmp/opus_scratch/v17/fix_g7/KA_fix_g7.md; run last in part P) a day of
+       8 s, --end-grace 8: slot 1's play start dies (exit 6) about 2.5 s after D, its finalizer ends it: two starts
+       [no fence, fence], ended, not UNRECONCILED; slot 2's play start dies the same way and then its finalizer dies
+       too (exit 6): two starts, UNRECONCILED as a start after the end; CLOSED.json slots_ended [1],
+       slots_unreconciled [2]; STOP_PACKER names [2].
 
 E  ONE DAY WITH THE REAL WORKER, ENGINE AND PACKER (slots 0 and 1, piece_games 1, pilot round 1 = counters 1 and 2,
    D = now + 15 min, the openings of N12, the manifest's game line, a converter that is not there so every piece is
@@ -180,6 +188,21 @@ PLANTS (each must make the test fail; the check expected to fail is named):
   plant47 utc_ms from UTC alone (G1b)              plant48 no spacing of the writes (G3)
   plant49 n not continued on a restart (G4)
   plant50 a failed write lets its error out (G6)   plant51 a failed write counted as a write, not tried again (G6)
+  plant52 (F2, Opus 26 Nov) the action self_play unknown: "c13g effect" and "c13h HELD names it (more rows)"
+  plant47's text follows v17: clock_utc_ms returns self.B.earliest_ms(r) (the rule moved to clockwatch.Bounds);
+  the plant makes it UTC alone, math.floor(r[0] * 1000), as before (found 26 Nov: the v16 text stood 0 times).
+  plant53 to plant63 (G12, Opus 26 Nov; known answers tmp/opus_scratch/v17/KNOWN_ANSWERS_GP_by_opus.md): GP3's count
+  check off (J6, J6b); an existing PILOT.json not looked at (J10a, J10b, J10c); the pilot-row filter off (J7); GP3b's
+  wait off (J3, J3b 119); GP3c off (J8); GP3d off (J9); C-R2 off (J4); GP6's check off (J5); the no-piece check off
+  (J12); the first_index chain off (J13); the catch-all narrowed to ValueError (J11 GP9).
+  plant64 (G12 end to end, Opus 26 Nov; ADDENDUM 2 of the same file) one_pass's call of pilot_pass taken out: part E's
+  three PILOT checks (the real PILOT.json, its wire copy, home's reader).
+  plant65 (G7, v17) the finalizer's start for a start made before the end taken out (PG7: slot 1, slot 2, CLOSED.json,
+  STOP_PACKER); plant66 (G7) end_start never set, every start counts as one before the end (PG7 slot 2: its finalizer
+  is started again and again).
+PART J (v17 G12, Opus 26 Nov): the guard's PILOT.json on GP8's fixture, 25 checks J1 to J13, each case a NEW root,
+  a pass = pilot_pass on staged clocks (J11: one_pass with the STOP file); on a guard without pilot_pass the pass does
+  nothing. The cases and their exact answers: tmp/opus_scratch/v17/KNOWN_ANSWERS_GP_by_opus.md.
 """
 import ctypes
 import hashlib
@@ -209,7 +232,7 @@ for x in sys.argv[3:]:
     else:
         print(f"STOP: not understood: {x}")
         sys.exit(2)
-ONLY = set(OPTS.get("only", "C,P,E").split(","))
+ONLY = set(OPTS.get("only", "C,P,E,J").split(","))
 if WORK.exists():
     print(f"STOP: {WORK} exists already (a NEW folder)")
     sys.exit(2)
@@ -285,14 +308,36 @@ PLANTS = {
     "plant44": ('        if p.poll(0):\n            return False\n', '        if False:\n            return False\n'),
     "plant45": ("        if n > 999:  ", "        if False:  "),
     "plant46": ("        self.write_clock(r, st)\n", "        pass\n"),
-    "plant47": ("        return math.floor(min(t) * 1000)\n", "        return math.floor(r[0] * 1000)\n"),
+    "plant47": ("        return self.B.earliest_ms(r)\n", "        return math.floor(r[0] * 1000)\n"),
     "plant48": ("        if self.clock_at is not None and r[1] - self.clock_at < self.clock_every:\n",
                 "        if False:\n"),
     "plant49": ("            return c[\"n\"]\n", "            return 0\n"),
     "plant50": ("            self.alarm(\"clock\", f\"CLOCK.json not written: {e}\")\n            return\n",
                 "            raise\n"),
+    "plant52": ('            elif act == "self_play":                    # F2: the owner\'s 1A, as many rows as fit (the full'
+                ' target)\n                eff = "schedule"\n', ""),
     "plant51": ("            self.alarm(\"clock\", f\"CLOCK.json not written: {e}\")\n",
                 "            self.alarm(\"clock\", f\"CLOCK.json not written: {e}\")\n            self.clock_at = r[1]\n"),
+    "plant53": ("        if not len(lines) == rg == games:\n", "        if False:\n"),
+    "plant54": ("            if p.exists():                              # GP4: written before (a restarted guard): never "
+                "again\n", "            if False:\n"),
+    "plant55": ('            if any(row["first"] <= c <= row["last"] for row in mine):\n', "            if True:\n"),
+    "plant56": ("            if r[1] - self.pilot_ready_at < GP3B_WAIT:\n", "            if False:\n"),
+    "plant57": ('        if not lines or lines[0] != {"t": "start"}:      # GP3c (no start line would give restarted -1)\n',
+                "        if not lines:\n"),
+    "plant58": ("        if last > utc:\n", "        if False:\n"),
+    "plant59": ("        if missing and starts == 1:                     # restarted 0: C-R2 does not explain a missing "
+                "line\n", "        if missing:\n"),
+    "plant60": ('            if not (type(x.get("t0_ms")) is int and x["t0_ms"] >= 0 and type(x.get("ms")) is int and '
+                'x["ms"] >= 0):\n', "            if False:\n"),
+    "plant61": ("        if not epochs:\n", "        if False:\n"),
+    "plant62": ("            if not (same(fi, nxt) and type(ti) is int and ti >= fi):\n", "            if False:\n"),
+    "plant63": ("        except Exception as e:  # noqa: BLE001   GP9: the ALARM, tried again at the next pass; the day "
+                "goes on\n", "        except ValueError as e:\n"),
+    "plant64": ("        self.pilot_pass(r)", "        pass"),                   # G12 end to end (part E)
+    "plant65": ("            if not s.end_start and not self.past_d_grace():   # G7: a start made BEFORE the end is "
+                "not the finalizer's\n", "            if False:\n"),               # G7 (PG7)
+    "plant66": ("            s.end_start = end\n", "            pass\n"),        # G7 (PG7 slot 2)
 }
 if PLANT:
     if PLANT not in PLANTS:
@@ -679,6 +724,8 @@ if act.startswith("exit:"):
     sys.exit(int(act[5:]))
 if act.startswith("sleep:"):
     time.sleep(float(act[6:])); ended(); sys.exit(0)
+if act.startswith("sleepexit:"):                   # G7 (PG7): sleep, then die with the code, no ended line
+    time.sleep(float(act.split(":")[1])); sys.exit(int(act.split(":")[2]))
 if act == "orphan":
     c = subprocess.Popen([sys.executable, "-I", "-B", "-c", "import time; time.sleep(120)"])
     (fk / f"orphan.{slot}.pid").write_text(f"{c.pid} {created_of(c.pid)}"); ended(); sys.exit(0)
@@ -924,6 +971,11 @@ def part_c():
        "names no action")
     oc("c13f", {"name": "stop", "action": "hope"}, lambda r, p: report(r, p, "OWNER_CHOICE", owner_choice="stop"),
        None, "held", "not one the guard knows")
+    one_a = {"name": "1A of 25 Nov: as many positions as fit into the day", "action": "self_play"}   # F2
+    oc("c13g", one_a, lambda r, p: report(r, p, "OWNER_CHOICE", owner_choice="stop"),
+       {"highest_round": 9, "target_rows": 1000000}, "schedule")
+    oc("c13h", one_a, lambda r, p: report(r, p, "OWNER_CHOICE", owner_choice="stop"),
+       {"highest_round": 9, "target_rows": 1000001}, "held", "more rows")
 
     # C14
     root, pol = make_root("cm", [1], rows([1]), 7200)
@@ -1630,6 +1682,31 @@ def part_p():
               (closed, (root / "guard" / "CLOSED.json").exists(), text in g.alarms.get("terminal", ""),
                len(ts.read_text().split()) if ts.exists() else 0), (False, False, True, 1))
         done(g)
+
+    # PG7 (G7, v17: Neon's catch, 26 Nov evening): a play start made BEFORE the end that dies AFTER it gets the
+    # finalizer's start next; a finalizer that dies makes its slot UNRECONCILED at once (KA_fix_g7.md, ADDENDUM 1)
+    root, pol = fake_root("pg7", [1, 2], {1: ["sleepexit:10:6", "ended"], 2: ["sleepexit:10:6", "exit:6"]}, 8)
+    g = guard(root, pol, end_grace=8.0)
+    closed = drive(g, lambda g: False, 60)
+    check("PG7 the day closed", closed, True)
+    s1, s2 = starts(root, 1), starts(root, 2)
+    check("PG7 slot 1 (its play start dies after the end): two starts, the second with the fence (the finalizer), "
+          "ended, not UNRECONCILED", ([x["fence"] for x in s1], g.slots[1].ended, g.slots[1].unreconciled),
+          ([False, True], True, None))
+    check("PG7 slot 2 (its finalizer dies too): two starts, the second with the fence, UNRECONCILED as a start after "
+          "the end", ([x["fence"] for x in s2], g.slots[2].ended, "a start after the end" in (g.slots[2].unreconciled
+                                                                                            or "")),
+          ([False, True], False, True))
+    cl = json.loads((root / "guard" / "CLOSED.json").read_bytes()) if (root / "guard" / "CLOSED.json").exists() else {}
+    check("PG7 CLOSED.json: slots_ended [1], slots_unreconciled [2]",
+          (cl.get("slots_ended"), cl.get("slots_unreconciled")), ([1], [2]))
+    sp = (root / "STOP_PACKER").read_bytes() if (root / "STOP_PACKER").exists() else b""
+    try:
+        spr = W.parse_canon(sp, "STOP_PACKER")
+    except ValueError:
+        spr = {}
+    check("PG7 STOP_PACKER names slot 2 only", spr.get("unreconciled"), [2])
+    done(g)
     G.RETRY = {6: 30.0, 8: 10.0, 3: 30.0, 0: 5.0}
 
 
@@ -1657,6 +1734,9 @@ def part_e():
     sealed = lambda *names: all((rs / n).exists() for n in names)  # noqa: E731
     ok = drive(g, lambda g: sealed("r0001.w000.seal.json", "r0001.w001.seal.json"), 240)
     true("E both pilot ranges sealed", ok, sorted(p.name for p in rs.glob("*")) if rs.is_dir() else None)
+    # v17 G12 (ADDENDUM 3): home decides only from wire/PILOT.json.zz (state.py: "no server record"), so the pilot
+    # decision waits for the packer's wire copy, as on the day (the first run closed the day inside one 5 s poll)
+    drive(g, lambda g: (root / "PILOT.json.zz").exists(), 30)
     rep = report(root, pol, "SELF_PLAY", cut_before_d=300, disp_before_cut=60)
     c1, e1 = control(root, pol, 1, rep, scope={"highest_round": 4, "target_rows": 1000})
     send(root, 1, c1, e1)
@@ -1708,11 +1788,348 @@ def part_e():
     offers = [len(list((root / "out" / f"w{k:03d}").glob("p*.offer.json.zz"))) for k in (0, 1)]
     check("E the packer's last pass: 8 offers a slot", ("the packer made its last pass" in log, offers),
           (True, [8, 8]))
+    # v17 G12 END TO END (Opus 26 Nov; KNOWN_ANSWERS_GP_by_opus.md ADDENDUM 2, written before the run): the REAL guard's
+    # PILOT.json over the real workers' pilot and the real packer's times, its wire copy, and home's reader
+    pb = (root / "PILOT.json").read_bytes() if (root / "PILOT.json").exists() else b""
+    try:
+        pr = json.loads(pb) if pb else {}
+    except ValueError:
+        pr = {}
+    pk = pr.get("packer") if isinstance(pr.get("packer"), dict) else {}
+    rws = [sum(json.loads((root / f"w{k:03d}" / "closed" / f"p{i:06d}.seal.json").read_bytes())["rows"]
+               for i in (0, 1)) for k in (0, 1)]
+    check("E PILOT.json (G12 over the real pilot): canonical; schema 1, this run, rounds [1]; slots 0 and 1 with 2 "
+          "games, epochs [1] and their pilot pieces' rows each; the packer's 4 pieces, restarted 0",
+          (bool(pb) and W.canon(pr) == pb, pr.get("schema"), pr.get("run_fingerprint") == fp_of(root),
+           pr.get("rounds"), [(s.get("slot"), s.get("games"), s.get("epochs"), s.get("raw_rows"))
+                              for s in pr.get("slots", []) if isinstance(s, dict)], (pk.get("pieces"), pk.get("restarted"))),
+          (True, 1, True, [1], [(0, 2, [1], rws[0]), (1, 2, [1], rws[1])], (4, 0)))
+    pz = root / "PILOT.json.zz"
+    check("E PILOT.json.zz, the packer's wire copy, is its bytes",
+          zlib.decompress(pz.read_bytes()) == pb if pb and pz.exists() else None, True)
+    check("E home's reader takes it (state.py record_fault)", home_reader_fault(root, pb) if pb else "no PILOT.json",
+          "")
+    done(g)
+
+
+def home_reader_fault(root, data):
+    """v17 G12: home's reader of PILOT.json (home/state.py State.record_fault), its three fields from the header."""
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("home_state_e", TREE / "home" / "state.py")
+        st = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(st)
+        h = hdr(root)
+        ns = SimpleNamespace(fp=fp_of(root), prounds=sorted({r["round"] for r in h["pilot_ranges"]}),
+                             slots=list(h["slots"]))
+        return st.State.record_fault(ns, json.loads(data))
+    except Exception as e:  # noqa: BLE001   the check fails and names it
+        return f"{type(e).__name__}: {e}"
+
+
+def part_j():
+    """J (v17 G12): the guard's PILOT.json on GP8's fixture; the known answers: KNOWN_ANSWERS_GP_by_opus.md."""
+    MS = {0: [4321] + [1470] * 398 + [619], 1: [9001] + [1932] * 398 + [2063]}
+    GAP = {0: [27] * 398 + [254], 1: [47] * 398 + [294]}
+    FIRST, PMS, PROWS = {0: 120000, 1: 121500}, {0: [900, 950, 1000, 1050], 1: [900, 950, 975, 975]}, {0: 13100, 1: 12900}
+
+    def lease_ms(root):
+        return W.utc(hdr(root)["lease_start_utc"], "lease_start_utc") * 1000
+
+    def game_lines(root, k):
+        out, t0 = [], lease_ms(root) + FIRST[k]
+        for n in range(400):
+            c = n + 1
+            x = {"t": "done", "game": f"gt-w{k:03d}-g{c:08d}", "index": n // 100, "end": 1000 * c, "bind": "9" * 64,
+                 "t0_ms": t0, "ms": MS[k][n]}
+            if k == 1 and c == 400:
+                x["t"], x["plies"] = "noselfgame", 9
+            else:
+                x["rows"] = 258 if (k == 1 and c == 399) else (131 if k == 0 else 129)
+            out.append(x)
+            if n < 399:
+                t0 += MS[k][n] + GAP[k][n]
+        return out
+
+    def write_journal(root, k, lines, tail=b""):
+        d = root / f"w{k:03d}"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "journal.txt").write_bytes(W.canon({"epoch": 1, "t": "epoch"}) + b"".join(W.canon(x) for x in lines) + tail)
+
+    def offered(k, i, rws, ms=None):
+        return {"form": "binpack", "games": 100, "index": i, "ms": PMS[k][i] if ms is None else ms, "raw_rows": rws,
+                "restart": False, "slot": k, "t": "offered"}
+
+    def times(root, lines, extra=b""):
+        (root / "out").mkdir(exist_ok=True)
+        (root / "out" / "PACKER_TIMES.jsonl").write_bytes(b"".join(W.canon(x) for x in lines) + extra)
+
+    def seal_slot(root, k, over=None):
+        over, d = over or {}, root / f"w{k:03d}" / "closed"
+        for i in range(4):
+            seal_piece(root, k, i, **dict({"games": 100, "raw": 4000, "rows": PROWS[k], "round": 1 + i // 2,
+                                           "first_counter": 100 * i + 1, "last_counter": 100 * i + 100},
+                                          **over.get(i, {})))
+        for rnd in (1, 2):
+            fi, ti = 2 * rnd - 2, 2 * rnd - 1
+            seal_range(root, rnd, k, first_index=fi, through_index=ti,
+                       first_prev_seal=(f"genesis:{fp_of(root)}:w{k:03d}" if fi == 0
+                                        else sha((d / f"p{fi - 1:06d}.seal.json").read_bytes())),
+                       through_seal=sha((d / f"p{ti:06d}.seal.json").read_bytes()), games=200, rows=2 * PROWS[k])
+
+    def fixture(name, slot1=True):
+        pilot = rows([0, 1], 1, 1, 200) + rows([0, 1], 2, 201, 200)
+        root, pol = make_root(name, [0, 1], pilot, 7200, lease_ago=3600, piece_games=100)
+        # the fixture's fault found by the first newJ run (15:43): a pilot of 2 rounds needs a policy declaring 2
+        # (the guard's V8 Stop 4); no known answer changes
+        pol.write_text(json.dumps(dict(json.loads(pol.read_text(encoding="ascii")), pilot_rounds_declared=2), indent=1)
+                       + "\n", encoding="ascii")
+        tl = [{"t": "start"}]
+        for k in (0, 1):
+            if k == 1 and not slot1:
+                write_journal(root, k, [])
+                for rnd in (1, 2):
+                    seal_range(root, rnd, k, games=0)
+                continue
+            write_journal(root, k, game_lines(root, k))
+            seal_slot(root, k)
+            o = root / "out" / f"w{k:03d}"
+            o.mkdir(parents=True, exist_ok=True)
+            for i in range(4):
+                (o / f"p{i:06d}.offer.json.zz").write_bytes(zlib.compress(b"offer"))
+                tl.append(offered(k, i, PROWS[k]))
+        times(root, tl)
+        return root, pol, tl
+
+    def want(root, packer=None):
+        L = lease_ms(root)
+        s0 = {"epochs": [1], "first_t0_ms": L + 120000, "games": 400, "last_end_ms": L + 721000, "longest_ms": 4321,
+              "play_ms": 590000, "raw_rows": 52400, "slot": 0, "span_ms": 601000}
+        s1 = {"epochs": [1], "first_t0_ms": L + 121500, "games": 400, "last_end_ms": L + 920500, "longest_ms": 9001,
+              "play_ms": 780000, "raw_rows": 51600, "slot": 1, "span_ms": 799000}
+        return W.canon({"packer": packer or {"busy_ms": 7700, "pieces": 8, "raw_rows": 104000, "restarted": 0},
+                        "rounds": [1, 2], "run_fingerprint": fp_of(root), "schema": 1, "slots": [s0, s1]})
+
+    def start(root, pol):
+        g = guard(root, pol)
+        return g, staged(g)[1]
+
+    def jpass(g, at, t):
+        f = getattr(g, "pilot_pass", None)              # the guard before G12 has none: its pass does nothing here
+        if f is not None:
+            f(at(t))
+
+    def pj(root):
+        p = root / "PILOT.json"
+        return p.read_bytes() if p.exists() else None
+
+    def al(g):
+        return g.alarms.get("pilot", "")
+
+    def wrote(root):
+        log = (root / "guard" / "guard.log").read_text(encoding="ascii", errors="replace")
+        return sum(1 for ln in log.splitlines() if "PILOT.json written" in ln)
+
+    def reader_fault(root, data):
+        """home's reader of the record (state.py State.record_fault), with its three fields from the header."""
+        try:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("home_state_j", TREE / "home" / "state.py")
+            st = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(st)
+            h = hdr(root)
+            ns = SimpleNamespace(fp=fp_of(root), prounds=sorted({r["round"] for r in h["pilot_ranges"]}),
+                                 slots=list(h["slots"]))
+            return st.State.record_fault(ns, json.loads(data))
+        except Exception as e:  # noqa: BLE001   the check fails and names it
+            return f"{type(e).__name__}: {e}"
+
+    def edit(p, **kv):
+        s = json.loads(p.read_bytes())
+        s.update(kv)
+        p.write_bytes(W.canon(s))
+
+    root, pol, tl = fixture("j1")                       # J1: GP8, GP1, GP4
+    g, at = start(root, pol)
+    jpass(g, at, 5)
+    check("J1 GP8: the file's bytes are the record's canonical bytes", pj(root), want(root))
+    true("J1 no alarm pilot", "pilot" not in g.alarms, g.alarms)
+    check("J1 home's reader takes it (state.py record_fault)", reader_fault(root, pj(root) or b"null"), "")
+    jpass(g, at, 70)
+    check("J1 GP4 a later pass writes nothing more (one log line, the same bytes)", (wrote(root), pj(root) == want(root)),
+          (1, True))
+    done(g)
+
+    root, pol, tl = fixture("j2")                       # J2: GP1 (a) and (b), silent until both hold
+    off = root / "out" / "w001" / "p000003.offer.json.zz"
+    ob = off.read_bytes()
+    off.unlink()
+    g, at = start(root, pol)
+    jpass(g, at, 5)
+    check("J2a an offer wire copy missing (slot 1 piece 3): no file, no alarm", (pj(root), "pilot" in g.alarms),
+          (None, False))
+    rs = root / "ranges" / "r0002.w001.seal.json"
+    rb = rs.read_bytes()
+    rs.unlink()
+    off.write_bytes(ob)
+    jpass(g, at, 6)
+    check("J2b a pilot range seal missing (round 2 slot 1): no file, no alarm", (pj(root), "pilot" in g.alarms),
+          (None, False))
+    rs.write_bytes(rb)
+    jpass(g, at, 7)
+    check("J2c both there: the next pass writes the record", pj(root), want(root))
+    done(g)
+
+    root, pol, tl = fixture("j3")                       # J3: GP3b, the line follows its wire copy
+    times(root, tl[:-1])
+    g, at = start(root, pol)
+    jpass(g, at, 5)
+    check("J3 GP3b slot 1 piece 3's offered line missing, restarted 0: no file, no alarm",
+          (pj(root), "pilot" in g.alarms), (None, False))
+    with open(root / "out" / "PACKER_TIMES.jsonl", "ab") as f:
+        f.write(W.canon(tl[-1]))
+    jpass(g, at, 6)
+    check("J3 the line appended: the next pass writes the record", pj(root), want(root))
+    done(g)
+    root, pol, tl = fixture("j3b")
+    times(root, tl[:-1])
+    g, at = start(root, pol)
+    jpass(g, at, 5)
+    jpass(g, at, 124)
+    check("J3b 119 s after (a) and (b) first held: no file, no alarm", (pj(root), "pilot" in g.alarms), (None, False))
+    jpass(g, at, 125.5)
+    true("J3b 120.5 s after: no file, the alarm names slot 1 piece 3",
+         pj(root) is None and "no offered line for slot 1 piece 3" in al(g), g.alarms)
+    done(g)
+
+    root, pol, tl = fixture("j4")                       # J4: C-R2, a restart explains a missing line
+    times(root, tl[:-1] + [{"t": "start"}])
+    g, at = start(root, pol)
+    jpass(g, at, 5)
+    check("J4 C-R2 a second start line and that line missing: the record with pieces 7", pj(root),
+          want(root, {"busy_ms": 6725, "pieces": 7, "raw_rows": 91100, "restarted": 1}))
+    done(g)
+
+    root, pol, tl = fixture("j5")                       # J5: GP6
+    gl = game_lines(root, 0)
+    del gl[56]["t0_ms"], gl[56]["ms"]
+    write_journal(root, 0, gl)
+    g, at = start(root, pol)
+    jpass(g, at, 5)
+    true("J5 GP6 slot 0's game 57 in v16's form: no file, the alarm names slot 0, the game and no t0_ms or ms",
+         pj(root) is None and "slot 0" in al(g) and "gt-w000-g00000057" in al(g) and "no t0_ms or ms" in al(g), g.alarms)
+    done(g)
+
+    root, pol, tl = fixture("j6")                       # J6: GP7
+    edit(root / "ranges" / "r0002.w001.seal.json", games=199)
+    g, at = start(root, pol)
+    jpass(g, at, 5)
+    true("J6 GP7 slot 1's round 2 range seal with games 199: no file, the alarm names the counts",
+         pj(root) is None and "slot 1: the journal holds 400 pilot games, the pilot range seals 399" in al(g), g.alarms)
+    done(g)
+    root, pol, tl = fixture("j6b")
+    seal_slot(root, 0, {1: {"games": 99}})
+    g, at = start(root, pol)
+    jpass(g, at, 5)
+    true("J6b slot 0's piece 1 seal with games 99 (the chain kept): no file, the alarm names the piece seals' 399",
+         pj(root) is None and "slot 0" in al(g) and "the piece seals 0 to 3 399" in al(g), g.alarms)
+    done(g)
+
+    root, pol, tl = fixture("j7")                       # J7: GP5, later lines and a cut last line
+    L = lease_ms(root)
+    later = {"t": "done", "game": "gt-w000-g00000401", "index": 4, "end": 401000, "bind": "9" * 64, "t0_ms": L + 722000,
+             "ms": 1000, "rows": 131}
+    cut = W.canon(dict(later, game="gt-w000-g00000402", end=402000))[:40]
+    write_journal(root, 0, game_lines(root, 0) + [later], tail=cut)
+    times(root, tl, b'{"t":"off\n' + W.canon(offered(0, 4, 13100, 500)))
+    g, at = start(root, pol)
+    jpass(g, at, 5)
+    check("J7 GP5 a later game's line, a cut last line, a non-record line and a later offer: the record, no alarm",
+          (pj(root), "pilot" in g.alarms), (want(root), False))
+    done(g)
+
+    root, pol, tl = fixture("j8")                       # J8: GP3c
+    times(root, tl[1:])
+    g, at = start(root, pol)
+    jpass(g, at, 5)
+    true("J8 GP3c the times file without its start line: no file, the alarm",
+         pj(root) is None and "does not begin with a start line" in al(g), g.alarms)
+    done(g)
+
+    root, pol, tl = fixture("j9")                       # J9: GP3d
+    gl = game_lines(root, 1)
+    gl[-1]["ms"] = int(time.time() * 1000) + 3600000 - gl[-1]["t0_ms"]
+    write_journal(root, 1, gl)
+    g, at = start(root, pol)
+    jpass(g, at, 5)
+    true("J9 GP3d slot 1's last game ending an hour after now: no file, the alarm names slot 1 and GP3d",
+         pj(root) is None and "slot 1" in al(g) and "GP3d" in al(g), g.alarms)
+    done(g)
+
+    root, pol, tl = fixture("j10a")                     # J10: GP4
+    w = want(root)
+    (root / "PILOT.json").write_bytes(w)
+    g, at = start(root, pol)
+    jpass(g, at, 5)
+    check("J10a GP4 PILOT.json there already: the same bytes, no written line, no alarm",
+          (pj(root) == w, wrote(root), "pilot" in g.alarms), (True, 0, False))
+    done(g)
+    root, pol, tl = fixture("j10b")
+    bad = b'{"schema": 1}\n'
+    (root / "PILOT.json").write_bytes(bad)
+    g, at = start(root, pol)
+    jpass(g, at, 5)
+    check("J10b a PILOT.json not canonical: the alarm, the bytes kept, no other PILOT.json* file",
+          ("is not canonical" in al(g), pj(root) == bad, sorted(p.name for p in root.glob("PILOT.json*"))),
+          (True, True, ["PILOT.json"]))
+    done(g)
+    root, pol, tl = fixture("j10c")
+    other = W.canon({"run_fingerprint": "0" * 64, "schema": 1})
+    (root / "PILOT.json").write_bytes(other)
+    g, at = start(root, pol)
+    jpass(g, at, 5)
+    check("J10c another run's PILOT.json: the alarm, the bytes kept", ("is not this run's" in al(g), pj(root) == other),
+          (True, True))
+    done(g)
+
+    root, pol, tl = fixture("j11")                      # J11: GP9 through one_pass (the STOP file: nothing starts)
+    (root / "PILOT.json.tmp").mkdir()
+    (root / "STOP").write_text("stop", encoding="ascii")
+    g = guard(root, pol)
+    try:
+        g.one_pass()
+        ok = True
+    except Exception as e:  # noqa: BLE001
+        ok = f"{type(e).__name__}: {e}"
+    check("J11 GP9 a folder at PILOT.json.tmp, the STOP file: one_pass returns, CLOCK.json written, the alarm pilot, "
+          "no PILOT.json", (ok, (root / "CLOCK.json").exists(), "pilot" in g.alarms, pj(root)), (True, True, True, None))
+    (root / "PILOT.json.tmp").rmdir()
+    try:
+        g.one_pass()
+    except Exception as e:  # noqa: BLE001
+        print(f"J11 second pass: {type(e).__name__}: {e}")
+    check("J11 the folder gone: the next one_pass writes the record, the alarm cleared",
+          (pj(root) == want(root), "pilot" in g.alarms), (True, False))
+    done(g)
+
+    root, pol, tl = fixture("j12", slot1=False)         # J12: a slot without a pilot piece
+    g, at = start(root, pol)
+    jpass(g, at, 5)
+    true("J12 slot 1 without a pilot piece: no file, the alarm names it",
+         pj(root) is None and "slot 1: no pilot piece" in al(g), g.alarms)
+    done(g)
+
+    root, pol, tl = fixture("j13")                      # J13: the first_index chain
+    edit(root / "ranges" / "r0002.w000.seal.json", first_index=1)
+    g, at = start(root, pol)
+    jpass(g, at, 5)
+    true("J13 slot 0's round 2 range seal with first_index 1: no file, the alarm names it",
+         pj(root) is None and "slot 0: the pilot range seal of round 2 begins at piece 1, not 2" in al(g), g.alarms)
     done(g)
 
 
 try:
-    for part, fn in (("C", part_c), ("P", part_p), ("E", part_e)):
+    for part, fn in (("C", part_c), ("P", part_p), ("E", part_e), ("J", part_j)):
         if part in ONLY:
             try:
                 fn()

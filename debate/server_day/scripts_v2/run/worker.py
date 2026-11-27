@@ -119,6 +119,11 @@ leaves at most one, so the journal lost lines, and the later games' dispatch wou
 line left a slot no later start could end (the finalizer's seal holds its id in doubt, the kept one, written by the
 start that knew, does not: Stop 4 at every start). range_seal() now keeps such a seal when it is the fresh one
 without the doubt; test_worker.py V24b to V24d.
+v17 (Opus 26 Nov; tmp/opus_scratch/v17/KNOWN_ANSWERS_v17_server_by_opus.md W1 to W6, read by Fable): every done and
+noselfgame line also carries t0_ms (the earliest of the three clocks at the reading of the judgement that preceded the
+game's reservation, clockwatch.Bounds.earliest_ms, the guard's CLOCK.json rule) and ms (the steady clock from that
+reading to right before the line's write). The replay refuses a game line without them or with values outside W4's.
+The pieces, piece seals and range seals are unchanged. Rehearsal plant clock_ahead: UTC alone an hour ahead.
 NOT HERE: the end line's count rules (rows, moves, searches by reason) are home's (2.2); whether the clock can be
 trusted after a restart is the boot guard's (1.3); the wire copies (0) are the packer's.
 """
@@ -128,6 +133,7 @@ import calendar
 import collections
 import hashlib
 import json
+import math
 import os
 import re
 import sys
@@ -140,7 +146,18 @@ import record  # noqa: E402
 from uciproc import Engine, EngineError, EngineRefused  # noqa: E402
 import clockwatch  # noqa: E402
 
-CLOCK_PLANTS = ("clock_suspend", "clock_forward", "clock_back")   # 2.9: only what the clock readers return changes
+CLOCK_PLANTS = ("clock_suspend", "clock_forward", "clock_back", "clock_ahead")   # 2.9: only the readers' values change
+T0_MS_MIN, T0_MS_MAX, MS_MAX = 1_700_000_000_000, 4_100_000_000_000, 86_400_000      # v17 W4 (clock.py's M4 window)
+
+
+def times_ok(r) -> bool:
+    """v17 W4: a game line's t0_ms and ms are ints (never bool); t0_ms lies in M4's window of UTC milliseconds, ms in 0
+    to one day."""
+    return (type(r["t0_ms"]) is int and T0_MS_MIN <= r["t0_ms"] <= T0_MS_MAX
+            and type(r["ms"]) is int and 0 <= r["ms"] <= MS_MAX)
+
+
+
 WATCH_PLANTS = CLOCK_PLANTS + ("watch_nostop", "watch_lategone")
 PLANTS = ("no_newgame", "writeminply9", "swap_final", "mvoes", "cut2", "kill_engine", "bad_row") + WATCH_PLANTS
 ALLOWANCE_S = 2.0               # 2.9: the stop allowance, the editor's choice until it is measured on the server
@@ -404,6 +421,7 @@ class Worker:
             boot = clocks.boot or time.monotonic        # system has no boot-time clock it is emulated by the steady one
             clocks = clockwatch.Clocks(utc=lambda: time.time() + self.off[0], boot=lambda: boot() + self.off[1])
         self.B = clockwatch.Bounds(clocks)              # 2.7: the anchor, the three clocks read together at the start
+        self.reading = None                             # v17 W2: the reading of the newest clock_state() call
         self.root = Path(a.root)
         hb = (self.root / "RUN.json").read_bytes()
         self.run_fp = sha256_bytes(hb)
@@ -682,6 +700,7 @@ class Worker:
         the anchor plus the boot-time clock), "cutoff" (D has come), "dispatch_end" (no reservation) or "play". The
         latch (a bound once passed stays passed) is clockwatch.Bounds'; the plants replace the readers, nothing else."""
         r = self.B.clocks.read()
+        self.reading = r                                # v17 W2: the reading a reservation's t0_ms is taken from
         vd = self.B.judge("dispatch_end", reading=r)[0]
         vc = self.B.judge("cutoff", reading=r)[0]
         if clockwatch.HOLD in (vd, vc):
@@ -774,9 +793,10 @@ class Worker:
         elif t in ("done", "noselfgame"):
             extra = "rows" if t == "done" else "plies"
             last_end = self.open_games[-1].end if self.open_games else 0
-            if sorted(r) != sorted(("t", "game", "index", "end", "bind", extra)) or r["index"] != self.open_index \
-                    or type(r["end"]) is not int or r["end"] <= last_end or type(r[extra]) is not int or r[extra] < 0 \
-                    or not HEX64.fullmatch(str(r["bind"])):
+            if sorted(r) != sorted(("t", "game", "index", "end", "bind", extra, "t0_ms", "ms")) \
+                    or r["index"] != self.open_index or type(r["end"]) is not int or r["end"] <= last_end \
+                    or type(r[extra]) is not int or r[extra] < 0 or not HEX64.fullmatch(str(r["bind"])) \
+                    or not times_ok(r):
                 raise ValueError(f"journal line {k}: a game line that does not follow the lines before it")
             c = self.counter_of(r["game"])
             if self.states.get(c) in FINAL or (self.open_games and c <= self.open_games[-1].counter):
@@ -1314,6 +1334,8 @@ class Worker:
             self.off[0] = d + 60.0                      # there is time (the hold)
         elif kind == "clock_back":                      # UTC set back an hour: D comes by the other clocks
             self.off[0] = -3600.0
+        elif kind == "clock_ahead":                     # v17 W2: UTC alone an hour AHEAD with no bound near: the
+            self.off[0] = 3600.0                        # games go on, t0_ms follows anchor + steady (the earliest)
         elif kind == "watch_nostop":
             self.ph.stop = lambda: None
         else:                                           # watch_lategone: once the watch has fired, its look for the
@@ -1327,7 +1349,10 @@ class Worker:
             self.ph.gone = late_gone
         self.say(f"PLANT {kind}: utc {self.off[0]:+.3f} s, boot {self.off[1]:+.3f} s")
 
-    def write_game(self, counter: int, state: str, moves, sent: str, rows, end: str) -> None:
+    def write_game(self, counter: int, state: str, moves, sent: str, rows, end: str, r0) -> None:
+        """v17 W1 to W3: the game line also carries t0_ms (the earliest clock at the reading r0 of the judgement that
+        preceded the reservation, C-R1) and ms (the steady clock from r0 to right before the line's write: the engine's
+        start for the slot's first game, the game and the record's write)."""
         if self.open_index > 999999:
             raise Stop(4, "the slot has used all 1,000,000 piece indices")
         gid = self.gid(counter)
@@ -1347,6 +1372,8 @@ class Worker:
             line["rows"] = len(rows)
         else:
             line["plies"] = len(moves)
+        line["t0_ms"] = self.B.earliest_ms(r0)
+        line["ms"] = math.floor(1000 * (self.B.clocks.mono() - r0[1]))
         self.append(line)
         self.open_games.append(G(counter, gid, state, bind, len(rows), end_b))
         self.states[counter], self.piece_of[counter] = state, self.open_index
@@ -1481,6 +1508,7 @@ class Worker:
                 if counter is None:
                     time.sleep(1.0)                             # a new schedule, the dispatch end, the fence or STOP
                     continue
+                r0 = self.reading                               # v17 W2: the judgement that preceded this reservation
                 if self.open_games and self.round_of(self.open_games[0].counter) != self.round_of(counter):
                     self.close_piece()
                 gid = self.gid(counter)
@@ -1531,7 +1559,7 @@ class Worker:
                         raise Stop(6, f"three engine failures in a row, the last at {gid}: {err}") from None
                     continue
                 fails = 0
-                self.write_game(counter, state, moves, sent, rows, end)
+                self.write_game(counter, state, moves, sent, rows, end, r0)
                 played, rows_total = played + 1, rows_total + len(rows)
                 self.heartbeat(played, rows_total, gid)
                 if len(self.open_games) >= self.h["piece_games"]:

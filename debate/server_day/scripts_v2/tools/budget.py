@@ -14,7 +14,10 @@ plan.json, written BEFORE the day (OWNER = policy, not a measurement):
   pilot_rounds_declared  K >= 1 whole production-equivalent rounds the pilot times end to end                  (D3)
   floor_fraction         OWNER: the floor as a share of n (proposed 0.50)                                       (D4)
   match_margin           OWNER: matches only when r > match_margin x n (1.10; 2.5: strict)                      (D4)
-  owner_choice           OWNER: {"name": ..., optional "reduced_target_rows": below the target} for floor <= r < n
+  owner_choice           OWNER: for floor <= r < n, {"name": a label, "action": what the guard does (F2, 26 Nov):
+                         "stop" (the fence), "self_play" (a schedule capped by the full target: as many rows as fit
+                         before the cutoff, the owner's 1A of 25 Nov) or "reduced_target" (needs
+                         "reduced_target_rows" below the target and "if_uncovered", "stop" or "self_play")}
   match_queue            [[name, even number of games], ...] in the declared order                    (D4, D11)
 state.json, at the moment of the decision: now_s (seconds after the lease start), c4_rows (durable C4 at home: the
 only credit), optional exclusive_s (what must still run exclusively; section 4). Any other key is printed back under
@@ -68,7 +71,8 @@ Prints one json object. Exit 0 REACHED, SELF_PLAY, SELF_PLAY_AND_MATCHES; 3 OWNE
 a key that stands twice in one object, NaN, Infinity or a number beyond a float such as 1e500; a match without a name;
 2.5, Neon's form: a count of rows or games that is not a whole number, a bool included: target_rows,
 reduced_target_rows, c4_rows, carry_in_rows, cohort_games, cohort_raw_rows, cohort_c4_rows; rounds_whole above
-pilot_rounds_declared).
+pilot_rounds_declared; F2, 26 Nov: owner_choice.action missing or not stop, reduced_target or self_play, an
+if_uncovered other than stop or self_play, a reduced_target without reduced_target_rows or if_uncovered).
 Time trust after a restart of the host (D5) is the runner's: this tool takes now_s and lease_end_s as given.
 """
 import hashlib
@@ -91,6 +95,8 @@ EXIT = {"REACHED": 0, "SELF_PLAY": 0, "SELF_PLAY_AND_MATCHES": 0, "OWNER_CHOICE"
         "UNQUALIFIED": 6}
 WHOLE = ("target_rows", "reduced_target_rows", "c4_rows", "carry_in_rows", "cohort_games", "cohort_raw_rows",
          "cohort_c4_rows")
+ACTIONS = ("stop", "reduced_target", "self_play")   # F2: the guard acts on owner_choice.action alone; a name is a label
+UNCOVERED = ("stop", "self_play")
 
 
 def q(x, name):
@@ -193,6 +199,14 @@ def decide(plan, state, pilot=None):
     reduced = choice.get("reduced_target_rows")
     if reduced is not None and not 0 < q(reduced, "reduced_target_rows") < target:
         raise ValueError("plan: reduced_target_rows must lie between 0 and target_rows")
+    act, unc = choice.get("action"), choice.get("if_uncovered")
+    if not (isinstance(act, str) and act in ACTIONS):
+        raise ValueError("plan: owner_choice.action is stop, reduced_target or self_play (the guard acts on it alone; "
+                         "the name is a label)")
+    if unc is not None and not (isinstance(unc, str) and unc in UNCOVERED):
+        raise ValueError("plan: owner_choice.if_uncovered is stop or self_play")
+    if act == "reduced_target" and (reduced is None or unc is None):
+        raise ValueError("plan: owner_choice.action reduced_target needs reduced_target_rows and if_uncovered")
     if not isinstance(queue, list) or not all(isinstance(m, list) and len(m) == 2 and isinstance(m[0], str)
                                               and m[0].strip() and type(m[1]) is int and m[1] > 0 and m[1] % 2 == 0
                                               for m in queue):

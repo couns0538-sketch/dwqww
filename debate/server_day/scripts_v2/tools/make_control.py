@@ -41,6 +41,9 @@ unchanged (the newest accepted control's, or the header's hard cutoff for both b
 {"highest_round": 9999, "target_rows": the policy's target, or its reduced_target_rows under an OWNER_CHOICE of
 action reduced_target} for a schedule, else null. Every kind needs a report computed from this policy (M1); kinds
 other than fence need one that names a pilot report.
+F2 (Opus 26 Nov; known answers tmp/opus_scratch/v17/KNOWN_ANSWERS_F2_by_opus.md, written before): OWNER_CHOICE with
+the policy's action "self_play" (the owner's 1A of 25 Nov: as many rows as fit into the day) is a schedule with the
+policy's full target; the budget tool refuses a plan without a known action, and this tool still refuses one.
 
 Written into NEWDIR, create-only, in this order: EVIDENCE.<sha>.json, its .zz, CONTROL.<k>.json, its .zz (zlib 6);
 home sends them in the same order: the evidence first, the control LAST.
@@ -196,8 +199,11 @@ def effect(kind: str, outcome, policy: dict, reduced):
     act = oc.get("action") if isinstance(oc, dict) else None
     if act == "stop":
         return "fence", None
+    if act == "self_play":                          # F2: the owner's 1A, as many rows as fit before the cutoff
+        return "schedule", None
     if act != "reduced_target":
-        raise Refused(f"OWNER_CHOICE, and the policy's action {str(act)[:40]} is not stop or reduced_target")
+        raise Refused(f"OWNER_CHOICE, and the policy's action {str(act)[:40]} is not stop, reduced_target or "
+                      f"self_play")
     cap = oc.get("reduced_target_rows")
     if type(cap) is not int or reduced is None or reduced["target_rows"] != cap:
         raise Refused(f"the report's reduced target is not the policy's reduced_target_rows {cap}")

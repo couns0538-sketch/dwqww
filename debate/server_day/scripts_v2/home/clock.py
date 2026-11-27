@@ -1,5 +1,8 @@
 """Opus 2026-11-25, v16: the home CLOCK (tmp/opus_scratch/clock/KNOWN_ANSWERS_clock_by_opus.md with its ADDENDA 1 to 8;
 1 to 6 read by Fable before this code, 8 is her F-CLOCK-1). Standard library only; nothing is installed.
+v17 (26 Nov, CL1 to CL5 of tmp/opus_scratch/v17/KNOWN_ANSWERS_v17_server_by_opus.md, read by Fable 09:15): every look
+line gains mono0, the steady clock read right BEFORE the get; reading() and lag_s() give the MEASURED bound of how far
+server_now runs behind the server's clock, as exact decimals (home/state.py's "now" is server_now + lag_s).
 
     clock.py measure --home DIR --fingerprint HEX64 --config FILE
 
@@ -12,8 +15,9 @@ A LOOK is ONE get of the root's CLOCK.json through fetch.py's own Transport (imp
 key, the same codes): the root is listed, the get is given the listed length (a file that grew between the two is
 fetched once more), into home/clock/look.part, which is read and removed. Each look appends ONE line to
 home/clock/journal.jsonl in one write of whole bytes (a journal whose last line was cut gets a line end first, S2):
-{"t": "clock", "run", "look": 1|2, "n", "utc_ms", "state", "mono", "wall", "impl", "platform", "ok", "why"}. mono and
-wall are read AFTER the get returned and the record was parsed (M1c: a slow get makes the line late, never early). One
+{"t": "clock", "run", "look": 1|2, "n", "utc_ms", "state", "mono0", "mono", "wall", "impl", "platform", "ok", "why"}.
+mono0 is read right BEFORE the get (CL1, v17); mono and wall AFTER the get returned and the record was parsed (M1c: a
+slow get makes the line late, never early); a line without mono0, or with mono0 above mono, is not the record (C8). One
 measure at a time on a home folder: an OS lock on home/clock/LOCK (else exit 8, nothing done); look.part is removed
 before every get (S1: a killed measure's leftover never joins a new get). measure makes home/clock/ in any existing
 folder it is given (it runs before the first fetch, so it cannot know the folder is this run's home): lines in a wrong
@@ -44,10 +48,18 @@ to name) when: there is no such line (C4, C5); its impl or platform is not this 
 now is below its mono (C2: the PC restarted); its wall and monotonic clocks moved apart by more than 120 s (C3: the
 PC restarted or its clock was set; sleep and hibernate fall under C2 or C3, whichever way the tick behaves there).
 The PC's own offset never matters (C1), only that its two clocks stayed together; a line 6 hours old is used (C12).
-WHICH SIDE: server_now runs BEHIND the server's clock by up to 60 s (G3) + one guard tick + the get, never ahead
-(C10). So drain accepts "lease ended" and "source gone since T" late by up to about 75 s, never early; deliver may
-let a control leave up to about 75 s after the real cutoff, which is harmless: the server's guard takes no control
-after the cutoff by its own clocks (guard.py, one_pass).
+WHICH SIDE: server_now runs BEHIND the server's clock, never ahead (C10). By how much is MEASURED (v17, CL2): lag_s =
+mono_j - mono0_p, j the accepted line and p the LATEST earlier look line of this run that saw a SMALLER n (an int), with
+the same impl and platform, mono0_p <= mono_j, and its wall and steady clocks moved together with j's (C3's 120 s).
+Record n_j was written after look p began its get (p read n_p), so its age at mono_j is below lag_s: the server's clock
+lies in [server_now, server_now + lag_s]. No such p: ClockRefused (no lag bound; home/state.py then writes no state).
+What C3's 120 s cannot see (Fable's read, 26 Nov): a steady clock that stood still for under two minutes while the
+wall clock ran would leave the server's clock up to that much above server_now + lag_s. Windows' tick count (the
+GetTickCount64 behind time.monotonic, checked on the home PC 26 Nov) counts sleep as Microsoft documents it (not
+measured here), so a stopped steady clock is not expected there.
+reading() gives both as exact decimals of the journal's text. drain and deliver keep server_now: they accept "lease
+ended" and "source gone since T" late, never early; deliver may let a control leave a little after the real cutoff,
+which is harmless: the server's guard takes no control after the cutoff by its own clocks (guard.py, one_pass).
 Exit codes of measure: 0 an ok line written, or the same record again (M7d) and the accepted line stays; 2 a wrong
 call; 4 a home file that cannot be read or written; 6 the host key or the login failed; 7 the server cannot be
 reached; 8 another measure holds home/clock/LOCK; 9 no ok line, the text says why. The last line: "clock: ok n <n>, the
@@ -62,6 +74,7 @@ import os
 import re
 import sys
 import time
+from decimal import Decimal, localcontext
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -71,7 +84,8 @@ from worker import SlotLock, Stop, canon, parse_canon, same  # noqa: E402
 
 HEX64 = re.compile(r"[0-9a-f]{64}")
 CLOCK_KEYS = ["n", "run_fingerprint", "schema", "state", "utc_ms"]
-LINE_KEYS = sorted(["t", "run", "look", "n", "utc_ms", "state", "mono", "wall", "impl", "platform", "ok", "why"])
+LINE_KEYS = sorted(["t", "run", "look", "n", "utc_ms", "state", "mono0", "mono", "wall", "impl", "platform", "ok",
+                    "why"])
 STATES = ("play", "dispatch_end", "cutoff", "hold")
 UTC_MS_MIN, UTC_MS_MAX = 1_700_000_000_000, 4_100_000_000_000          # M4
 OLDER_S, NEWER_S, AGREE_S, STEADY_S = 90.0, 120.0, 90.0, 120.0          # M7, M7c, M2c, C3
@@ -107,8 +121,8 @@ def _no_constant(text):
 
 
 def parse_line(raw: bytes):
-    """C8: the exact journal record (canonical bytes; mono and wall are the only numbers that may have a fraction),
-    or None."""
+    """C8: the exact journal record (canonical bytes; mono0, mono and wall are the only numbers that may have a
+    fraction; mono0 not above mono, CL1), or None."""
     try:
         obj = json.loads(raw.decode("ascii"), object_pairs_hook=_pairs, parse_constant=_no_constant)
         if not isinstance(obj, dict) or sorted(obj) != LINE_KEYS or canon(obj) != raw + b"\n":
@@ -117,6 +131,7 @@ def parse_line(raw: bytes):
         return None
     if not (obj["t"] == "clock" and type(obj["run"]) is str and HEX64.fullmatch(obj["run"])
             and type(obj["look"]) is int and obj["look"] in (1, 2) and number(obj["mono"]) and number(obj["wall"])
+            and number(obj["mono0"]) and obj["mono0"] <= obj["mono"]
             and type(obj["impl"]) is str and type(obj["platform"]) is str and type(obj["ok"]) is bool
             and (obj["why"] is None or type(obj["why"]) is str)):
         return None
@@ -126,8 +141,9 @@ def parse_line(raw: bytes):
     return obj
 
 
-def accepted(home, fingerprint: str, mono=time.monotonic, wall=time.time):
-    """(the deciding line, the monotonic clock now), or ClockRefused: C2 to C6, C8, C11."""
+def _accepted(home, fingerprint: str, mono, wall):
+    """(the deciding line, the monotonic clock now, the journal's exact records in order, the deciding line's place
+    among them), or ClockRefused: C2 to C6, C8, C11."""
     j = Path(home) / "clock" / "journal.jsonl"
     try:
         data = j.read_bytes()
@@ -135,11 +151,13 @@ def accepted(home, fingerprint: str, mono=time.monotonic, wall=time.time):
         raise ClockRefused("no clock line of this run: run clock.py measure first") from None
     except OSError as e:
         raise ClockRefused(f"home/clock/journal.jsonl cannot be read ({e})") from None
-    best = None
+    best, lines, at = None, [], -1
     for raw in data.split(b"\n")[:-1]:                  # only lines with their line end: a cut last line is skipped
         rec = parse_line(raw)
+        if rec is not None:
+            lines.append(rec)
         if rec is not None and rec["ok"] and rec["run"] == fingerprint:
-            best = rec                                  # appended in time order: the last one is the newest
+            best, at = rec, len(lines) - 1              # appended in time order: the last one is the newest
     if best is None:
         raise ClockRefused("no clock line of this run: run clock.py measure first")
     if best["impl"] != impl() or best["platform"] != sys.platform:
@@ -151,7 +169,38 @@ def accepted(home, fingerprint: str, mono=time.monotonic, wall=time.time):
     if abs((w - best["wall"]) - (m - best["mono"])) > STEADY_S:
         raise ClockRefused(f"the PC restarted or its clock was set (its wall clock moved {w - best['wall']:.1f} s "
                            f"while its steady clock moved {m - best['mono']:.1f} s): run clock.py measure again")
-    return best, m
+    return best, m, lines, at
+
+
+def accepted(home, fingerprint: str, mono=time.monotonic, wall=time.time):
+    """(the deciding line, the monotonic clock now), or ClockRefused: C2 to C6, C8, C11."""
+    return _accepted(home, fingerprint, mono, wall)[:2]
+
+
+def exact(x) -> Decimal:
+    """A number of the journal exactly as its text stands (a float's shortest form, which canon wrote)."""
+    return Decimal(repr(x)) if type(x) is float else Decimal(x)
+
+
+def reading(home, fingerprint: str, mono=time.monotonic, wall=time.time):
+    """(server_now, lag_s, the deciding line), both exact decimals (CL2): the server's clock now lies in
+    [server_now, server_now + lag_s]. ClockRefused as server_now's, and when no earlier look gives a lag bound."""
+    best, m, lines, at = _accepted(home, fingerprint, mono, wall)
+    with localcontext() as ctx:
+        ctx.prec = 60                                   # every sum here is exact
+        now = exact(best["utc_ms"]) / 1000 + (exact(m) - exact(best["mono"]))
+        for p in reversed(lines[:at]):                  # the LATEST earlier look that saw an older record
+            if (p["run"] == fingerprint and type(p["n"]) is int and p["n"] < best["n"] and p["impl"] == best["impl"]
+                    and p["platform"] == best["platform"] and p["mono0"] <= best["mono"]
+                    and abs((best["wall"] - best["mono"]) - (p["wall"] - p["mono"])) <= STEADY_S):
+                return now, exact(best["mono"]) - exact(p["mono0"]), best
+    raise ClockRefused("no look before the accepted line saw an older record: no lag bound (run clock.py measure "
+                       "again; its next ok line has one)")
+
+
+def lag_s(home, fingerprint: str, mono=time.monotonic, wall=time.time) -> Decimal:
+    """CL2: the measured bound of how far server_now runs behind the server's clock, in seconds (exact)."""
+    return reading(home, fingerprint, mono, wall)[1]
 
 
 def server_now(home, fingerprint: str, mono=time.monotonic, wall=time.time) -> float:
@@ -211,7 +260,9 @@ class Measure:
         raise Stop(9, "CLOCK.json grew between the listing and the get twice in a row: no clock line")
 
     def look(self, k: int) -> dict:
-        """One look, judged by M3 to M6; mono and wall read AFTER the get returned and the record was parsed (M1c)."""
+        """One look, judged by M3 to M6; mono0 read right BEFORE the get (CL1), mono and wall AFTER the get returned
+        and the record was parsed (M1c)."""
+        mono0 = time.monotonic()
         data = self.get()
         rec, bad = None, None
         if data is None:
@@ -235,7 +286,7 @@ class Measure:
                     if c["state"] == "hold":
                         bad = "the server's guard is in a HOLD (its clocks disagree): no clock line"
         mono, wall = time.monotonic(), time.time()
-        return {"look": k, "rec": rec, "bad": bad, "mono": mono, "wall": wall}
+        return {"look": k, "rec": rec, "bad": bad, "mono0": mono0, "mono": mono, "wall": wall}
 
     def cut_tail(self) -> bool:
         try:
@@ -250,7 +301,8 @@ class Measure:
     def write(self, lk: dict, ok: bool, why) -> None:
         r = lk["rec"]
         line = canon({"t": "clock", "run": self.fp, "look": lk["look"], "n": r["n"] if r else None,
-                      "utc_ms": r["utc_ms"] if r else None, "state": r["state"] if r else None, "mono": lk["mono"],
+                      "utc_ms": r["utc_ms"] if r else None, "state": r["state"] if r else None, "mono0": lk["mono0"],
+                      "mono": lk["mono"],
                       "wall": lk["wall"], "impl": impl(), "platform": sys.platform, "ok": ok, "why": why})
         if self.cut_tail():
             line = b"\n" + line                         # S2: the cut line stays a line of its own, skipped (C8)
@@ -347,7 +399,7 @@ class Measure:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="The home clock: the server's time, measured (v16).")
+    ap = argparse.ArgumentParser(description="The home clock: the server's time, measured (v17).")
     ap.add_argument("what", choices=["measure"])
     ap.add_argument("--home", required=True)
     ap.add_argument("--fingerprint", required=True)

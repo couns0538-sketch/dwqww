@@ -53,6 +53,15 @@ its seals end at that line's last_index and last_seal is that seal's sha256 (the
 exit 3; P3 --poll, --probe-every and --convert-seconds finite; P4 a wire copy only of a canonical file, else
 exit 4; P5 a piece is passed over only when its offer's wire copy gives the offer back, the offer is this
 piece's and every member's wire file is there at the size named, else exit 4.
+v17 (Opus 26 Nov; tmp/opus_scratch/v17/KNOWN_ANSWERS_v17_server_by_opus.md PK1 to PK7, read by Fable): THE PILOT'S
+TIMES, out/PACKER_TIMES.jsonl, for the guard's PILOT.json. At every start, after the lock and before the first pass,
+ONE line {"t": "start"}; after every offer's wire copy ONE line {"form", "games", "index", "ms", "raw_rows",
+"restart", "slot", "t": "offered"} (games and raw_rows the seal's; ms the steady clock from the start of pack(),
+before verify(), to after the wire copy; restart true when B1 finished the offer). Each line canonical, ONE os.write
+on an O_APPEND descriptor, then fsync; at the start a file whose last byte is not a line end first gets one. The
+packer never reads the file back. A file that cannot be appended is ONE line in packer.log and the day goes on
+without the record (the guard's cross-check then misses lines and raises its alarm). A root PILOT.json is wired like
+RUN.json; one that is not canonical is not wired and never stops the packer (one line in packer.log).
 Exit codes: 0; 2 a wrong call; 3 a piece that cannot be trusted, or another packer holds out/LOCK; 4 a file that
 cannot be read or written, or a publication conflict. Never a traceback.
 """
@@ -78,7 +87,7 @@ SEAL_KEYS = sorted(("schema", "run", "run_fingerprint", "slot", "epoch", "index"
                     "raw_bytes", "games", "rows", "first_game", "last_game", "first_counter", "last_counter",
                     "ids_digest", "round", "schedule"))
 SEAL_NAME = re.compile(r"p([0-9]{6})\.seal\.json\Z")         # B3: [0-9], not any Unicode digit; the worker's grammar
-WIRED_IN_ROOT = re.compile(r"(RUN|FENCE|SCHEDULE\.[1-9][0-9]{0,2}|RESUME\.[1-9][0-9]{0,2})\.json\Z")
+WIRED_IN_ROOT = re.compile(r"(RUN|FENCE|PILOT|SCHEDULE\.[1-9][0-9]{0,2}|RESUME\.[1-9][0-9]{0,2})\.json\Z")
 RANGE_SEAL = re.compile(r"r[0-9]{4}\.w[0-9]{3}\.seal\.json\Z")
 OFFER_KEYS = sorted(("schema", "run_fingerprint", "slot", "index", "seal_sha256", "form", "members"))
 MEMBER_KEYS = sorted(("name", "codec", "bytes", "sha256", "wire_name", "wire_bytes", "wire_sha256"))
@@ -191,6 +200,8 @@ class Packer:
         self.out.mkdir(exist_ok=True)
         self.lock = SlotLock(self.out)
         self.logf = open(self.out / "packer.log", "a", encoding="ascii", errors="replace", buffering=1)
+        self.times_file, self.times_broken, self.pilot_said = self.out / "PACKER_TIMES.jsonl", False, False
+        self.times_line({"t": "start"}, start=True)    # v17 PK1, PK1b: after the lock, before the first pass
         self.scratch = self.out / "scratch"
         if self.scratch.is_symlink() or (hasattr(self.scratch, "is_junction") and self.scratch.is_junction()):
             raise Stop(4, f"{self.scratch} is a link: nothing is removed through it")
@@ -203,6 +214,37 @@ class Packer:
 
     def say(self, text: str) -> None:
         self.logf.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {text}\n")
+
+    # ---- v17: the pilot's times (PK1 to PK7) -------------------------------------------------------------------
+    def times_line(self, rec: dict, start: bool = False) -> None:
+        """ONE canonical line appended to out/PACKER_TIMES.jsonl in one os.write on an O_APPEND descriptor, then
+        fsync (PK3); at the start a file whose last byte is not a line end first gets one. Never read back (PK5). A
+        file that cannot be appended: ONE line in packer.log, no more lines from this start, the day goes on (PK7)."""
+        if self.times_broken:
+            return
+        data = canon(rec)
+        try:
+            if start and self.times_file.is_file() and self.times_file.stat().st_size > 0:
+                with open(self.times_file, "rb") as f:
+                    f.seek(-1, os.SEEK_END)
+                    if f.read(1) != b"\n":
+                        data = b"\n" + data
+            fd = os.open(self.times_file, os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_BINARY", 0), 0o644)
+            try:
+                if os.write(fd, data) != len(data):
+                    raise OSError(f"a short write of {len(data)} bytes")
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+        except OSError as e:
+            self.times_broken = True
+            self.say(f"{self.times_file.name} cannot be appended ({printable(e)}): no more lines of the pilot's times "
+                     f"from this start; every offer goes on")
+
+    def offered(self, k: int, i: int, form: str, s: dict, t0: float, restart: bool) -> None:
+        """PK2: after an offer's wire copy, its line (ms from the start of pack(), before verify())."""
+        self.times_line({"form": form, "games": s["games"], "index": i, "ms": math.floor(1000 * (time.monotonic() - t0)),
+                         "raw_rows": s["rows"], "restart": restart, "slot": k, "t": "offered"})
 
     # ---- the mode (1.6) -----------------------------------------------------------------------------------------
     def read_mode(self) -> str:
@@ -345,12 +387,13 @@ class Packer:
                 "wire_name": wire_name, "wire_bytes": len(wire_data), "wire_sha256": sha256_bytes(wire_data)}
 
     def pack(self, k: int, i: int) -> str:
+        t0 = time.monotonic()                           # v17 PK2: the piece's time begins before verify()
         sb, s, raw, games = self.verify(k, i)
         key, name = f"w{k:03d}/p{i:06d}", f"p{i:06d}"
         meta = meta_of(games)
         d = self.out / f"w{k:03d}"
         if (d / f"{name}.offer.json").exists():         # B1: a stop between the offer and its wire copy
-            return self.finish_offer(k, i, d, key, name, sb, s, raw, meta)
+            return self.finish_offer(k, i, d, key, name, sb, s, raw, meta, t0)
         work = self.scratch / f"w{k:03d}.{name}"       # flat: a removed piece leaves no folder
         shutil.rmtree(work, ignore_errors=True)
         form, why = "raw", ("no rows" if s["rows"] == 0 else "fallback mode" if self.mode == "fallback" else "")
@@ -374,6 +417,7 @@ class Packer:
                        "seal_sha256": sha256_bytes(sb), "form": form, "members": members})
         create_only(d / f"{name}.offer.json", offer)
         self.member(d, f"{name}.offer.json", offer, "none", wire=True)    # its wire copy LAST: what a fetch lists
+        self.offered(k, i, form, s, t0, False)          # v17 PK2: the line AFTER the wire copy (PK4)
         shutil.rmtree(work, ignore_errors=True)
         if s["rows"]:
             self.probe_piece = (k, i)
@@ -382,7 +426,7 @@ class Packer:
         return form
 
     def finish_offer(self, k: int, i: int, d: Path, key: str, name: str, sb: bytes, s: dict, raw: bytes,
-                     meta: str) -> str:
+                     meta: str, t0: float) -> str:
         """B1: p.offer.json there without its wire copy (a stop between the two). The form is NOT decided again. The
         offer must be this piece's and every member it names there with its bytes; only then its wire copy is
         written. Anything else: Stop 4 naming the piece and the file, nothing written."""
@@ -413,6 +457,7 @@ class Packer:
                     [m["wire_bytes"], m["wire_sha256"], m["bytes"], m["sha256"]]:
                 raise bad(f"the member {m['wire_name']} is not the bytes the offer names")
         self.member(d, op.name, ob, "none", wire=True)  # its wire copy LAST, as in pack()
+        self.offered(k, i, form, s, t0, True)           # v17 PK2: restart true, the finishing pass's time only
         if s["rows"]:
             self.probe_piece = (k, i)
         self.say(f"{key}: offered as {form}, finished from the files on disk: the offer was there without its wire "
@@ -561,6 +606,11 @@ class Packer:
                 try:
                     parse_canon(data, f.name)          # P4 (Neon 223800Z): only a whole canonical record is wired
                 except ValueError as e:
+                    if f.name == "PILOT.json":          # v17 PK6: a record the day can do without never stops it
+                        if not self.pilot_said:
+                            self.pilot_said = True
+                            self.say(f"PILOT.json is not a canonical record ({printable(e)}): it is not wired")
+                        continue
                     raise Stop(4, f"{printable(e)}: its wire copy is not written") from None
                 self.member(f.parent, f.name, data, "none", wire=True)
                 self.wired.add(f)

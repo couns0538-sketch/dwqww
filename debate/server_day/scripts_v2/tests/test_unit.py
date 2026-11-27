@@ -13,11 +13,13 @@ U5 bootguard.main() and guard.main() accept their lines (exit 0, the recorded va
 do not know is refused with exit 2 (the instrument). U6 Restart=on-failure, RestartSec=30, RestartSteps=10,
 RestartMaxDelaySec=600, RestartPreventExitStatus=2, StartLimitIntervalSec=0. U7 KillMode=process. U8
 TimeoutStartSec >= 1200 and no --sync-wait in the boot guard's line (its default 900 s). U9 WantedBy=multi-user.target,
-After=time-sync.target, Type=simple, no User=.
+After=time-sync.target, Type=simple, no User=. U10 (v17, 26 Nov evening, Neon's catch) LimitCORE=0 and
+LimitNOFILE=65536: the two limits run/machine.py checks (LimitCORESoft "0", LimitNOFILESoft >= the day's nofile)
+stand in the unit, so that no image's default is relied on (systemd 255's default soft open files is 1024).
 PLANTS (each must make the test fail): plant1 KillMode=control-group (U7); plant2 TimeoutStartSec=90 (U8); plant3 no
 `+` (U2); plant4 the guard's --root another folder (U4); plant5 Restart=no (U6); plant6 `-I` missing in ExecStart
 (U3); plant7 a misspelt argument in the boot guard's line (U5); plant8 no WantedBy (U9); plant9 the guard's
---policy outside the package (U4b).
+--policy outside the package (U4b); plant10 LimitNOFILE=1024 (U10).
 """
 import shlex
 import sys
@@ -42,6 +44,7 @@ PLANTS = {
     "plant7": ("--package-list /srv/forgeday/package/MANIFEST.sha256", "--package-lst /srv/forgeday/package/MANIFEST.sha256"),
     "plant9": ("--policy /srv/forgeday/package/plan.json", "--policy /srv/forgeday/plan.json"),
     "plant8": ("WantedBy=multi-user.target\n", "#WantedBy=multi-user.target\n"),
+    "plant10": ("LimitNOFILE=65536\n", "LimitNOFILE=1024\n"),
 }
 text = UNIT.read_bytes().decode("ascii")
 if PLANT:
@@ -167,6 +170,8 @@ check("U8 TimeoutStartSec >= 1200 and the boot guard's default --sync-wait 900",
 check("U9 WantedBy=multi-user.target, After=time-sync.target, Type=simple, no User=",
       (ins.get("WantedBy"), "time-sync.target" in " ".join(un.get("After", [])).split(), sv.get("Type"), "User" in sv),
       (["multi-user.target"], True, ["simple"], False))
+check("U10 LimitCORE=0 and LimitNOFILE=65536 (machine.py's two file limits stand in the unit)",
+      (sv.get("LimitCORE"), sv.get("LimitNOFILE")), (["0"], ["65536"]))
 failed = [n for n, ok in RESULTS if not ok]
 print(f"{len(RESULTS) - len(failed)} of {len(RESULTS)} checks pass")
 print("ALL PASS" if not failed and RESULTS else f"{len(failed)} failed: {failed}")

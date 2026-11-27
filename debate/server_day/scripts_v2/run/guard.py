@@ -58,15 +58,17 @@ G3 THE CONTROL RECORD (1.2). inbox/CONTROL.<k>.json.zz for the NEXT k (one more 
    f. the effect, from the hashed policy, never from an exit code, a displayed number or a label (Astra 171134Z):
       REACHED, STOP, SHORT: the fence. UNQUALIFIED: nothing, the pilot ranges stay. SELF_PLAY and
       SELF_PLAY_AND_MATCHES: a schedule (no match is played: this package has no match runner; an ALARM says so).
-      OWNER_CHOICE: the policy's owner_choice. Action "stop": the fence. Action "reduced_target" with
+      OWNER_CHOICE: the policy's owner_choice. Action "stop": the fence. Action "self_play" (F2, 26 Nov: the
+      owner's 1A of 25 Nov, as many rows as fit into the day): a schedule, capped by the policy's full target_rows.
+      Action "reduced_target" with
       reduced_target_rows R needs the report's `reduced` = {"covered": bool, "target_rows": R}: covered, a schedule
       whose scope names at most R rows; not covered, the policy's `if_uncovered` ("stop": the fence; "self_play": a
       schedule), and without it HELD (the missing decision named). Any other action: HELD. Kind fence: the fence.
       Kind matches: nothing (an ALARM: no match runner). A schedule needs scope {"highest_round": R, "target_rows":
       N} with integers, R above the highest round scheduled and at most 9999, N at least 1 and at most the policy's
       target_rows (the reduced target where one applies: a target changes only by a new policy); every other effect
-      needs scope null. (The machine-readable owner_choice.action and if_uncovered are this version's proposal: the
-      budget tool's plan has only name and reduced_target_rows, and a name is a label, not an action.)
+      needs scope null. (owner_choice.action and if_uncovered: since F2 the budget tool refuses a plan without a
+      known action, exit 2; a name is a label, not an action. The guard still HOLDS what it does not know.)
    g. a schedule passes the room test (G5).
    Accepted: control/EVIDENCE.<sha256>.json and control/CONTROL.<k>.json written create-only (the decoded bytes, in
    that order), then the effect: the schedule (G4), or the fence, whose `why` names the control's sha256. The same
@@ -122,7 +124,9 @@ G7 THE END (1.8). The bounds are judged by clockwatch.Bounds (three clocks, the 
    there or the dispatch end has come, a slot without `ended` and without a live worker gets a start (the worker's
    epoch is then seal_only by itself: the finalizer), a faulted slot included; such a start that ends without the
    slot's `ended` line makes the slot UNRECONCILED, except that 0, 3 and 8 are tried again until D + --end-grace
-   (judged by the three clocks; a HOLD is not taken as come). A worker still alive at D + --end-grace: its group is
+   (judged by the three clocks; a HOLD is not taken as come). A start made BEFORE the end that ends after it without
+   `ended` is not such a start: before D + --end-grace its slot gets the finalizer's start next (v17: Neon's catch,
+   26 Nov). A worker still alive at D + --end-grace: its group is
    ended (an ALARM). On Linux the groups that an EARLIER guard of this boot started (guard/groups.jsonl) are ended
    at D + --end-grace too, and a member is touched only when its command line names DIR (a worker) or the engine
    file (an engine). When the fence is there, every slot is ended or unreconciled and no worker lives: STOP_PACKER
@@ -156,6 +160,25 @@ G11 THE CLOCK FILE (v16; the clock known answers G and ADDENDA 3 and 4 on the PC
    boot guard's "clock synchronised" stands before every start. state is state() of the three clocks; a fence
    does not change it (after the fence at D it is cutoff). A write that fails is the ALARM clock and is tried again
    at the next pass; nothing of the guard depends on it.
+G12 THE PILOT'S RECORD (v17 GP1 to GP9 and ADDENDUM 1's GP3b to GP3d; home's state.py R3 reads it). ROOT/PILOT.json,
+   canonical, create-only, written ONCE at the first pass where (a) every row of RUN.json's pilot_ranges has its range
+   seal, this run's seal of THAT row (range_fault against the header's row: a schedule written meanwhile does not
+   hide it), and (b) every pilot piece of every slot, 0 to T_k (the highest through_index of the slot's pilot range
+   seals), has its offer wire copy out/w<k>/p<i>.offer.json.zz; before that: nothing, no alarm. It holds {packer,
+   rounds, run_fingerprint, schema 1, slots}: per slot, in the header's order, from the complete done and noselfgame
+   lines of w<k>/journal.txt whose game lies in a pilot row of the slot (read incrementally): games, first_t0_ms (the
+   least t0_ms), last_end_ms (the greatest t0_ms + ms), longest_ms, play_ms (the sum of ms), span_ms; from the piece
+   seals 0 to T_k (R4's rule): raw_rows (their rows), epochs (rising); the packer, from the complete lines of
+   out/PACKER_TIMES.jsonl that are exact R2 records: pieces, busy_ms and raw_rows of the pilot pieces' offered lines,
+   restarted = start lines - 1. GP3, each a failure with NO file and the ALARM pilot naming the slot and what differs,
+   checked again at every pass: games equal to the pilot range seals' and to the piece seals'; the range seals'
+   first_index chain from piece 0 in round order; the done lines' rows equal to the piece seals'; every pilot line
+   with t0_ms and ms; at least one pilot piece (home's R3 needs its epochs); last_end_ms not after the guard's own
+   utc_ms at the pass (GP3d); the times file begins with a start line (GP3c); no pilot piece offered twice; a pilot
+   piece without its offered line only after a restart of the packer (C-R2), else silence for 120 s of the steady
+   clock after (a) and (b) first held (GP3b: the line follows the wire copy), then the alarm. A PILOT.json found (a
+   restarted guard) is never written again; one not canonical or not this run's is the ALARM pilot, kept as it is
+   (GP4). Any fault inside is the ALARM pilot, tried again at the next pass: nothing else depends on it (GP9).
 EXIT CODES: 0 the day is closed (CLOSED.json, this run's closing record: a guard started after it exits 0 at once);
 2 a wrong call; 3 another guard holds the lock; 4 the header, the policy, the schedule chain, the accepted controls,
 FENCE.json, CLOSED.json or a file the guard must write cannot be trusted. Never a traceback.
@@ -202,9 +225,30 @@ CLOCK_EVERY = 60.0                                  # G11: CLOCK.json at most on
 CLOCK_KEYS = ["n", "run_fingerprint", "schema", "state", "utc_ms"]
 
 
+TIMES_KEYS = ["form", "games", "index", "ms", "raw_rows", "restart", "slot", "t"]    # v17 R2: an offered line
+GP3B_WAIT = 120.0                                   # G12 GP3b: steady seconds a pilot offer may wait for its line
+GAME_NO = re.compile(r"[0-9]{8}")
+
+
 def same(v, want) -> bool:
     """v equals want and has its type (a bool is never an int here)."""
     return type(v) is type(want) and v == want
+
+
+def times_rec(line: bytes):
+    """G12 (v17 R2): the record of one complete line of out/PACKER_TIMES.jsonl when it is exact (the start line, or an
+    offered line with its eight keys), else None."""
+    try:
+        x = parse_canon(line, "PACKER_TIMES.jsonl")
+    except ValueError:
+        return None
+    if x == {"t": "start"}:
+        return x
+    if (isinstance(x, dict) and sorted(x) == TIMES_KEYS and x["t"] == "offered" and x["form"] in ("binpack", "raw")
+            and type(x["restart"]) is bool
+            and all(type(x[f]) is int and x[f] >= 0 for f in ("games", "index", "ms", "raw_rows", "slot"))):
+        return x
+    return None
 
 
 class Held(Exception):
@@ -438,6 +482,7 @@ class Slot:
         self.unreconciled = None        # text
         self.next_try = 0.0
         self.last_code = None
+        self.end_start = False          # G7: the live or last start was made once the end had come (the finalizer)
 
 
 class Guard:
@@ -473,6 +518,11 @@ class Guard:
         self.foreign = self.earlier_groups()
         self.clock_every, self.clock_at = CLOCK_EVERY, None      # G11: the steady reading of the last write
         self.clock_n = self.clock_start()
+        self.pilot_done, self.pilot_ready_at = False, None      # G12: PILOT.json written or found; GP3b's start
+        self.pilot_ok, self.pilot_pieces = {}, {}               # verified pilot range seals; slot -> pieces' sums
+        self.pilot_off = {k: 0 for k in self.h["slots"]}         # GP1 (b): the next offer wire copy to look for
+        self.pj = {k: [0, b"", []] for k in self.h["slots"]}     # each journal: bytes read, a cut tail, pilot lines
+        self.pt = [0, b"", []]                                  # out/PACKER_TIMES.jsonl: the same, its records
 
     # ---- the log ------------------------------------------------------------------------------------------------
     def say(self, text: str, alarm: bool = False) -> None:
@@ -613,12 +663,9 @@ class Guard:
 
     def clock_utc_ms(self, r) -> int:
         """G1': the guard's time by its three clocks at ONE reading, the EARLIEST of UTC, anchor + steady run and
-        anchor + boot run, in whole milliseconds rounded down (the furthest BEHIND: home decides late, never early)."""
-        a = self.B.anchor
-        t = [r[0], a[0] + (r[1] - a[1])]
-        if r[2] is not None and a[2] is not None:
-            t.append(a[0] + (r[2] - a[2]))
-        return math.floor(min(t) * 1000)
+        anchor + boot run, in whole milliseconds rounded down (the furthest BEHIND: home decides late, never early).
+        v17: the rule lives in clockwatch.Bounds.earliest_ms, the worker's t0_ms (C-R1) uses the same."""
+        return self.B.earliest_ms(r)
 
     def write_clock(self, r, st: str) -> None:
         """G11: ROOT/CLOCK.json, whole, at most once every clock_every seconds of the steady clock (r[1]), in every
@@ -644,6 +691,207 @@ class Guard:
         self.clear("clock")
         self.clock_n += 1
         self.clock_at = r[1]
+
+    # ---- G12: the pilot's record (v17) ----------------------------------------------------------------------------
+    def pilot_pass(self, r) -> None:
+        """G12: ROOT/PILOT.json once (GP1, GP4); a fault is the ALARM pilot and nothing else (GP9: never a stop)."""
+        if self.pilot_done:
+            return
+        p = self.root / "PILOT.json"
+        try:
+            if p.exists():                              # GP4: written before (a restarted guard): never again
+                self.pilot_done = True
+                why = self.pilot_file_fault(p)
+                if why:
+                    self.alarm("pilot", f"PILOT.json {why}: it is kept as it is and not written again")
+                return
+            why, rec = self.pilot_record(r)
+            if rec is None:
+                if why:
+                    self.alarm("pilot", f"PILOT.json not written: {why}")
+                return
+            data = canon(rec)
+            create_only(p, data)
+        except Exception as e:  # noqa: BLE001   GP9: the ALARM, tried again at the next pass; the day goes on
+            self.alarm("pilot", f"PILOT.json not written: {type(e).__name__}: {str(e)[:300]}")
+            return
+        self.pilot_done = True
+        self.clear("pilot")
+        self.say(f"PILOT.json written ({sha256_bytes(data)[:12]}): slots {len(rec['slots'])}, rounds {rec['rounds']}, "
+                 f"packer {rec['packer']}")
+
+    def pilot_file_fault(self, p: Path) -> str:
+        """GP4: '' when ROOT/PILOT.json is canonical and this run's (schema 1, run_fingerprint), else why not."""
+        try:
+            rec = parse_canon(p.read_bytes(), "PILOT.json")
+        except OSError as e:
+            return f"cannot be read ({e})"
+        except ValueError as e:
+            return f"is not canonical ({e})"
+        if not (isinstance(rec, dict) and same(rec.get("schema"), 1) and rec.get("run_fingerprint") == self.fp):
+            return "is not this run's (schema 1, run_fingerprint)"
+        return ""
+
+    def pilot_record(self, r):
+        """GP1 to GP3d: ('', None) not yet, no alarm; (why, None) GP3's alarm; ('', the record) to be written."""
+        prows = self.h["pilot_ranges"]
+        mine = {k: sorted((x for x in prows if x["slot"] == k), key=lambda x: x["round"]) for k in self.h["slots"]}
+        seals, top = {}, {}
+        for k in self.h["slots"]:                       # GP1 (a): this run's range seal of every pilot row
+            seals[k] = []
+            for row in mine[k]:
+                f = self.root / "ranges" / f"r{row['round']:04d}.w{k:03d}.seal.json"
+                try:
+                    st = f.stat()
+                except OSError:
+                    return "", None
+                stamp = (st.st_size, st.st_mtime_ns, st.st_ino)
+                got = self.pilot_ok.get((k, row["round"]))
+                if got is None or got[0] != stamp:
+                    if self.range_fault(f, k, row["round"], row) is not None:
+                        return "", None                 # R5 names such a seal (sealed_rounds); it is not counted
+                    got = self.pilot_ok[(k, row["round"])] = (stamp, parse_canon(f.read_bytes(), f.name))
+                seals[k].append(got[1])
+            top[k] = max([s["through_index"] for s in seals[k]], default=-1)
+        for k in self.h["slots"]:                       # GP1 (b): every pilot piece's offer wire copy
+            while self.pilot_off[k] <= top[k]:
+                if not (self.root / "out" / f"w{k:03d}" / f"p{self.pilot_off[k]:06d}.offer.json.zz").exists():
+                    return "", None
+                self.pilot_off[k] += 1
+        if self.pilot_ready_at is None:
+            self.pilot_ready_at = r[1]
+        utc = self.clock_utc_ms(r)
+        slots = []
+        for k in self.h["slots"]:
+            why, s = self.pilot_slot(k, mine[k], seals[k], top[k], utc)
+            if s is None:
+                return why, None
+            slots.append(s)
+        why, packer = self.pilot_packer(r, top)
+        if packer is None:
+            return why, None
+        return "", {"packer": packer, "rounds": sorted({x["round"] for x in prows}), "run_fingerprint": self.fp,
+                    "schema": 1, "slots": slots}
+
+    def pilot_slot(self, k: int, mine: list, seals: list, top: int, utc: int):
+        """GP2 and GP3 for slot k: (why, its values), why '' or the values None."""
+        got = self.pilot_pieces.get(k)
+        if got is None or got[0] != top:                # the piece seals 0 to T_k by R4's rule, with rows and epoch
+            games = rows = 0
+            epochs, prev = set(), self.genesis(k)
+            for i in range(top + 1):
+                p = self.root / f"w{k:03d}" / "closed" / f"p{i:06d}.seal.json"
+                try:
+                    data = p.read_bytes()
+                    s = parse_canon(data, p.name)
+                except (OSError, ValueError) as e:
+                    return f"slot {k}: w{k:03d}/closed/{p.name} cannot be read ({e})", None
+                if not (isinstance(s, dict) and same(s.get("schema"), 2) and s.get("run_fingerprint") == self.fp
+                        and same(s.get("slot"), k) and same(s.get("index"), i) and s.get("prev_seal") == prev
+                        and type(s.get("games")) is int and s["games"] >= 1 and type(s.get("rows")) is int
+                        and s["rows"] >= 0 and type(s.get("epoch")) is int and s["epoch"] >= 1):
+                    return (f"slot {k}: w{k:03d}/closed/{p.name} is not this run's seal {i} of the slot (schema, "
+                            f"run_fingerprint, slot, index, prev_seal, games, rows, epoch)"), None
+                games, rows, prev = games + s["games"], rows + s["rows"], sha256_bytes(data)
+                epochs.add(s["epoch"])
+            got = self.pilot_pieces[k] = (top, games, rows, sorted(epochs))
+        games, rows, epochs = got[1:]
+        lines = self.pilot_lines(k, mine)
+        for x in lines:
+            if not (type(x.get("t0_ms")) is int and x["t0_ms"] >= 0 and type(x.get("ms")) is int and x["ms"] >= 0):
+                return f"slot {k}: the pilot game {x.get('game')} has no t0_ms or ms (a journal line of v16's form)", None
+            if x["t"] == "done" and not (type(x.get("rows")) is int and x["rows"] >= 0):
+                return f"slot {k}: the pilot game {x.get('game')} has no rows", None
+        rg = sum(s["games"] for s in seals) if all(type(s.get("games")) is int for s in seals) else None
+        if not len(lines) == rg == games:
+            return (f"slot {k}: the journal holds {len(lines)} pilot games, the pilot range seals {rg}, the piece "
+                    f"seals 0 to {top} {games}"), None
+        nxt = 0
+        for s in seals:                                 # the first_index chain: pieces 0 to T_k, the pilot's alone
+            fi, ti = s.get("first_index"), s["through_index"]
+            if same(fi, -1) and same(ti, -1):
+                continue
+            if not (same(fi, nxt) and type(ti) is int and ti >= fi):
+                return (f"slot {k}: the pilot range seal of round {s.get('round')} begins at piece {fi}, not {nxt} (the "
+                        f"pilot's pieces are 0 to {top}, in round order)"), None
+            nxt = ti + 1
+        done_rows = sum(x["rows"] for x in lines if x["t"] == "done")
+        if done_rows != rows:
+            return f"slot {k}: the done lines' rows sum to {done_rows}, the piece seals 0 to {top} hold {rows}", None
+        if not epochs:
+            return f"slot {k}: no pilot piece (home's R3 needs the slot's epochs)", None
+        first, last = min(x["t0_ms"] for x in lines), max(x["t0_ms"] + x["ms"] for x in lines)
+        if last > utc:
+            return f"slot {k}: its last pilot game ends at {last} ms, after the guard's clock {utc} (GP3d)", None
+        return "", {"epochs": epochs, "first_t0_ms": first, "games": len(lines), "last_end_ms": last,
+                    "longest_ms": max(x["ms"] for x in lines), "play_ms": sum(x["ms"] for x in lines),
+                    "raw_rows": rows, "slot": k, "span_ms": last - first}
+
+    def pilot_lines(self, k: int, mine: list) -> list:
+        """GP2: the slot's done and noselfgame lines (complete, canonical) whose game lies in one of its pilot rows,
+        from w<k>/journal.txt read incrementally (only the bytes new since the last pass; a cut last line waits)."""
+        st = self.pj[k]
+        new = self.tail_read(self.root / f"w{k:03d}" / "journal.txt", st)
+        pre = f"{self.h['run']}-w{k:03d}-g"
+        for line in new:
+            try:
+                x = parse_canon(line, "journal line")
+            except ValueError:
+                continue                                # a line that is no record: the count check names the slot
+            if not (isinstance(x, dict) and x.get("t") in ("done", "noselfgame") and isinstance(x.get("game"), str)
+                    and x["game"].startswith(pre) and GAME_NO.fullmatch(x["game"][len(pre):])):
+                continue
+            c = int(x["game"][len(pre):])
+            if any(row["first"] <= c <= row["last"] for row in mine):
+                st[2].append(x)
+        return st[2]
+
+    @staticmethod
+    def tail_read(path: Path, st: list) -> list:
+        """The complete lines appended to path since st = [bytes read, cut tail, ...] was last read (st is updated);
+        a file that shrank is read again from its start (st[2] emptied)."""
+        try:
+            size = path.stat().st_size
+        except FileNotFoundError:
+            size = 0
+        if size < st[0]:
+            st[:] = [0, b"", []]
+        if size == st[0]:
+            return []
+        with open(path, "rb") as f:
+            f.seek(st[0])
+            chunk = f.read(size - st[0])
+        st[0] += len(chunk)
+        data = st[1] + chunk
+        cut = data.rfind(b"\n") + 1
+        st[1] = data[cut:]
+        return data[:cut].splitlines(keepends=True)
+
+    def pilot_packer(self, r, top: dict):
+        """GP2's packer values from the complete exact lines of out/PACKER_TIMES.jsonl, GP3's packer checks, GP3b and
+        GP3c: (why, the values), why '' or the values None."""
+        st = self.pt
+        st[2].extend(times_rec(line) for line in self.tail_read(self.root / "out" / "PACKER_TIMES.jsonl", st))
+        lines = st[2]
+        if not lines or lines[0] != {"t": "start"}:      # GP3c (no start line would give restarted -1)
+            return "the packer's times file out/PACKER_TIMES.jsonl does not begin with a start line", None
+        starts = sum(1 for x in lines if x == {"t": "start"})
+        seen = {}
+        for x in lines:
+            if x is not None and x["t"] == "offered" and x["slot"] in top and x["index"] <= top[x["slot"]]:
+                if (x["slot"], x["index"]) in seen:
+                    return (f"the packer's times file holds two offered lines for slot {x['slot']} piece "
+                            f"{x['index']}"), None
+                seen[(x["slot"], x["index"])] = x
+        missing = [(k, i) for k in self.h["slots"] for i in range(top[k] + 1) if (k, i) not in seen]
+        if missing and starts == 1:                     # restarted 0: C-R2 does not explain a missing line
+            if r[1] - self.pilot_ready_at < GP3B_WAIT:
+                return "", None                         # GP3b: the line follows its wire copy
+            return (f"the packer's times file holds no offered line for slot {missing[0][0]} piece {missing[0][1]} "
+                    f"({len(missing)} pilot pieces without one; restarted 0; {GP3B_WAIT:.0f} s after the pilot's "
+                    f"offers stood)"), None
+        return "", {"busy_ms": sum(x["ms"] for x in seen.values()), "pieces": len(seen),
+                    "raw_rows": sum(x["raw_rows"] for x in seen.values()), "restarted": starts - 1}
 
     # ---- G3: the control record --------------------------------------------------------------------------------
     def check_control(self, k: int, data: bytes, evidence: bytes, replay: bool):
@@ -722,6 +970,8 @@ class Guard:
             act = oc.get("action")
             if act == "stop":
                 eff = "fence"
+            elif act == "self_play":                    # F2: the owner's 1A, as many rows as fit (the full target)
+                eff = "schedule"
             elif act == "reduced_target":
                 cap, red = oc.get("reduced_target_rows"), rep.get("reduced")
                 if type(cap) is not int or not isinstance(red, dict) or red.get("target_rows") != cap \
@@ -1186,6 +1436,7 @@ class Guard:
                     s.next_try = now + RETRY.get(3, 30.0)
                 continue
             self.clear(f"held{s.k}")
+            s.end_start = end
             self.start_worker(s, now)
 
     def after_exit(self, s: Slot, code: int, end: bool, now: float) -> None:
@@ -1198,7 +1449,12 @@ class Guard:
             if code in (0, 3, 8) and not self.past_d_grace():               # D + --end-grace; anything else is a
                 s.next_try = now + again                                    # slot whose end is not reconciled
                 return
-            s.unreconciled = f"a start after the end exited with {code} and the slot has no ended line"
+            if not s.end_start and not self.past_d_grace():   # G7: a start made BEFORE the end is not the finalizer's
+                s.next_try = now
+                self.say(f"slot {s.k}: its start before the end exited with {code} after it: the finalizer's start next")
+                return
+            s.unreconciled = (f"a start {'after' if s.end_start else 'before'} the end exited with {code} and the slot "
+                              f"has no ended line")
             self.alarm(f"unrec{s.k}", f"slot {s.k} UNRECONCILED: {s.unreconciled}")
             return
         if again is None:
@@ -1347,6 +1603,7 @@ class Guard:
         r = self.B.clocks.read()
         st = self.state(r)
         self.write_clock(r, st)
+        self.pilot_pass(r)                              # G12: the pilot's record, once; never a stop (GP9)
         if st == "hold":
             self.alarm("hold", "the guard's clocks are in a HOLD (UTC alone ahead): no control, schedule or start")
         if stop:

@@ -242,6 +242,7 @@ import calendar
 import ctypes
 import hashlib
 import json
+import math
 import os
 import select
 import shutil
@@ -575,13 +576,14 @@ if want("V19"):
           "2026-11-30T23:59:59Z", got19 == [None] * 5 + [calendar.timegm((2026, 11, 30, 23, 59, 59))], got19)
 
 # ================================================================ group 1: V1, V4a, V4b, V10
-R1 = make_root("v1", "n12", 1, [row(1, 6, slot=1)], 30, 45) if want("V1", "V2", "V2b", "V7", "V7b", "V7c", "V7d", "V8", "V9", "V9b", "V13", "V13b") else None
+R1 = make_root("v1", "n12", 1, [row(1, 6, slot=1)], 30, 45) if want("V1", "V2", "V2b", "V7", "V7b", "V7c", "V7d", "V8", "V9", "V9b", "V13", "V13b", "V50", "V52") else None
 R4a = make_root("v4a", "edge", 0, [row(1, 1)], 20, 35, rule="seed", seed="edge2649") if want("V4a") else None
 R4b = make_root("v4b", "edge", 0, [row(1, 1)], 20, 35, rule="seed", seed="edge2715") if want("V4b") else None
 R4c = make_root("v4c", "d10", 0, [row(1, 1)], 20, 35, rule="seed", seed="edge3146") if want("V4c") else None
 R4d = make_root("v4d", "d10", 0, [row(1, 1)], 20, 35, rule="seed", seed="edge4013") if want("V4d") else None
 R10 = make_root("v10", "slow", 0, [row(1, 3)], 20, 30, game_line=SLOW_LINE) if want("V10") else None
 P = {}
+T_V1 = time.time()                                      # v17 V50: the run's wall time begins before its start
 if R1:
     P["V1"] = start(R1, 1)
 if R4a:
@@ -660,6 +662,25 @@ if R1:
           hbj.get("games_this_start") == 6 and hb.read_bytes() == canon(hbj) and not (R1 / "w001" / "heartbeat.part").exists())
     check("V1 no temporary file left", not list(R1.rglob("*.tmp")) and not list(R1.rglob("*.part")))
     check("V1 no engine process left", engines_left(R1, 1) == [])
+    if want("V50"):                                     # v17 W1 to W3 on V1's six games
+        gl = [r for r in j if r.get("t") in ("done", "noselfgame")]
+        check("V50 (v17 W1) every game line holds exactly t, game, index, end, bind, rows (or plies), t0_ms and ms; "
+              "t0_ms and ms are ints",
+              len(gl) == 6 and all(sorted(r) == sorted(["t", "game", "index", "end", "bind", "t0_ms", "ms",
+                                                         "rows" if r["t"] == "done" else "plies"])
+                                   and type(r["t0_ms"]) is int and type(r["ms"]) is int for r in gl), gl[:2])
+        res = math.ceil(time.get_clock_info("monotonic").resolution * 1000)
+        t0s = [r.get("t0_ms") for r in gl]
+        mss = [r.get("ms") for r in gl]
+        lo, hi = math.floor(T_V1 * 1000) - 100, math.ceil(ENDS["V1"] * 1000) + 100
+        ok50 = (len(gl) == 6 and all(type(x) is int for x in t0s + mss)
+                and all(lo <= t <= hi and 0 <= m and t + m <= hi for t, m in zip(t0s, mss))
+                and sum(mss) <= hi - lo + 6 * res
+                and all(t0s[i] + mss[i] <= t0s[i + 1] + 1 + 2 * res for i in range(5)))
+        check("V50 (v17 W2, W3) every t0_ms within the run's wall time (no plant: the clocks together); 0 <= ms; t0_ms "
+              "+ ms within it; the sum of ms at most the wall time; each t0_ms + ms at most the next t0_ms + 1 ms + "
+              "twice the steady clock's resolution (one game after the other)",
+              ok50, (lo, hi, res, list(zip(t0s, mss))))
 
 for name, root, opening, state, plies in (("V4a", R4a, "d2d4 g7g5 e2e4 f7f5 d1h5", "noselfgame", 5),
                                           ("V4b", R4b, "g2g4 d7d6 b2b3 h7h6 f2f3 e7e6 b1c3 d8h4", "done", 8),
@@ -1922,6 +1943,64 @@ if want("V48b"):
     check("V48b control: a folder holding a stray file and no IDENTITY.json: Stop 4 naming `no IDENTITY.json`",
           W is not None and isinstance(e48b, W.Stop) and e48b.code == 4 and "no IDENTITY.json" in str(e48b),
           repr(e48b))
+
+# ---- v17 (26 Nov): W2's jump (V51) and W4's replay (V52); V50 stands with V1
+if want("V51"):
+    R51 = make_root("v51", "ahead", 0, [row(1, 6)], 7200, 7300)     # the bounds two hours away: no hold, no cutoff
+    t51 = time.time()
+    p51 = start(R51, 0, plant="clock_ahead:2")
+    t_end = time.time() + 240
+    while time.time() < t_end and kinds(R51, 0).count("done") < 6 and p51.poll() is None:
+        time.sleep(0.2)
+    put(R51 / "STOP", b"")                              # the slot waits for a range; the STOP file ends it
+    try:
+        out51, _ = p51.communicate(timeout=120)
+    except subprocess.TimeoutExpired:
+        p51.kill()
+        out51, _ = p51.communicate()
+    t51e = time.time()
+    g51 = [r for r in jlines(R51, 0) if r.get("t") in ("done", "noselfgame")]
+    lg51 = (R51 / "w000" / "worker.log").read_text(encoding="ascii", errors="replace") \
+        if (R51 / "w000" / "worker.log").exists() else ""
+    check("V51 (v17 W2) UTC alone an hour ahead from game 2 on (plant clock_ahead, the bounds two hours away): six "
+          "games played, the log names the plant, exit 0 by the STOP file",
+          p51.returncode == 0 and [r["t"] for r in g51] == ["done"] * 6 and "PLANT clock_ahead" in lg51,
+          (p51.returncode, [r.get("t") for r in g51], out51[-300:]))
+    lo51, hi51 = math.floor(t51 * 1000) - 100, math.ceil(t51e * 1000) + 100
+    check("V51 every t0_ms lies within the run's wall time (anchor + steady, the earliest clock), none an hour ahead",
+          len(g51) == 6 and all(type(r.get("t0_ms")) is int and lo51 <= r["t0_ms"] <= hi51 for r in g51),
+          (lo51, hi51, [r.get("t0_ms") for r in g51]))
+if R1 and want("V52"):                                  # V1's journal (its line 2 is the first game line) changed
+    base52 = (R1 / "w001" / "journal.txt").read_bytes().split(b"\n")
+    g52 = json.loads(base52[1])
+    var52 = {"no t0_ms": {k: v for k, v in g52.items() if k != "t0_ms"},
+             "no ms": {k: v for k, v in g52.items() if k != "ms"}}
+    for v in (1.5, True, "1", 1_699_999_999_999, 4_100_000_000_001):
+        var52[f"t0_ms {v!r}"] = dict(g52, t0_ms=v)
+    for v in (-1, True, 86_400_001):
+        var52[f"ms {v!r}"] = dict(g52, ms=v)
+    var52["control"] = dict(g52, t0_ms=1_700_000_000_000, ms=86_400_000)
+    P52 = {}
+    for i, (k, v) in enumerate(var52.items()):
+        root = WORK / f"v52_{i:02d}"
+        shutil.copytree(R1, root)
+        lines52 = list(base52)
+        lines52[1] = canon(v)[:-1]
+        (root / "w001" / "journal.txt").write_bytes(b"\n".join(lines52))
+        P52[k] = start(root, 1)
+    OUT52, _ = finish_all(P52, 120)
+    why52 = "journal line 2: a game line that does not follow the lines before it"
+    # 1.5 is refused one step earlier, by the record's grammar (parse_canon: every number an integer); first chain
+    # 26 Nov 10:16, NOT AS KNOWN for this variant alone: the test's text was wrong, the refusal right
+    why52f = "journal line 2: not a canonical record (a number that is not an integer: 1.5)"
+    bad52 = {k: (rc, out[-120:]) for k, (rc, out) in OUT52.items()
+             if k != "control" and not (rc == 4 and (why52f if k == "t0_ms 1.5" else why52) in out)}
+    check("V52 (v17 W4) the first game line without t0_ms; without ms; t0_ms 1.5 (by the record's grammar), true, "
+          "\"1\", 1699999999999, 4100000000001; ms -1, true, 86400001: each start exits 4 naming it (journal line 2)",
+          not bad52, bad52)
+    rc52, o52 = OUT52["control"]
+    check("V52 the control: t0_ms 1700000000000 and ms 86400000 (the edges) are taken: no refusal of journal line 2, "
+          "no traceback", "journal line 2" not in o52 and "Traceback" not in o52, (rc52, o52[-300:]))
 
 # ---- Linux only (the seats run them): V44, V46 to V46e
 LINUX = ("V44", "V46", "V46b", "V46c", "V46d", "V46e")

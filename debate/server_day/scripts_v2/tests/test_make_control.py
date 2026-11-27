@@ -22,6 +22,10 @@ on the PC, written before the code): budget() writes run_fingerprint into state 
 --pilot; every public record carries state_now_s; B7 is kind pilot_decision (M5); R10's folders hold CONTROL.1's
 record; R11's files carry R11's own fingerprint. Part V: the run binding (VB, Astra 214130Z), the policy of a fence
 (VF, Neon 4b), the order (VS), the accepted folder (VN), the freshness (VR) and the match rows (VM, Neon 4c).
+F2 (Opus 26 Nov; known answers tmp/opus_scratch/v17/KNOWN_ANSWERS_F2_by_opus.md, written before): B4b the policy's
+action self_play (the owner's 1A of 25 Nov): a schedule with the full target, taken by the guard; R5 and R6 rest on
+a report as a budget tool before F2 would have written it (the tool now refuses those plans with exit 2): the same
+plan with a valid choice, only inputs.plan_sha256 set to the bad plan's; plant35 the self_play line off (B4b).
 PLANTS: see PLANTS below (each must make the test fail).
 """
 import hashlib
@@ -101,6 +105,8 @@ PLANTS = {
     "plant33": ('    if a.kind != "fence":\n        if ev["inputs"]["pilot_sha256"] is None:\n',   # B9
                 '    if True:\n        if ev["inputs"]["pilot_sha256"] is None:\n'),
     "plant34": ('("state", "pilot") if w in given}', '("pilot", "state") if w in given}'),          # VB1
+    "plant35": ('    if act == "self_play":                          # F2: the owner\'s 1A, as many rows as fit before '
+                'the cutoff\n        return "schedule", None\n', ""),                                  # B4b (F2)
 }
 text = MC_SRC.read_bytes().decode("ascii")
 if PLANT:
@@ -412,6 +418,12 @@ def part_b():
               {"covered": False, "target_rows": 1600000000}), "schedule", decision="OWNER_CHOICE",
           scope={"highest_round": 9999, "target_rows": 1600000000}, cutoff_utc=T(L + 82800),
           dispatch_end_utc=T(L + 82200))
+    oc_self = {"name": "1A of 25 Nov: as many positions as fit into the day", "action": "self_play"}   # F2
+    rp, paths = budget("O_self", plan=dict(PLAN, owner_choice=oc_self), pilot=dict(PILOT, cohort_seconds=760))
+    fresh("B4b_O_self_play", rp, paths, "pilot_decision",
+          pub(rp, paths, "OWNER_CHOICE", R_O, 34400000, 1965600000, 82200, [], None), "schedule",
+          decision="OWNER_CHOICE", scope={"highest_round": 9999, "target_rows": 2000000000}, cutoff_utc=T(L + 82800),
+          dispatch_end_utc=T(L + 82200))
     rp, paths = budget("STOP", pilot=dict(PILOT, cohort_seconds=1520))
     fresh("B5_STOP", rp, paths, "pilot_decision",
           pub(rp, paths, "STOP", "r is under the floor: stop in the first hour so the machine can be given back; no "
@@ -474,6 +486,20 @@ WHY = {"R1": "inputs.plan_sha256", "R2": "not a budget decision", "R3": "c4_rows
        "VM6": "not the policy's match_queue"}
 
 
+def before_f2(name, bad, good):
+    """F2 (26 Nov): the budget tool refuses a plan whose owner_choice it does not know (exit 2), so the report a tool
+    before F2 would have written is made by the real tool from the same plan with a valid choice, and only its
+    inputs.plan_sha256 is set to the sha256 of the bad plan file (budget() writes both plans the same way).
+    (the hand-made report, the bad plan file, the good run's paths: its state and pilot are the report's)"""
+    rp, paths = budget(name + "_good", plan=dict(PLAN, owner_choice=good), pilot=dict(PILOT, cohort_seconds=760))
+    _, bad_paths = budget(name, plan=dict(PLAN, owner_choice=bad), pilot=dict(PILOT, cohort_seconds=760))
+    d = json.loads(rp.read_bytes())
+    d["inputs"]["plan_sha256"] = sha(bad_paths["plan"].read_bytes())
+    hand = WORK / f"{name}.before_f2.report.json"
+    hand.write_text(json.dumps(d), encoding="ascii")
+    return hand, bad_paths["plan"], paths
+
+
 def part_r():
     rp, paths = budget("M_r")
     _, p_stop = budget("O_stop_r", plan=dict(PLAN, owner_choice={"name": "s", "action": "stop"}))
@@ -490,11 +516,10 @@ def part_r():
         bad.write_text(json.dumps(d), encoding="ascii")
         refused(nm, bad, paths["plan"], "pilot_decision", files=sp(paths))
     oc_none = {"name": "uncovered", "reduced_target_rows": 1600000000, "action": "reduced_target"}
-    rp5, p5 = budget("O_unc_none", plan=dict(PLAN, owner_choice=oc_none), pilot=dict(PILOT, cohort_seconds=760))
-    refused("R5 an uncovered reduced target, no if_uncovered", rp5, p5["plan"], "pilot_decision", files=sp(p5))
-    rp6, p6 = budget("O_pause", plan=dict(PLAN, owner_choice={"name": "p", "action": "pause"}),
-                     pilot=dict(PILOT, cohort_seconds=760))
-    refused("R6 the policy's action pause", rp6, p6["plan"], "pilot_decision", files=sp(p6))
+    rp5, plan5, p5 = before_f2("O_unc_none", oc_none, dict(oc_none, if_uncovered="self_play"))
+    refused("R5 an uncovered reduced target, no if_uncovered", rp5, plan5, "pilot_decision", files=sp(p5))
+    rp6, plan6, p6 = before_f2("O_pause", {"name": "p", "action": "pause"}, {"name": "p", "action": "stop"})
+    refused("R6 the policy's action pause", rp6, plan6, "pilot_decision", files=sp(p6))
     rp7, p7 = budget("NP_r", pilot=None)
     refused("R7 kind pilot_decision on a report without a pilot", rp7, p7["plan"], "pilot_decision", files=sp(p7))
     rp8, p8 = budget("U_r", pilot=dict(PILOT, rounds_whole=0))

@@ -35,6 +35,10 @@ RestartMaxDelaySec=600
 RestartPreventExitStatus=2
 KillMode=process
 TimeoutStartSec=1200
+# The two file limits run/machine.py checks, set here so that no image's default is relied on (systemd 255 gives
+# a service 1024 open files): no core dumps; open files for every worker's pipes and files.
+LimitCORE=0
+LimitNOFILE=65536
 
 [Install]
 WantedBy=multi-user.target

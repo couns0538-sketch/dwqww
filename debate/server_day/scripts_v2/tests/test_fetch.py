@@ -19,6 +19,12 @@ Added 25 Nov (Fable's read FABLE-2511-READ-PKG10-FETCH, R1 and R2; known answers
 tmp/opus_scratch/fetch_fix/KNOWN_ANSWERS_fetch_fix_by_opus.md): F8b, the two known-hosts files in a folder named with
 TWO spaces; F22a, the real client's "Permission denied" for a local partial is not a refused login; F22b, the login
 form still is. Plants 16 to 18 take each repair back.
+FW1 (v17, Opus 26 Nov about 15:55; KNOWN ANSWERS written here before the run): case_pilot runs on a copy of SRV with a
+root PILOT.json.zz (a valid zlib stream) and PILOT.json.zz.x beside it. Its two checks: "FW1 a root PILOT.json.zz:
+exit 0; control 7 files (the 6 and PILOT.json.zz), offers 3, members 9, ignored 10 (the 9 and PILOT.json.zz.x)" and
+"FW1 wire/PILOT.json.zz is the server's bytes". The whole test on v17's fetch: exit 0, every check passes (2 more
+than before FW1). plant19 (ROOT_WIRE without PILOT, the fetch before FW1): exit 1, EXACTLY these two checks fail
+(the first with control 6 and ignored 11).
 """
 import datetime
 import hashlib
@@ -78,6 +84,7 @@ PLANTS = {   # the stand-ins of the known answers' last section, one rule remove
     "plant17": ("f'UserKnownHostsFile=\"{cfg[\"known_hosts\"]}\"',",
                 "f\"UserKnownHostsFile={cfg['known_hosts']}\","),                         # R2 taken back (pinned)
     "plant18": ("f'GlobalKnownHostsFile=\"{empty}\"',", "f\"GlobalKnownHostsFile={empty}\","),  # R2 (the empty)
+    "plant19": ('ROOT_WIRE = re.compile(r"(RUN|FENCE|PILOT|SCHEDULE', 'ROOT_WIRE = re.compile(r"(RUN|FENCE|SCHEDULE'),  # FW1
 }
 CP = WORK / "tree"
 for sub in ("home", "run", "workloads", "known", "tests"):
@@ -327,6 +334,26 @@ STATE = {}
 
 
 # ---- the cases ----------------------------------------------------------------------------------------------------
+def case_pilot():
+    """FW1 (v17): the root PILOT.json.zz (the packer's wire copy of the guard's PILOT.json) is a control file, fetched
+    to wire/PILOT.json.zz where home/state.py reads it; PILOT.json.zz.x beside it is ignored."""
+    srvp = WORK / "srv_pilot"
+    shutil.copytree(SRV, srvp, ignore=shutil.ignore_patterns("LOCK"))
+    data = zlib.compress(b'{"run_fingerprint":"' + FP["fp"].encode("ascii") + b'","schema":1}\n', 6)
+    (srvp / "PILOT.json.zz").write_bytes(data)
+    (srvp / "PILOT.json.zz.x").write_bytes(data)
+    h = WORK / "H_pilot"
+    rc, out, c, _ = fetch(h, srvp, FP["fp"])
+    stand = stand_in_wire(SRV)
+    ctl = sorted(n for n in stand if not n.startswith("out/")) + ["PILOT.json.zz"]
+    offers = sorted(n for n in stand if n.endswith(".offer.json.zz"))
+    mems = sorted(n for n in stand if n.startswith("out/") and n not in offers)
+    check("FW1 a root PILOT.json.zz: exit 0; control 7 files (the 6 and PILOT.json.zz), offers 3, members 9, ignored 10 "
+          "(the 9 and PILOT.json.zz.x)", (rc, c),
+          (0, want(cf=7, cb=sizes(srvp, ctl), of=3, ob=sizes(srvp, offers), mf=9, mb=sizes(srvp, mems), ignored=10)))
+    check("FW1 wire/PILOT.json.zz is the server's bytes", wire(h).get("PILOT.json.zz"), sha(data))
+
+
 def case_full():
     """F16 and F15: one pass over the real run, custody on it, then a second pass that fetches nothing."""
     h = WORK / "H"
@@ -771,7 +798,7 @@ def main() -> int:
         RESULTS.append(("server fixture crashed", False))
     if STATE["ok"]:
         for fn in (case_full, case_header, case_resume, case_idle, case_refused, case_incomplete, case_budget,
-                   case_confirm, case_fork, case_hostkey, case_lock, case_slow, case_real_sftp):
+                   case_confirm, case_fork, case_hostkey, case_lock, case_slow, case_real_sftp, case_pilot):
             safe(fn)
     bad = [n for n, ok in RESULTS if not ok]
     print(f"\n{len(RESULTS) - len(bad)} of {len(RESULTS)} checks pass ({time.time() - t0:.0f} s)"

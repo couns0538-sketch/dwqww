@@ -119,6 +119,35 @@ answers written before the code:
  K4, K18, K20b (changed with P2): while pieces are held back the slot's journal is without its ended line (a
      slot whose later pieces are still to come has not ended; with the line, P2 rightly stops); K4 puts the line
      back with its pieces
+v17 (Opus 2026-11-26; KNOWN_ANSWERS_v17_server_by_opus.md PK1 to PK7 and PK1b). Known answers written before the
+first run. The times file is out/PACKER_TIMES.jsonl; K40's root is the base of K44, its first run's out/w000 the
+reference of K45 and K47:
+ K40 the official converter, --once: exit 0 "offered 5 pieces as binpack and 1 as raw"; the file is ONE start line,
+     then one offered line per piece, p000000 to p000005, each canonical with exactly its keys; form the offer's,
+     games and raw_rows the piece seal's (1 game; 28, 76, 0, 112, 256, 221 rows), restart false, ms whole from 0;
+     the six ms sum to at most the run's wall time + 16 ms a line, the five binpack pieces' ms to more than 0.
+     Again, --once: exit 0 "offered 0 pieces as binpack and 0 as raw", the file grows by exactly one start line (PK4).
+ K41 the file a cut line of 9 bytes ({"t":"sta): exit 0 as K40; the 9 bytes stay, a line end follows, then the start
+     line and six offered lines (PK3).
+ K42 the packer in this process, every member() and times_line() call seen: exit 0, six offered lines, each handed
+     over only after its offer's wire copy was on disk (PK4).
+ K43 the packer in this process, a crash planted right after p000002.offer.json.zz is written: pieces 0 to 2
+     offered; then --once: exit 0 "offered 3 pieces as binpack and 0 as raw"; the file: start, offered 0 and 1,
+     start, offered 3, 4 and 5 (p000002 without a line; PK4).
+ K44 B1 on a copy of K40's root: p000000.offer.json.zz removed, NO converter, --once: exit 0 "offered 1 pieces as
+     binpack and 0 as raw"; the file is K40's, then one start line and p000000's line: restart true, form binpack,
+     1 game, 28 rows (PK2).
+ K45 the file planted with bytes that are no record and a canonical line naming p000000 offered: exit 0 as K40;
+     out/w000 byte for byte K40's first run's; the planted bytes stay, then the start line and six offered lines
+     (PK5).
+ K46 a: a canonical root PILOT.json: exit 0 as K40, PILOT.json.zz gives it back. b: PILOT.json not canonical
+     ({"a": 1} with a space), no --once, --poll 0.2, STOP_PACKER 1.5 s after the last offer: exit 0 as K40, no
+     PILOT.json.zz, packer.log names it exactly once (PK6).
+ K47 the file a folder: exit 0 as K40; out/w000 byte for byte K40's first run's; packer.log names the file that
+     cannot be appended exactly once; the folder still there and empty (PK7).
+ K48 a packer with --poll 0.5 offers all six; a second packer, --once: exit 3 naming the lock; before and after its
+     refusal the file is the first packer's start line and its six offered lines (PK1b); FENCE.json: the first ends,
+     exit 0 as K40.
 """
 import hashlib
 import json
@@ -976,6 +1005,226 @@ for tag in "abcde":
     rc, out, _ = run_packer(Kx, CONV, "--once")
     common(f"K26{tag}", rc, out, 0 if tag == "d" else 4, K26_TEXT[tag])
     check(f"K26{tag} out/w000 unchanged byte for byte", tree_bytes(d) == before, diff(tree_bytes(d), before))
+
+# ================================================================ K40 to K48: v17, the pilot's times (PK1 to PK7)
+TIMES_KEYS = sorted(["form", "games", "index", "ms", "raw_rows", "restart", "slot", "t"])
+SEALS = [json.loads((CLOSED / f"p{i:06d}.seal.json").read_bytes()) for i in range(6)]
+START = canon({"t": "start"})
+SIX = [("offered", i, False) for i in range(6)]
+
+
+def times_of(root) -> bytes:
+    f = root / "out" / "PACKER_TIMES.jsonl"
+    return f.read_bytes() if f.is_file() else b""
+
+
+def times_recs(data: bytes):
+    """Every whole line (a line end after it): its record when canonical, else None."""
+    out = []
+    for ln in data.split(b"\n")[:-1]:
+        try:
+            rec = json.loads(ln)
+        except ValueError:
+            rec = None
+        out.append(rec if rec is not None and ln + b"\n" == canon(rec) else None)
+    return out
+
+
+def shape(data: bytes):
+    """("start",) or ("offered", index, restart) per whole line with exactly its keys; "?" for any other line."""
+    out = []
+    for rec in times_recs(data):
+        if isinstance(rec, dict) and rec.get("t") == "start" and sorted(rec) == ["t"]:
+            out.append(("start",))
+        elif isinstance(rec, dict) and rec.get("t") == "offered" and sorted(rec) == TIMES_KEYS:
+            out.append(("offered", rec["index"], rec["restart"]))
+        else:
+            out.append("?")
+    return out
+
+
+def offered_recs(data: bytes):
+    return [r for r in times_recs(data) if isinstance(r, dict) and r.get("t") == "offered"]
+
+
+def offered_ok(rec, i, form, restart) -> bool:
+    """PK2's values for piece i of slot 0: the form its offer names, games and raw_rows the piece seal's."""
+    return (isinstance(rec, dict) and sorted(rec) == TIMES_KEYS and rec["t"] == "offered" and rec["slot"] == 0
+            and rec["index"] == i and rec["form"] == form and rec["games"] == SEALS[i]["games"]
+            and rec["raw_rows"] == SEALS[i]["rows"] and rec["restart"] is restart
+            and type(rec["ms"]) is int and rec["ms"] >= 0)
+
+
+class Crash(Exception):
+    pass
+
+
+def in_process(root, crash_after=None):
+    """The tree's packer run in THIS process on root (the official converter, --once), its member() and times_line()
+    calls seen: ("wire", name) once an offer's wire copy is written; ("line", index, its wire copy on disk?) when an
+    offered line is handed over. crash_after: the offer whose wire copy, once written, raises Crash (a crash between
+    the wire copy and anything after it). Returns (0, "crash" or an error text; the events)."""
+    import argparse
+    events, pk = [], None
+    try:
+        pk = P.Packer(argparse.Namespace(root=str(root), converter=str(CONV), once=True, poll=5.0,
+                                         convert_seconds=600.0, probe_every=600.0))
+        member0, line0 = pk.member, getattr(pk, "times_line", None)
+
+        def member(d, name, content, codec, wire=False):
+            r = member0(d, name, content, codec, wire=wire)
+            if wire and name.endswith(".offer.json"):
+                events.append(("wire", name))
+                if name == crash_after:
+                    raise Crash(name)
+            return r
+        pk.member = member
+        if line0 is not None:
+            def times_line(rec, start=False):
+                if rec.get("t") == "offered":
+                    zz = root / "out" / f"w{rec.get('slot', 0):03d}" / f"p{rec.get('index', 0):06d}.offer.json.zz"
+                    events.append(("line", rec.get("index"), zz.is_file()))
+                return line0(rec, start=start)
+            pk.times_line = times_line
+        rc = pk.run()
+    except Crash:
+        rc = "crash"
+    except Exception as e:  # noqa: BLE001
+        rc = f"{type(e).__name__}: {e}"
+    finally:
+        if pk is not None:
+            pk.lock.release()
+            pk.logf.close()
+    return rc, events
+
+
+K40 = K40_W000 = None
+if want("K40", "K44", "K45", "K47"):
+    K40 = copy("k40")
+    rc, out, secs = run_packer(K40, CONV, "--once")
+    common("K40", rc, out, 0, "offered 5 pieces as binpack and 1 as raw")
+    K40_W000 = tree_bytes(K40 / "out" / "w000")
+    data, fm = times_of(K40), forms(K40)
+    offs = offered_recs(data)
+    check("K40 PK1 to PK3: the times file is one start line, then one offered line per piece in the order offered "
+          "(p000000 to p000005), every line canonical with exactly its keys, nothing after the last line end",
+          shape(data) == [("start",)] + SIX and data.endswith(b"\n"), (shape(data), data[-120:]))
+    check("K40 PK2's values: form the offer's, games and raw_rows the piece seal's (1 game; 28, 76, 0, 112, 256, 221 "
+          "rows), restart false, ms a whole number from 0",
+          len(offs) == 6 and all(offered_ok(offs[i], i, fm[i], False) for i in range(6)), (offs, fm))
+    ms = [r.get("ms") for r in offs]
+    check("K40 PK2's ms: their sum at most the run's wall time + 16 ms a line (the steady clock's step), the five "
+          "binpack pieces' sum above 0 (each ran the converter)",
+          len(ms) == 6 and all(type(m) is int for m in ms) and sum(ms) <= 1000 * secs + 16 * 6
+          and sum(m for m, f in zip(ms, fm) if f == "binpack") > 0, (ms, round(secs, 3), fm))
+    rc, out, _ = run_packer(K40, CONV, "--once")
+    common("K40 again", rc, out, 0, "offered 0 pieces as binpack and 0 as raw")
+    check("K40 PK4: the second start appends exactly one start line (a piece offered before and seen again writes "
+          "none)", times_of(K40) == data + START, times_of(K40)[len(data):][:200])
+if want("K41"):
+    K41 = copy("k41")
+    (K41 / "out").mkdir()
+    cut = b'{"t":"sta'
+    (K41 / "out" / "PACKER_TIMES.jsonl").write_bytes(cut)
+    rc, out, _ = run_packer(K41, CONV, "--once")
+    common("K41", rc, out, 0, "offered 5 pieces as binpack and 1 as raw")
+    data = times_of(K41)
+    check("K41 PK3: a cut last line keeps its 9 bytes and gets a line end first; then the start line and six offered "
+          "lines", data.startswith(cut + b"\n" + START) and shape(data[len(cut) + 1:]) == [("start",)] + SIX,
+          data[:200])
+if want("K42"):
+    K42 = copy("k42")
+    rc, ev = in_process(K42)
+    lines = [e for e in ev if e[0] == "line"]
+    check("K42 PK4 (in this process): exit 0 and six offered lines, each handed over only after its offer's wire copy "
+          "was on disk", rc == 0 and [e[1] for e in lines] == list(range(6)) and all(e[2] for e in lines), (rc, ev))
+if want("K43"):
+    K43 = copy("k43")
+    rc, ev = in_process(K43, crash_after="p000002.offer.json")
+    check("K43 the crash came where planted: right after p000002.offer.json.zz was written (pieces 0 to 2 offered)",
+          rc == "crash" and offered(K43) == [0, 1, 2], (rc, offered(K43), ev))
+    rc, out, _ = run_packer(K43, CONV, "--once")
+    common("K43", rc, out, 0, "offered 3 pieces as binpack and 0 as raw")
+    check("K43 PK4: p000002 has no offered line and one more start line follows: start, offered 0 and 1, start, "
+          "offered 3, 4 and 5", shape(times_of(K43)) == [("start",), SIX[0], SIX[1], ("start",), SIX[3], SIX[4], SIX[5]],
+          shape(times_of(K43)))
+if want("K44") and K40 is not None:
+    K44 = WORK / "k44"
+    shutil.copytree(K40, K44)
+    base = times_of(K44)
+    (K44 / "out" / "w000" / "p000000.offer.json.zz").unlink()
+    rc, out, _ = run_packer(K44, NO_CONV, "--once")
+    common("K44", rc, out, 0, "offered 1 pieces as binpack and 0 as raw")
+    data = times_of(K44)
+    new = times_recs(data[len(base):]) if data.startswith(base) else []
+    check("K44 PK2 in B1 (the offer there without its wire copy, finished, not decided again): the file as before, "
+          "then one start line and p000000's line with restart true, form binpack, 1 game, 28 rows",
+          bool(base) and data.startswith(base) and shape(data[len(base):]) == [("start",), ("offered", 0, True)]
+          and offered_ok(new[1], 0, "binpack", True), (shape(data[len(base):]), new))
+if want("K45") and K40 is not None:
+    K45 = copy("k45")
+    (K45 / "out").mkdir()
+    planted = (b"\x00\xff{not json at all}\n" + b"9" * 300 + b"\n"
+               + canon({"t": "offered", "slot": 0, "index": 0, "form": "raw", "games": 9, "raw_rows": 9, "ms": 0,
+                        "restart": False}))
+    (K45 / "out" / "PACKER_TIMES.jsonl").write_bytes(planted)
+    rc, out, _ = run_packer(K45, CONV, "--once")
+    common("K45", rc, out, 0, "offered 5 pieces as binpack and 1 as raw")
+    check("K45 PK5: out/w000 byte for byte K40's first run's (the planted lines, one naming p000000 offered, changed "
+          "no offer)", tree_bytes(K45 / "out" / "w000") == K40_W000, diff(tree_bytes(K45 / "out" / "w000"), K40_W000))
+    data = times_of(K45)
+    check("K45 PK5: the planted bytes stay as they were, followed by the start line and six offered lines",
+          data.startswith(planted) and shape(data[len(planted):]) == [("start",)] + SIX,
+          shape(data[len(planted):]) if data.startswith(planted) else data[:200])
+if want("K46a"):
+    K46a = copy("k46a")
+    pilot = canon({"schema": 1, "run_fingerprint": FP, "why": "a test"})
+    put(K46a / "PILOT.json", pilot)
+    rc, out, _ = run_packer(K46a, CONV, "--once")
+    common("K46a", rc, out, 0, "offered 5 pieces as binpack and 1 as raw")
+    z = K46a / "PILOT.json.zz"
+    check("K46a PK6: a canonical root PILOT.json gets its wire copy PILOT.json.zz, which gives it back",
+          z.is_file() and unz(z.read_bytes()) == pilot)
+if want("K46b"):
+    K46b = copy("k46b")
+    put(K46b / "PILOT.json", b'{"a": 1}\n')
+    p = subprocess.Popen(packer_cmd(K46b, CONV, "--poll", "0.2"), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                         text=True)
+    wait_offers(K46b, p)
+    time.sleep(1.5)
+    put(K46b / "STOP_PACKER", b"")
+    rc, out = end_of(p)
+    common("K46b", rc, out, 0, "offered 5 pieces as binpack and 1 as raw")
+    check("K46b PK6: a PILOT.json that is not canonical gets no wire copy, and packer.log names it exactly once over "
+          "every pass (--poll 0.2 for 1.5 s and more)", not (K46b / "PILOT.json.zz").exists()
+          and logtext(K46b).count("PILOT.json is not a canonical record") == 1, logtext(K46b)[-400:])
+if want("K47") and K40 is not None:
+    K47 = copy("k47")
+    tf = K47 / "out" / "PACKER_TIMES.jsonl"
+    tf.mkdir(parents=True)
+    rc, out, _ = run_packer(K47, CONV, "--once")
+    common("K47", rc, out, 0, "offered 5 pieces as binpack and 1 as raw")
+    check("K47 PK7: out/w000 byte for byte K40's first run's (every offer as without the record)",
+          tree_bytes(K47 / "out" / "w000") == K40_W000, diff(tree_bytes(K47 / "out" / "w000"), K40_W000))
+    check("K47 PK7: packer.log names the times file that cannot be appended exactly once; the folder is still there "
+          "and empty", logtext(K47).count("PACKER_TIMES.jsonl cannot be appended") == 1 and tf.is_dir()
+          and not any(tf.iterdir()), logtext(K47)[-400:])
+if want("K48"):
+    K48 = copy("k48")
+    p = subprocess.Popen(packer_cmd(K48, CONV, "--poll", "0.5"), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                         text=True)
+    wait_offers(K48, p)
+    time.sleep(1)
+    before = times_of(K48)
+    rc2, out2, _ = run_packer(K48, CONV, "--once")
+    after = times_of(K48)
+    put(K48 / "FENCE.json", FENCE())
+    rc, out = end_of(p)
+    common("K48 the second packer", rc2, out2, 3, "lock")
+    check("K48 PK1b: the second packer, refused by the lock, appended nothing: before and after its refusal the times "
+          "file is the first packer's start line and its six offered lines",
+          shape(before) == [("start",)] + SIX and after == before, (shape(before), shape(after)))
+    common("K48", rc, out, 0, "offered 5 pieces as binpack and 1 as raw")
 
 bad = [n for n, ok in results if not ok]
 print(f"{len(results) - len(bad)} of {len(results)} checks pass" + (f"; FAILED: {bad}" if bad else ""))

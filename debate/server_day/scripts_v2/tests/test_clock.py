@@ -23,7 +23,21 @@ M   M1 the lines' form; M2 two looks: exit 0, the last line (n, the server's tim
 D   ADDENDUM 8 (M7d, Fable's F-CLOCK-1): D1 the same record three times inside 90 s: "clock: unchanged", ONE ok line,
     server_now = a control home's; D2 the same record 100 s after the line: exit 9 "does not write", the old line
     decides; D3 n + 1 inside the window: a new ok line; D4 n equal with utc_ms changed: exit 9.
+CL  v17 (26 Nov; CL1 to CL5 of tmp/opus_scratch/v17/KNOWN_ANSWERS_v17_server_by_opus.md, read by Fable 09:15): CL1 a
+    line of v16's form (no mono0) and a line with mono0 above mono are not the record; through the slow sender, every
+    line's mono0 is not above its get's start. CL2 reading()'s lag_s = mono_j - mono0_p of the LATEST earlier look of
+    this run with a smaller int n, the same impl and platform, mono0_p <= mono_j and C3's 120 s; refused without one
+    (none, n equal, another run, another impl, 121 s apart); an ok-false look counts. CL3 M2's pair planted as
+    Fable's B: lag_s exactly 80.000; end to end, lag_s is the journal's mono_2 - mono0_1 and the fake server's clock
+    lies in [server_now, server_now + lag_s]. CL4 reading()'s server_now is exact (20.3, not a float's) and equals
+    server_now() within 1e-6 s.
 PLANTS (each must make the test fail; in home/clock.py; the checks each fails, as known before the runs):
+plant20 the bound from the accepted line's own get (CL3, CL2 latest, CL2 mono0 above, CL3 end to end); plant21 n
+equal allowed (CL2 n equal); plant22 C3's 120 s off in the bound (CL2 121 s); plant23 mono0 read AFTER the get (CL1
+through the slow sender); plant24 mono0 above mono allowed (CL1 mono0 above); plant25 the EARLIEST earlier look
+(CL2 latest); plant26 another run's look allowed (CL2 another run); plant27 another impl allowed (CL2 another impl);
+plant28 mono0_p above mono_j allowed (CL2 mono0 above); plant29 n's int test off, a null n taken as 0 (CL2 a bound:
+the n-null look, Fable's remark b, 26 Nov); plant30 the platform test off (CL2 refused: another platform, the same).
 plant1 mono and wall read before the get (M1c, C10); plant2 M2c off (M2c, R2's negative, M7c's negative text);
 plant3 M2b off (M2b); plant4 n advanced not asked (M2 n unchanged, D2); plant5 M7c's 120 s off (M7c, M7c's negative);
 plant6 the older branch off (R2, R2's negative, D2); plant7 M7b off (M7b); plant8 M5 off (M5); plant9 M6 off (M6);
@@ -42,6 +56,7 @@ import sys
 import threading
 import time
 import traceback
+from decimal import Decimal
 from pathlib import Path
 
 if len(sys.argv) < 3:
@@ -69,8 +84,22 @@ shutil.copy2(SRC_TREE / "tests" / "fake_transport.py", TREE / "tests" / "fake_tr
 FAKE, CLOCK = TREE / "tests" / "fake_transport.py", TREE / "home" / "clock.py"
 PLANTS = {
     "plant1": [("        data = self.get()\n        rec, bad = None, None\n",
-                "        mono0, wall0 = time.monotonic(), time.time()\n        data = self.get()\n        rec, bad = None, None\n"),
-               ("        mono, wall = time.monotonic(), time.time()\n", "        mono, wall = mono0, wall0\n")],
+                "        mono_b, wall_b = time.monotonic(), time.time()\n        data = self.get()\n        rec, bad = None, None\n"),
+               ("        mono, wall = time.monotonic(), time.time()\n", "        mono, wall = mono_b, wall_b\n")],
+    "plant20": [("return now, exact(best[\"mono\"]) - exact(p[\"mono0\"]), best",
+                 "return now, exact(best[\"mono\"]) - exact(best[\"mono0\"]), best")],
+    "plant21": [("p[\"n\"] < best[\"n\"]", "p[\"n\"] <= best[\"n\"]")],
+    "plant22": [("                    and abs((best[\"wall\"] - best[\"mono\"]) - (p[\"wall\"] - p[\"mono\"])) <= STEADY_S):",
+                 "                    and True):")],
+    "plant23": [("        mono0 = time.monotonic()\n        data = self.get()\n",
+                 "        data = self.get()\n        mono0 = time.monotonic()\n")],
+    "plant24": [("and number(obj[\"mono0\"]) and obj[\"mono0\"] <= obj[\"mono\"]", "and number(obj[\"mono0\"])")],
+    "plant25": [("        for p in reversed(lines[:at]):", "        for p in lines[:at]:")],
+    "plant26": [("if (p[\"run\"] == fingerprint and type(p[\"n\"])", "if (True and type(p[\"n\"])")],
+    "plant27": [("p[\"impl\"] == best[\"impl\"]", "True")],
+    "plant28": [("p[\"mono0\"] <= best[\"mono\"]", "True")],
+    "plant29": [("type(p[\"n\"]) is int and p[\"n\"] < best[\"n\"]", "(p[\"n\"] or 0) < best[\"n\"]")],
+    "plant30": [("and p[\"platform\"] == best[\"platform\"]", "and True")],
     "plant2": [("        if abs(du - dm) > AGREE_S:\n", "        if False:\n")],
     "plant3": [("        if u2 <= u1:\n", "        if False:\n")],
     "plant4": [("        if n2 == n1:\n", "        if False:\n")],
@@ -111,7 +140,7 @@ RESULTS = []
 AHEAD = 25178                                           # the PC's clock ahead of the server's (measured 25 Nov)
 FP = hashlib.sha256(b"test_clock's run").hexdigest()
 IMPL = time.get_clock_info("monotonic").implementation
-KEYS12 = sorted(["t", "run", "look", "n", "utc_ms", "state", "mono", "wall", "impl", "platform", "ok", "why"])
+KEYS13 = sorted(["t", "run", "look", "n", "utc_ms", "state", "mono0", "mono", "wall", "impl", "platform", "ok", "why"])
 
 
 def check(name, got, want):
@@ -137,9 +166,11 @@ def T(s):
 S, M, WL = 1_800_000_000.0, 5000.0, 1_800_025_178.0     # a line: the server's time, the PC's steady and wall clocks
 
 
-def jline(n=1, utc_s=S, mono=M, wall=WL, ok=True, run=None, impl=None, plat=None, why=None, look=2, state="play"):
-    return W.canon({"impl": impl or IMPL, "look": look, "mono": mono, "n": n, "ok": ok, "platform": plat or sys.platform,
-                    "run": run or FP, "state": state, "t": "clock",
+def jline(n=1, utc_s=S, mono=M, wall=WL, ok=True, run=None, impl=None, plat=None, why=None, look=2, state="play",
+          mono0=None):
+    """A journal line as measure writes it (v17: mono0, by default 0.25 s before mono)."""
+    return W.canon({"impl": impl or IMPL, "look": look, "mono": mono, "mono0": mono - 0.25 if mono0 is None else mono0,
+                    "n": n, "ok": ok, "platform": plat or sys.platform, "run": run or FP, "state": state, "t": "clock",
                     "utc_ms": None if utc_s is None else int(round(utc_s * 1000)), "wall": wall, "why": why})
 
 
@@ -221,6 +252,74 @@ def part_h():
                 got.append(r.stdout + r.stderr)
     check(f"C7 (S3) a child's monotonic clock read right after its parent's is within 1 s and not smaller, for every "
           f"pair of {len(PYTHONS)} Python(s)", got, [True] * len(PYTHONS) ** 2)
+
+
+# ---- CL: v17's measured lag bound (reading, lag_s), in-process with planted journals ---------------------------
+NB = "no look before the accepted line saw an older record: no lag bound"
+
+
+def look1(n=5, mono0=1000.0, mono=1000.4, shift=0.0, **kw):
+    """The first look of a pair (ok false); its wall and steady clocks together with look2's, or shift s apart."""
+    return jline(n=n, ok=False, look=1, mono0=mono0, mono=mono, wall=WL - (1080.0 - mono) + shift,
+                 why=kw.pop("why", "the first of two looks (no clock line of this run is accepted now)"), **kw)
+
+
+def look2(n=6, mono0=1070.1, mono=1080.0, **kw):
+    return jline(n=n, look=2, mono0=mono0, mono=mono, wall=WL - (1080.0 - mono), **kw)
+
+
+def rd(h, m=1100.3):
+    """reading() at steady m, the wall clock together with look2's: (server_now, lag_s, n) or ('refused', text)."""
+    try:
+        now, lag, line = CK.reading(h, FP, mono=lambda: m, wall=lambda: WL + (m - 1080.0))
+        return now, lag, line["n"]
+    except CK.ClockRefused as e:
+        return ("refused", str(e))
+    except Exception as e:  # noqa: BLE001   a plant may make the helper crash: a FAIL of this check
+        return ("crashed", repr(e)[:150])
+
+
+def refused(r, text):
+    return (r[0] == "refused" and text in r[1]) if isinstance(r[0], str) else r
+
+
+def part_cl():
+    now = Decimal("1800000020.3")                       # S + (1100.3 - 1080.0), exactly
+    check("CL3 M2's pair as Fable's B (look 1 n 5 mono0 1000.000; look 2 n 6 mono 1080.000): lag_s exactly 80.000, "
+          "server_now exactly S + 20.3 at steady 1100.3, the accepted line n 6",
+          rd(jhome("cl3", look1(), look2())), (now, Decimal("80.000"), 6))
+    h = jhome("cl4", look1(), look2())
+    try:
+        f = CK.server_now(h, FP, mono=lambda: 1100.3, wall=lambda: WL + 20.3)
+        got = (abs(float(rd(h)[0]) - f) < 1e-6, CK.lag_s(h, FP, mono=lambda: 1100.3, wall=lambda: WL + 20.3))
+    except Exception as e:  # noqa: BLE001
+        got = repr(e)[:150]
+    check("CL4 reading()'s server_now equals server_now() within 1e-6 s (server_now unchanged); lag_s() is reading()'s "
+          "lag", got, (True, Decimal("80.000")))
+    cases = {"no earlier look": (look2(),), "n equal": (look1(n=6), look2()),
+             "another run": (look1(run="0" * 64), look2()), "another impl": (look1(impl="another_clock()"), look2()),
+             "another platform": (look1(plat="another_os"), look2()),
+             "121 s apart": (look1(shift=121.0), look2())}
+    check("CL2 refused, no lag bound: no earlier look; an earlier look with n equal, of another run, of another impl, "
+          "of another platform, or with its clocks 121 s apart from the accepted line's",
+          {k: refused(rd(jhome(f"cl2_{i}", *ls)), NB) for i, (k, ls) in enumerate(cases.items())},
+          {k: True for k in cases})
+    got = [rd(jhome("cl2_119", look1(shift=119.0), look2())),
+           rd(jhome("cl2_latest", look1(n=4, mono0=900.0, mono=900.3), look1(), look2())),
+           rd(jhome("cl2_above", look1(n=4), look1(n=5, mono0=1090.0, mono=1095.0), look2())),
+           rd(jhome("cl2_okfalse", jline(n=5, mono0=990.0, mono=991.0, wall=WL - 89.0),
+                    look1(n=5, why="the same record as the accepted line (n 5): the line stays"), look2())),
+           rd(jhome("cl2_nnull", look1(), look1(n=None, utc_s=None, state=None, mono0=1050.0, mono=1050.5,
+                                                 why="no CLOCK.json at the root"), look2()))]
+    check("CL2 a bound: clocks 119 s apart; the LATEST of two earlier looks (80.000, not 180.000); an earlier look with "
+          "mono0 above the accepted line's mono passed over; an ok-false look counts (80.000, not 90.000); a look with "
+          "n null between the pair is never p (80.000, not 30.000)",
+          got, [(now, Decimal("80.000"), 6)] * 5)
+    v16 = W.canon({k: v for k, v in json.loads(look2()).items() if k != "mono0"})
+    check("CL1 a line of v16's form (no mono0) and a line with mono0 above its mono are not the record: refused, 'no "
+          "clock line of this run'",
+          [refused(rd(jhome("cl1_v16", look1(), v16)), "no clock line of this run"),
+           refused(rd(jhome("cl1_above", look1(), look2(mono0=1080.5))), "no clock line of this run")], [True, True])
 
 
 # ---- M: measure through the fake transport; this test is the fake guard ---------------------------------------
@@ -324,10 +423,10 @@ def part_m():
           (rc, oks(home), L[0]["why"][:22] if L else None, last.startswith("clock: ok n 6, the server's time "),
            off is not None and -25184 < float(off[1]) < -25177),
           (0, [(1, False, 5), (2, True, 6)], "the first of two looks", True, True))
-    check("M1 every line canonical with its twelve keys, t clock, this run, this process's impl and platform; one line a "
-          "look, each ending in its line end",
-          (all(sorted(x) == KEYS12 and x["t"] == "clock" and x["run"] == FP and x["impl"] == IMPL
-               and x["platform"] == sys.platform for x in L),
+    check("M1 every line canonical with its thirteen keys (v17: mono0, not above mono), t clock, this run, this "
+          "process's impl and platform; one line a look, each ending in its line end",
+          (all(sorted(x) == KEYS13 and x["t"] == "clock" and x["run"] == FP and x["impl"] == IMPL
+               and x["platform"] == sys.platform and x["mono0"] <= x["mono"] for x in L),
            all(W.canon(json.loads(x)) == x + b"\n" for x in raw.split(b"\n")[:-1]), raw.endswith(b"\n"), len(L)),
           (True, True, True, 2))
     put_clock(root, rec(7, srv()))
@@ -444,6 +543,9 @@ FAKE, AHEAD, SIDE, RACE = {fake!r}, {ahead!r}, {side!r}, {race!r}
 op, root, rel = sys.argv[1], sys.argv[2], sys.argv[3]
 p = os.path.join(root, "CLOCK.json")
 first = not os.path.exists(SIDE)
+if op == "get" and rel == "CLOCK.json":
+    with open(SIDE + ".start", "a") as f:
+        f.write(repr(time.monotonic()) + "\\n")
 if op == "get" and rel == "CLOCK.json" and (not RACE or first):
     if not RACE:
         time.sleep(5)
@@ -479,6 +581,18 @@ def part_slow():
           (rc, len(gets), [x["mono"] >= g for x, g in zip(L, gets)]), (0, 2, [True, True]))
     check("C10 right after the measure, server_now is not ahead of the fake server's clock and not more than 6 s behind",
           sn is not None and fake_now - 6 <= sn <= fake_now, True)
+    sp = Path(str(side) + ".start")
+    starts = [float(x) for x in sp.read_text(encoding="ascii").split()] if sp.exists() else []
+    check("CL1 through the slow sender: every line's mono0 is not above its get's start (read in the sender)",
+          (len(starts), [x.get("mono0", math.inf) <= s for x, s in zip(L, starts)]), (2, [True, True]))
+    try:
+        now, lag, _line = CK.reading(home, FP)
+        e2e = (lag == CK.exact(L[1]["mono"]) - CK.exact(L[0]["mono0"]),
+               now <= Decimal(repr(srv())) <= now + lag + Decimal("0.5"))
+    except Exception as e:  # noqa: BLE001
+        e2e = repr(e)[:150]
+    check("CL3 end to end (M1c's measure): lag_s is the journal's mono_2 - mono0_1 exactly, and the fake server's clock "
+          "lies in [server_now, server_now + lag_s] (0.5 s for the two reads)", e2e, (True, True))
     side2 = WORK / "side_race.txt"
     sender2 = WORK / "race_sender.py"
     sender2.write_text(SLOW.format(fake=str(FAKE), ahead=float(AHEAD), side=str(side2), race=True), encoding="ascii")
@@ -605,8 +719,8 @@ def part_d():
               f"root was replaced)", [True, False], u))
 
 
-for nm, fn in (("H", part_h), ("M", part_m), ("M7", part_m7), ("SLOW", part_slow), ("S", part_s), ("D", part_d),
-               ("E", part_e)):
+for nm, fn in (("H", part_h), ("CL", part_cl), ("M", part_m), ("M7", part_m7), ("SLOW", part_slow), ("S", part_s),
+               ("D", part_d), ("E", part_e)):
     safe(nm, fn)
 leftover = [str(p) for p in TREE.rglob("__pycache__")]
 check("no __pycache__ in the copied tree", leftover, [])

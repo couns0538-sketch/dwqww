@@ -5,7 +5,8 @@ Exit 0 = all pass, 1 = a check failed.
 
 BASE, every case unless it says otherwise:
   plan: target 2,000,000,000; lease end 90,000 s; closing 1,800 s; game margin 300 s; K = 1; floor 0.5; match
-        margin 1.10; owner choice "reduced target" with 1,546,400,000; queue a 2000, b 2000, big 100000, c 2000.
+        margin 1.10; owner choice "reduced target" with 1,546,400,000 (F2: action reduced_target, if_uncovered
+        stop); queue a 2000, b 2000, big 100000, c 2000.
         D = min(82,800, 90,000 - max(3,600, 1,800)) = 82,800.
   state: now 7,200 s, C4 34,400,000 -> left 75,600 s (the plan's "two hours gone leaves 21, not 22"), deficit
         1,965,600,000, n = 26,000 exactly; floor 13,000; matches from 28,600.
@@ -122,6 +123,12 @@ Version 5 (the seats' nine points of 23 November; every case below fails on budg
      SELF_PLAY_AND_MATCHES; P2 the raw file overwritten, decide() again: UNQUALIFIED, "stale" (before: unchanged);
      P3 the raw file restored but its opening refused (PermissionError): UNQUALIFIED, "unreadable" (before: the
      error escaped decide()).
+F2 (Opus 26 Nov; known answers tmp/opus_scratch/v17/KNOWN_ANSWERS_F2_by_opus.md, written before the code): the plan's
+  owner_choice.action. B5, B10, B14 carry action and if_uncovered and check their OWN error words. On the BASE pilot,
+  exit 2 naming the fault: OC1 no action, OC2 "pause", OC6 a list (owner_choice.action); OC3 reduced_target without
+  if_uncovered, OC4 without reduced_target_rows (needs reduced_target_rows and if_uncovered); OC5 if_uncovered
+  "hope" (owner_choice.if_uncovered). Accepted, on the O pilot: OC7 action self_play (the owner's 1A): OWNER_CHOICE,
+  exit 3, no reduced, forecast 1,546,400,000; OC8 action stop alone: OWNER_CHOICE, no reduced.
 """
 import copy
 import hashlib
@@ -136,7 +143,8 @@ assert not os.path.exists(out), out
 os.makedirs(out)
 PLAN = {"target_rows": 2000000000, "lease_end_s": 90000, "closing_s": 1800, "game_margin_s": 300,
         "pilot_rounds_declared": 1, "floor_fraction": 0.5, "match_margin": 1.10,
-        "owner_choice": {"name": "reduced target", "reduced_target_rows": 1546400000},
+        "owner_choice": {"name": "reduced target", "reduced_target_rows": 1546400000, "action": "reduced_target",
+                         "if_uncovered": "stop"},
         "match_queue": [["a", 2000], ["b", 2000], ["big", 100000], ["c", 2000]]}
 STATE = {"now_s": 7200, "c4_rows": 34400000}
 PILOT = {"rounds_whole": 1, "queues_empty_at_start": True, "carry_in_rows": 0, "cohort_games": 125000,
@@ -324,20 +332,24 @@ case("Y", 0, {"outcome": "SELF_PLAY_AND_MATCHES", "matches": M_MATCHES, "matches
               "forecast_c4_at_D_scenario": 2196569600,
               "other_counts": {"c1_raw_rows": 60000000, "c2_raw_rows": 50000000}},
      state=with_(STATE, c1_raw_rows=60000000, c2_raw_rows=50000000))
+OWN = {"B5": "between 0 and target_rows", "B10": "owner_choice with a name", "B14": "whole number"}   # F2
 for name, kw in (("B1", {"plan": with_(PLAN, owner_choice=NO)}),
                  ("B2", {"plan": with_(PLAN, match_queue=[["a", 2001]])}),
                  ("B3", {"plan": with_(PLAN, floor_fraction=1.5)}),
                  ("B4", {"plan": with_(PLAN, match_margin=0.9)}),
-                 ("B5", {"plan": with_(PLAN, owner_choice={"name": "x", "reduced_target_rows": 2000000000})}),
+                 ("B5", {"plan": with_(PLAN, owner_choice={"name": "x", "reduced_target_rows": 2000000000,
+                                                           "action": "reduced_target", "if_uncovered": "stop"})}),
                  ("B6", {"state": with_(STATE, c4_rows=NO)}),
                  ("B7", {"pilot": with_(PILOT, c3_games_per_s=NO)}),
                  ("B8", {"pilot": with_(PILOT, cohort_c4_rows=17000000)}),
                  ("B9", {"pilot": with_(PILOT, cohort_seconds="500")}),
-                 ("B10", {"plan": with_(PLAN, owner_choice={"reduced_target_rows": 1546400000})}),
+                 ("B10", {"plan": with_(PLAN, owner_choice={"reduced_target_rows": 1546400000,
+                                                            "action": "reduced_target", "if_uncovered": "stop"})}),
                  ("B11", {"state": with_(STATE, c4_rows=Decimal("1999999999.5"))}),
                  ("B12", {"plan": with_(PLAN, target_rows=Decimal("2000000000.5"))}),
                  ("B13", {"state": with_(STATE, c4_rows=True)}),
-                 ("B14", {"plan": with_(PLAN, owner_choice={"name": "x", "reduced_target_rows": Decimal("1546400000.5")})}),
+                 ("B14", {"plan": with_(PLAN, owner_choice={"name": "x", "reduced_target_rows": Decimal("1546400000.5"),
+                                                            "action": "reduced_target", "if_uncovered": "stop"})}),
                  ("B15", {"pilot": with_(PILOT, cohort_games=Decimal("125000.5"))}),
                  ("B16", {"pilot": with_(PILOT, carry_in_rows=Decimal("0.5"))}),
                  ("B17", {"plan": with_(PLAN, target_rows=Decimal("2000000000.0"))}),
@@ -345,6 +357,29 @@ for name, kw in (("B1", {"plan": with_(PLAN, owner_choice=NO)}),
     rc, res = run(name, **kw)
     check(f"{name} exit", rc, 2)
     check(f"{name} names its error", "error" in res, True)
+    if name in OWN:                             # F2: each stays exit 2 for ITS OWN fault, not for the action
+        check(f"{name} its own error ({OWN[name]})", OWN[name] in res.get("error", ""), True)
+
+# ------------------------------------------------------------------------------- F2 (Opus 26 Nov): the owner's action
+# Known answers: tmp/opus_scratch/v17/KNOWN_ANSWERS_F2_by_opus.md, written before the code.
+for name, choice, words in (
+        ("OC1", {"name": "reduced target", "reduced_target_rows": 1546400000}, "owner_choice.action"),
+        ("OC2", {"name": "p", "action": "pause"}, "owner_choice.action"),
+        ("OC3", {"name": "r", "action": "reduced_target", "reduced_target_rows": 1546400000},
+         "needs reduced_target_rows and if_uncovered"),
+        ("OC4", {"name": "r", "action": "reduced_target", "if_uncovered": "stop"},
+         "needs reduced_target_rows and if_uncovered"),
+        ("OC5", {"name": "s", "action": "self_play", "if_uncovered": "hope"}, "owner_choice.if_uncovered"),
+        ("OC6", {"name": "s", "action": ["stop"]}, "owner_choice.action")):
+    rc, res = run(name, plan=with_(PLAN, owner_choice=choice))
+    check(f"{name} exit", rc, 2)
+    check(f"{name} its own error ({words})", words in res.get("error", ""), True)
+ONE_A = "1A of 25 Nov: as many positions as fit into the day"
+case("OC7", 3, {"outcome": "OWNER_CHOICE", "owner_choice": ONE_A, "reduced": None,
+                "forecast_c4_at_D_scenario": 1546400000},
+     plan=with_(PLAN, owner_choice={"name": ONE_A, "action": "self_play"}), pilot=with_(PILOT, cohort_seconds=760))
+case("OC8", 3, {"outcome": "OWNER_CHOICE", "owner_choice": "s", "reduced": None},
+     plan=with_(PLAN, owner_choice={"name": "s", "action": "stop"}), pilot=with_(PILOT, cohort_seconds=760))
 
 # ------------------------------------------------------------------------------- version 5: the seats' nine points
 MET, ONE = 2000000000, 1999999999

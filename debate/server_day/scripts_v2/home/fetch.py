@@ -64,7 +64,10 @@ from worker import SlotLock, Stop, canon, file_sha256, fsync_dir, parse_canon, s
 HEX64 = re.compile(r"[0-9a-f]{64}")
 KEY = re.compile(r"w([0-9]{3})/p([0-9]{6})")
 OFFER = re.compile(r"p([0-9]{6})\.offer\.json\.zz")
-ROOT_WIRE = re.compile(r"(RUN|FENCE|SCHEDULE\.[1-9][0-9]{0,2}|RESUME\.[1-9][0-9]{0,2})\.json\.zz|TERMINAL\.jsonl\.zz")
+# v17 FW1 (Opus 26 Nov): PILOT.json.zz, the packer's wire copy of the guard's record (G12), is a root control file;
+# home/state.py reads it from wire/PILOT.json.zz
+ROOT_WIRE = re.compile(r"(RUN|FENCE|PILOT|SCHEDULE\.[1-9][0-9]{0,2}|RESUME\.[1-9][0-9]{0,2})\.json\.zz"
+                       r"|TERMINAL\.jsonl\.zz")
 RANGE_WIRE = re.compile(r"r[0-9]{4}\.w[0-9]{3}\.seal\.json\.zz")
 MEMBER_WIRE = re.compile(r"p[0-9]{6}\.(seal\.json\.zz|binpack|meta\.xz|raw\.zz)")
 LISTED = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,99}")
