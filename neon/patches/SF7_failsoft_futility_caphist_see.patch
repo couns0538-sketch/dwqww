@@ -1,0 +1,20 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2285,6 +2285,8 @@
+                     (!tune::MateAlphaGuard || !is_mate_score(alpha)) &&
+ #endif
+                     ss->static_eval + tune::FutilityBase + futility_improving + tune::FutilityMultiplier * lmr_depth <= alpha) {
++                    const int futility_val = ss->static_eval + tune::FutilityBase + futility_improving + tune::FutilityMultiplier * lmr_depth;
++                    if (best_score < futility_val && !is_mate_score(futility_val)) best_score = futility_val;
+                     trace_case();
+                     quiet_fail = true;
+                     skip_quiets = true;
+@@ -2314,7 +2316,7 @@
+                     trace_case();
+                     continue;
+                 }
+-                const int see_threshold = -tune::SeeNoisyMultiplier * depth;
++                const int see_threshold = -tune::SeeNoisyMultiplier * depth - (capture ? std::clamp(history / 32, -200, 200) : 0);
+                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+                     !board.see_ge(move, see_threshold)) {
+                     trace_case();

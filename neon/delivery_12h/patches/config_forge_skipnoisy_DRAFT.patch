@@ -1,0 +1,28 @@
+# DRAFT ONLY — DO NOT APPLY UNTIL OPUS LINE-BY-LINE REVIEW + FABLE SECOND-READ + 07:58 SEED-2 PLACEMENT RULE.
+# Placement rule for this flag change (declared 2026-11-28 07:58 PC in OPUS-2811-R1-H1-VERIFIED):
+#   Decided by Seed-2 R1-skip vs R1-keep 250k SPRT [0, 10] ONLY (H1 accepted, or 3,000g cap with
+#   positive point estimate). The separate 6+0.06 test vs r0067 belongs strictly to best-net placement;
+#   the two decisions do not mix and neither rule changes after a result.
+# Exact 1-line removal of `--keep-noisy` from `[train] train_cmd` in C:\nnue-lab\pipeline\config.forge.toml.
+#
+# IMPORTANT WINDOW & METADATA NOTES (documented here; NOT changed unilaterally):
+# 1. Window size (`max_window_positions = 388000000`, line 414):
+#    `pipeline/run.py:training_window()` counts pre-skip-noisy `filter.out.kept` (~15.16M/round).
+#    At `388,000,000`, it selects 25 rounds (`r0178..r0202`, `378,856,831` filter-kept rows), which
+#    yields `281,241,466` (~281M-284M) post-skip-noisy training positions (`74.234%` of filter-kept;
+#    `65,689,862` noisy rows dropped). Kept at `388000000` (the exact tested R1 setup).
+# 2. Legacy key `keep_noisy = true` (line 433):
+#    `pipeline/forge_train_v3.py` ignores `FORGE_KEEP_NOISY`, so `train_cmd` line 357 alone controls
+#    skip-noisy vs keep-noisy training. At placement time Opus will also set `keep_noisy = false`
+#    so `pipeline/run.py:627-632` does not label skip-noisy rounds `keep_noisy` in state/REPORT.md.
+--- a/pipeline/config.forge.toml
++++ b/pipeline/config.forge.toml
+@@ -354,7 +354,7 @@
+ # computed once before the training instead of for every batch. The same numbers (checked: losses equal to the
+ # 4th digit, which is what two runs of the old way differ by; engine-against-trainer check PASS), 25 % faster.
+ # 2026-11-20 15:13 (Fable's unplace_td.py): the TD-label trial (PLAN-2011-TD-LABELS) was switched off here.
+-train_cmd  = '"{python}" C:/nnue-lab/pipeline/forge_train_v3.py train --datasets {datasets} --val "{val}" --out-model "{model}" --hce-exe C:/nnue-lab/forge/build/hce_dump.exe --epochs {epochs} --lr {lr} --batch-size {batch_size} --keep-noisy --lr-cycles auto --w1-decay 0.3 --mix 0.75 --distill-net C:/nnue-lab/runs/forge/teachers/b_full.pt --distill-weight 0.2 --teacher-once --hidden 768'
++train_cmd  = '"{python}" C:/nnue-lab/pipeline/forge_train_v3.py train --datasets {datasets} --val "{val}" --out-model "{model}" --hce-exe C:/nnue-lab/forge/build/hce_dump.exe --epochs {epochs} --lr {lr} --batch-size {batch_size} --lr-cycles auto --w1-decay 0.3 --mix 0.75 --distill-net C:/nnue-lab/runs/forge/teachers/b_full.pt --distill-weight 0.2 --teacher-once --hidden 768'
+ batch_size = 8192                # {batch_size} above
+ export_cmd = '"{python}" C:/nnue-lab/pipeline/forge_train_v3.py export --model "{model}" --net "{net}"'
+ auto_epochs = false

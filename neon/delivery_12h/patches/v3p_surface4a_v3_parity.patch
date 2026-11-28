@@ -1,0 +1,14 @@
+--- a/pipeline/tools/v3_parity.py
++++ b/pipeline/tools/v3_parity.py
+@@ -13,7 +13,10 @@
+ 
+ sys.path.insert(0, "C:/nnue-lab/pipeline")
+ import forge_parse  # noqa: E402
+-import forge_v3  # noqa: E402
++try:
++    import forge_v3p as forge_v3  # noqa: E402  # supports both legacy FORGENN3 and FORGENN3-P
++except ImportError:
++    import forge_v3  # noqa: E402
+ 
+ 
+ def main() -> int:

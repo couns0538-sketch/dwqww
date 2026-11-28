@@ -1,0 +1,342 @@
+FINDINGS: WHERE FORGE LACKS AGAINST RUBICHESS, JUDGED BY STOCKFISH 19 (combined, Opus and Neon)
+
+STATUS: FINAL for the SF19 study (27 Nov 2026). Stockfish 19 judged all 100 chunks (DONE.txt: POOL PASS, 13:39 PC).
+The discovery numbers at 100 chunks were written here at 13:58 PC; the ONE held-out run followed at 14:03:36 PC
+(HELDOUT_RUN_DONE.txt) under HELDOUT_DECLARATION.txt (sha256 fed4bbd1ef46...). The verdicts and the final numbers
+are the two blocks below. The numbered sections further down describe each finding with the numbers of the wave
+named in it. Neon's own held-out run (H3 to H5, its programs) and its c100 files: neon/NEON_FINAL_100CHUNKS_FINDINGS.md.
+
+HELD-OUT VERDICTS (one run, 14:03:36 PC; 1,220 held-out games from 610 start positions; the declared rules)
+- H1, Forge's search is optimistic: Forge +0.438, RubiChess -0.101, difference +0.539 (declared: >= +0.240):
+  CONFIRMED.
+- H2, Forge's net rates Forge's side higher the longer the game runs: ply 81+ minus plies 1-4 = +0.829
+  (declared: >= +0.366): CONFIRMED.
+- H2b, at the start positions the net is less extreme than SF19 for the side to move: -0.1329, 95 %
+  [-0.1718, -0.0939] (declared: interval below 0): CONFIRMED. Read it as SCALE, not caution: the UHO book has no
+  balanced start positions (measurement trap 3 of 27 Nov).
+- H3, Forge picks moves its own net overrates: +0.01254, 95 % [-0.01479, +0.03988]: CONSISTENT only (the interval
+  holds 0). Neon's own held-out run: +0.01272 [-0.01462, +0.04006], CONSISTENT. Discovery: +0.03014
+  [+0.02418, +0.03611].
+- H4, the net undervalues RubiChess's bishop pair: B +0.02395, 95 % [+0.00856, +0.03934]: CONFIRMED (Neon the same).
+- H5, the net overrates how bad a broken king cover is, for both sides: RubiChess's +0.02708 [+0.01738, +0.03678],
+  Forge's -0.01395 [-0.02487, -0.00303]: CONFIRMED on both sides (Neon the same; its queens_off control +0.00401,
+  z +0.71, is null).
+Source: NUMBERS_AT_100_WITH_HELDOUT.txt (findings_numbers.py over the held-out outputs, whose sha256 stand in
+tmp/opus_scratch/sf19_m4/heldout_once_run.log).
+
+DISCOVERY NUMBERS AT 100 CHUNKS (copied from NUMBERS_AT_100.txt, written 13:58:12 PC, BEFORE the one held-out run;
+the sections further down still carry the numbers of earlier waves until they are rewritten):
+  SF19/M4 headline numbers, my outputs at 100 chunks (findings_numbers.py, read only)
+  HELDOUT_DECLARATION.txt: sha256 as declared
+  
+  1. LEDGER, all games, 100 chunks [ledger_latest.json e5d2d31ba11c, made by the program with sha256 814247299f3f]; counted by both where compare_ledger.py said ALL FIELDS AGREE on the same chunks
+     Forge: moves 726708, wdl_blunder 14528 = 20.0 per 1,000 moves, Stockfish's first choice 55.9 %
+     RubiChess: moves 729369, wdl_blunder 9234 = 12.7 per 1,000 moves, Stockfish's first choice 62.4 %
+  
+  2. H1 SEARCH OPTIMISM: Forge's mean gap (own search score - SF19, |s0| <= 2.5) minus RubiChess's
+     discovery [eng_scale_100chunks_discovery.txt e68a4995fb4f, made by eng_scale.py 004635903f0a]: Forge +0.397 (n 407763, line +0.390 + 0.939 s0), RubiChess -0.082 (n 405340, line -0.060 + 0.837 s0); difference +0.479
+     heldout: no output yet (heldout_once.sh, once, at 100 chunks)
+  
+  3. H2 STATIC BIAS GROWS: r0067 - SF19 in Forge's view (|sf| <= 2.5), band ply_81+ minus band ply_01_04;
+     H2b: ply 0 (start positions), r0067 - SF19 for the side to move
+     discovery [static_replicate_100_discovery.txt 8f2e1eb3210c, made by static_replicate.py ca3c2527096b]:
+       bands: ply_00_book +0.000 (n 8780), ply_01_04 +0.051 (n 35078), ply_05_10 +0.164 (n 52214), ply_11_20 +0.326 (n 83655), ply_21_40 +0.513 (n 143405), ply_41_80 +0.650 (n 196562), ply_81+ +0.756 (n 296944)
+       H2 difference +0.705
+       H2b ply 0: -0.1386, 95 % [-0.1537, -0.1235] over 4383 start positions
+     heldout: no output yet (heldout_once.sh, once, at 100 chunks)
+  
+  4. THE NET'S ERRORS BY OUTPUT BUCKET (discovery, quiet positions) [recount_bucket_map_100.txt ad44a0c4107f, made by recount_bucket_map.py 5eaf208c6dcb]
+     chunks 100 (first 100 in sorted order); games used 8780, held out 1220; quiet rows 951818
+     bucket        N   MAE pawns   cal WDL MSE   res Forge (WDL)
+     ob0     102786      1.7306       0.02125          +0.07899
+     ob1     178847      1.5539       0.02448          +0.08833
+     ob2     157828      1.5842       0.03239          +0.09449
+     ob3     119008      1.8211       0.04647          +0.12078
+     ob4     106156      1.6650       0.06075          +0.14578
+     ob5     102958      1.2364       0.06469          +0.14660
+     ob6     111379      0.7952       0.05650          +0.12394
+     ob7      72856      0.4714       0.03756          +0.06387
+  
+  5. H3 TO H5 BY OPUS'S RECOUNTS (Neon's own JSON is judged by the same rules beside it)
+     H3: recount_selection.py, cut all_le25 (the declared +0.022, z 2.6 at 20 chunks is this cut).
+     H4/H5: recount_stratified.py, B = the joint fixed-effects coefficient (the declared 2 and 2.4 points are B's
+     values at 20 chunks); the held-out run fits alpha on the held-out games (the declared form; the discovery-
+     alpha variant is in recount_stratified_100_heldout_discovery_alpha.txt). H5 overall: CONFIRMED only if both sides are
+     CONFIRMED, NOT CONFIRMED if either side is (Opus's reading of 'both sides must be in the declared direction').
+     discovery [recount_selection_100_discovery.txt dded808973bd, made by recount_selection.py 8057140c7216]: H3 +0.03014, SE 0.00304, 95 % [+0.02418, +0.03611]
+     discovery [recount_stratified_100_discovery.txt 1dfd1b63c5bc, made by recount_stratified.py 53ec3dcdefbe]: rubi_bishop_pair B +0.01937, SE 0.00325, 95 % [+0.01300, +0.02574] (declared sign +)
+     discovery [recount_stratified_100_discovery.txt 1dfd1b63c5bc, made by recount_stratified.py 53ec3dcdefbe]: rubi_shield_broken_2p B +0.02993, SE 0.00239, 95 % [+0.02525, +0.03461] (declared sign +)
+     discovery [recount_stratified_100_discovery.txt 1dfd1b63c5bc, made by recount_stratified.py 53ec3dcdefbe]: forge_shield_broken_2p B -0.02125, SE 0.00214, 95 % [-0.02544, -0.01706] (declared sign -)
+     heldout: no recount_selection output yet
+     heldout: no recount_stratified output yet
+
+HOW TO READ THE STATUS WORDS
+- "both": counted by Opus and by Neon with different programs, and the numbers agree.
+- "Neon only" / "Opus only": one program, not counted again.
+- Every finding below DESCRIBES Forge's play and its net. None is an Elo number: only games decide strength.
+
+THE STUDY (README.txt has the declarations and who ran what)
+- M4: 10,000 games, Forge against RubiChess, 6 s + 0.06 s a move; Forge W-L-D 761-5166-4073, -164.3 Elo (95 % range
+  -168.3 to -160.3; PLAN.md's M4 block, checked digit for digit against RUBICHESS_RESULTS.txt by Neon, KA-R1; the
+  point value re-derived from W-L-D by Opus on 27 Nov: score 0.27975, -164.29).
+- Judge: Stockfish 19 at 400,000 nodes on every position (sf19_supervisor.py, 100 chunks of 100 games).
+- Discovery = the games whose start position is NOT held out (7 in 8). Held-out = 1 start position in 8 (A16 rule),
+  tested ONCE at 100 chunks (tmp/opus_scratch/sf19_m4/HELDOUT_DECLARATION.txt, sha256 fed4bbd1ef46..., and its
+  ERRATUM). H1 to H5 below are the declared hypotheses.
+- At 30 chunks: 3,000 games, 439,164 positions; discovery 2,624 games (1,312 opening pairs), held-out 376.
+
+
+1. MISTAKES (the ledger; all games; "both": compare_ledger.py, ALL FIELDS AGREE at 30 chunks, 07:52)
+   Forge:      217,700 moves, 4,281 WDL blunders = 19.7 per 1,000 moves; Stockfish's first choice 55.7 %.
+   RubiChess:  218,464 moves, 2,732 WDL blunders = 12.5 per 1,000 moves; Stockfish's first choice 62.2 %.
+   (A WDL blunder: the move costs at least 0.15 of winning chances by Stockfish 19 and is not Stockfish's own
+   first choice; a drop on Stockfish's own choice is counted apart as judge noise. The last move of a game drawn by
+   the 50-move rule or by repetition is judged against the draw, the game's real value, not against Stockfish's
+   view of the final position. Definitions: neon/SF19_M4_LEDGER_DECLARATION.md; code: neon/sf19_m4_ledger.py
+   add_move and lines 508-571.)
+   Early moves ("both": Neon's by_moveband "01-10" and Opus's own recount from the raw rows, equal to the digit at
+   30 chunks): the moves the engines play up to chess move 10 (by the FEN's move number; the games leave the book
+   at moves 3 to 9, so these are each engine's first one to seven moves), all games:
+   Forge 10,100 moves, 634 WDL blunders = 62.8 per 1,000; RubiChess 10,100 moves, 261 = 25.8 per 1,000; 2.43 times.
+   Both engines play the same start positions (each opening with both colours), so the positions are matched.
+   For Forge that is 3.2 times its own overall rate (19.7).
+
+2. H1: FORGE'S SEARCH IS OPTIMISTIC, RUBICHESS'S IS NOT ("both": Neon's ledger L3 "Eng Bias" and Opus's eng_scale.py)
+   The engine's own search score (its PGN comment) minus Stockfish 19's, positions with |SF19| <= 2.5 pawns,
+   30 chunks (the 100-chunk numbers: the blocks at the top):
+   - all games: Forge +0.396, RubiChess -0.084 (Neon's L3 gives the same two numbers);
+   - discovery: Forge +0.387 (fit: own = +0.379 + 0.932 * SF19), RubiChess -0.079 (fit: -0.056 + 0.836 * SF19);
+     difference +0.466 pawns.
+   So Forge's search believes it stands about 0.4 pawns better than it does. It is an OFFSET, not a scale
+   difference: the fitted slope is near 1, the intercept near +0.38.
+   Held-out test (declared: CONFIRMED if the difference is >= +0.240): CONFIRMED at 100 chunks, +0.539 (top).
+
+3. H2: FORGE'S NET RATES FORGE'S SIDE TOO HIGH, MORE SO THE LONGER THE GAME RUNS (Opus's static_replicate.py on
+   Neon's static evaluations)
+   The static evaluation of net r0067 minus Stockfish 19, in Forge's view, |SF19| <= 2.5, discovery, 30 chunks:
+   plies 1-4 +0.050, 5-10 +0.162, 11-20 +0.338, 21-40 +0.522, 41-80 +0.657, 81+ +0.757 pawns.
+   The difference ply 81+ minus plies 1-4: +0.707 pawns.
+   Not the net's scale (27 Nov, the check run 09:04:42 PC, Opus; tmp/opus_scratch/sf19_m4/h2_scale_check.py, exploratory; 40 chunks,
+   discovery; it reproduces the band means and n exactly). Split per band into the gap at Stockfish-EQUAL
+   positions (the intercept of d = a + c * sf, in Forge's view) and the part from the net's compressed scale
+   (c * mean sf):
+   - the gap at equal positions: +0.041 at plies 1-4, +0.130, +0.269, +0.449, +0.615, then +0.731 at ply 81+;
+   - the scale part: at most +0.07 (plies 11-40) and 0.000 at ply 81+.
+   So the growth is optimism, not scale.
+   How the gap grows, per full move ("both" at 50 chunks, discovery: Neon's track_b_optimism_and_oob_diag.py
+   5289bdfb932d Part A1 and Opus's recount_twoply.py, ALL EQUAL on every row, run 09:31:42 PC; final at 100).
+   From each position with Forge to move and |SF19| <= 2.5, over Forge's move and RubiChess's reply (both ends
+   have Forge to move, so the net's side-to-move offset cancels):
+   - Stockfish's score of Forge's position falls -0.034 pawns (95 % [-0.036, -0.033]);
+   - the net's own score rises +0.003 [+0.002, +0.004];
+   - so the gap grows +0.037 [+0.035, +0.039] per full move;
+   - plies 1 to 80, per band: Stockfish's fall -0.038 to -0.056, the net's step -0.004 to +0.011;
+   - ply 0 (the first full move out of the book position): Stockfish -0.032, the net +0.070.
+   So the net does not see the ground Forge loses. A net that is only less extreme than Stockfish (slope 0.74, as
+   at ply 0) would explain about 0.009 of the 0.037 (an estimate). The steps do not add up to the level above
+   (positions leave the balanced class as Forge loses ground), so they are no forecast of the gap at a given move.
+   A two-ply step holds one move of each side: it shows the build-up, not whose move builds it.
+   EXPLORATORY (no declared test), "both" at 50 chunks, discovery: Opus's twoply_engine_check.py (run 09:43:31 PC)
+   and Neon's independently written twoply_search_second_count.py (8b4923ef11d0, read by Opus): ALL EQUAL on 52 cells
+   (compare_twoply_search_50.txt; the quiet bullet below is Opus's alone). The
+   same two-ply steps for each engine's own SEARCH score (its PGN comment), on the 200,094 steps of the set above
+   that do not end on a game's last row (RubiChess: 198,909 of its own):
+   - Forge's search falls -0.0151 per full move where Stockfish falls -0.0344. With Forge's search scale 0.937
+     (eng = +0.381 + 0.937 * s0, eng_scale.py), a pure scale would give about -0.032: the search sees about 47 %.
+   - Control, RubiChess to move, in its own view: Stockfish +0.0327, RubiChess's search +0.0187. With its scale
+     0.834, a pure scale would give about +0.027: its search sees about 68 %.
+   - Plies 1-4 and 5-10: Forge's search +0.0032 and -0.0018 against Stockfish -0.0381 and -0.0412; RubiChess's
+     search +0.0305 and +0.0316 against Stockfish +0.0406 and +0.0440.
+   - Opus only: quiet positions only (both ends not in check, Stockfish's best move no capture or promotion; Forge 127,008
+     steps): the static gap still grows +0.0268 per full move [+0.0243, +0.0293], against +0.0372 on all steps.
+     So the static net's miss is not only tactics that a static evaluation cannot see.
+   So both searches lag Stockfish, Forge's more, and right after the book position Forge's search sees almost none
+   of the ground it loses. What part is the net and what part the search depth is not separated here.
+   H2b: on the start positions (ply 0, side to move) the net is on average a little too CAUTIOUS: -0.1306, 95 %
+   [-0.1586, -0.1025], over 1,312 start positions (30 chunks).
+   CORRECTED READING (27 Nov, the check run 09:03:20 PC, Opus; tmp/opus_scratch/sf19_m4/ply0_scale_check.py, an exploratory check, 40
+   chunks, discovery): this is not a general caution. The net is LESS EXTREME than Stockfish at ply 0:
+   - the line is r0067 = -0.081 + 0.74 * sf;
+   - where Stockfish says the side to move is worse (mean -1.0, 725 positions), the net is +0.17 too optimistic;
+   - where Stockfish says it is better (+0.9 and +1.1), the net is -0.27 and -0.40 too pessimistic.
+   The UHO book has almost no balanced positions, and 58 % of them favour the side to move. So the mean is
+   negative. The declared test of H2b stays as it was; only this sentence changed.
+   How far "both" goes here: Neon evaluated the positions with the net on the GPU (neon/track_b_m4_prescan_gpu.py,
+   cache m4_static_cache_r67_r202.npz). Opus joined those values to Stockfish's and grouped them with his own
+   program; 50 of 50 sample rows align. The net's values were checked against the ENGINE's own evaluation
+   (check_cache_vs_engine.py: the M4 exe v3-r15dsg-sp-clang with net r0067 cand.fnn3, UCI "eval").
+   - 120 sampled positions (the first 3 and the last 3 complete chunks at 40) all within 1 cp; median 1 and 0.5.
+   - The rule was declared before the run: at least 57 of 60 within 10 cp and a median of at most 3 cp. The very
+     first run sampled only 43 positions, a fault of the sampler (FAIL by count, all 43 within 1 cp); after the
+     fix, both runs PASS.
+   So every static-net number here (H2, H2b, H3, H4, H5, section 5) uses the values the engine itself sees.
+   Held-out tests: H2 CONFIRMED if >= +0.366; H2b CONFIRMED if the interval is below 0. At 100 chunks both
+   CONFIRMED: H2 +0.829, H2b -0.1329 (top).
+
+4. H3: FORGE PICKS MOVES ITS OWN NET OVERRATES ("both": Neon's track_b_selection_test.py with its GPU model, and
+   Opus's recount_selection.py with the ENGINE's own eval and his own records and statistics; at 30 chunks the
+   same 102,671 records and the same counts in every cut, differences within 0.0001 pawns, for example quiet
+   +0.02578 against Neon's +0.02584; declared tolerance 0.001)
+   For every move that is not Stockfish's first choice: the net's value of the position after the move minus its
+   value after Stockfish's move (RAW, the mover's view). Forge minus RubiChess, opening-pair-clustered, discovery:
+   - all such moves: +0.02689 pawns (z 4.19);
+   - quiet moves only (no capture, promotion or check): +0.02584 (z 6.32);
+   - quiet moves in equal positions (|SF19| <= 0.5): +0.02414 (z 4.25).
+   With Stockfish's loss of the move held equal (regression and five matched loss bins): the same, +0.026. The
+   net's values do not follow Stockfish's loss at all among these moves (slope -0.003, z -0.28).
+   NOT shown: that these 0.02 to 0.03 pawns per move add up to the 0.7 pawns of H2.
+   Held-out test: CONFIRMED / CONSISTENT / NOT CONFIRMED by the 95 % interval; low power (about 1 game in 8), so
+   CONSISTENT is likely even if the effect is real. At 100 chunks: CONSISTENT, +0.01254, the interval holds 0 (top).
+
+5. WHERE THE NET'S ERRORS ARE LARGEST ("both": Neon's Track B section 3 and Opus's recount_bucket_map.py; equal to
+   the digit at 20 chunks)
+   Net r0067 against Stockfish 19 by output bucket (by the number of pieces), discovery quiet positions, 30 chunks:
+   - in winning chances (calibrated MSE) the middlegame buckets ob3 to ob6 are worst (0.046 to 0.063), the
+     endgame buckets ob0 and ob1 best (0.021 to 0.023);
+   - in pawns (MAE) the errors are large from ob0 to ob4 (1.51 to 1.80; the largest is ob3, 14 to 17 pieces) and
+     small on the fuller boards (ob6 0.81, ob7 0.48). File 50's "in pawns the late endgames show the larger
+     errors" does not hold at 30 chunks;
+   - the Forge-side residual is positive in every bucket (+0.065 to +0.145 of winning chances): the optimism of H2
+     is everywhere, largest in ob4 and ob5.
+   Track B's held-out rows were visible in every report, so these get no blind test.
+
+6. H4 AND H5: BISHOP PAIR AND KING COVER ("both": Neon's track_b_stratified_confound_check.py and Opus's own
+   recount_stratified.py, equal within 2e-5 at 20 chunks on every estimate and standard error; both use Neon's
+   cached net values; discovery quiet positions; output bucket, ply band and SF19 band held equal)
+   The net's overestimate of Forge's winning chances, by the fixed-effects regression, 30 chunks (Opus's program;
+   283,606 positions, 1,312 opening pairs, alpha 2.67734):
+   - H4: when RubiChess has the bishop pair (Forge not): +0.0223 (z 4.2). So the net undervalues RubiChess's
+     bishop pair by about 2 percentage points. Forge's own bishop pair: -0.0025 (z -0.4), not significant.
+   - H5: when RubiChess's king cover misses 2 or more files: +0.0237 (z 6.0); when Forge's does: -0.0227 (z -5.8).
+     So the net over-penalises a broken king cover by about 2.3 points for BOTH sides alike: a general fault of
+     the net, not part of Forge's optimism.
+   - Queens off the board: +0.0043 (z 0.9), no effect.
+   Held-out tests at 100 chunks: Neon's program is the declared one, and run on held-out games it fits alpha on
+   them. Opus's program runs the same test once as a second count, in that declared form (--fit-alpha). Beside it,
+   a variant with the discovery alpha is reported; it decides nothing. (Corrected 27 Nov: this line said "with
+   the discovery alpha (no refit)". The declaration says nothing about alpha. PLAN-2711-OPUS-ALPHA-CORRECTION.)
+   At 100 chunks: H4 CONFIRMED, H5 CONFIRMED on both sides (top).
+
+7. NEON'S DIAGNOSTICS ON CANDIDATE NETS (not part of the M4 question; diagnostic only; games decide)
+   Paired Track B, 30 chunks: r12_noteach minus r12_control does not lower the calibrated error on discovery quiet
+   positions (-0.00024, z -1.6), but lowers the Forge-side optimism (-0.0032, z -9.6). Source:
+   neon/NEON_WAVE3_30CHUNKS_LEDGER_OLS_AND_PAIRED_TRACKB.md.
+   Added 27 Nov 11:34 PC (Opus, from PLAN-2711-OPUS-SEED2-CHECKED, -WAVE6-AND-RECIPE-LEAD and -VAL-CORRECTION):
+   - A second seed, judged by the rule Neon named before the result. r12_bundle_r9_s2 is REPLICATED on both declared
+     metrics, recomputed by Opus from the raw JSON (track_b_seed2/track_b_latest.json, bf30cdb239c4; 53 chunks,
+     2,323 discovery pairs):
+     - cal_wdl_mse s2 -0.00063, with seed noise at most 0.00014;
+     - cal_res_forge_wdl s2 -0.00502, with seed noise at most 0.00079.
+     r12_noteach_s2 is REPLICATED as well (raw JSON 220f9e20e385).
+   - The recipe lead (diagnostic; not a result, no Elo). The loop's own recipe, r12_control (teacher 0.2, mix 0.75),
+     has the best ordinary validation loss within each seed:
+     - seed 1: VAL_MIX60 0.014735, against 0.015443 without the teacher (+4.8 %) and 0.015286 for the r9 bundle
+       (+3.7 %);
+     - seed 2: 0.015105, against +3.3 % and +1.8 %.
+     The control itself moves 2.5 % between seeds. Yet dropping the teacher, and the r9 bundle, each calibrate
+     better against SF19 on Forge's own positions, on two seeds. Only a declared match of these nets against
+     r12_control can say which is stronger.
+   - Neon's two ablations of the bundle (mix 0.65 alone; 40 lr-cycles with w1-decay 0.1 alone) were declared before
+     they ran (neon/NOTEACH_S2_AND_R9_ABLATION_DECLARATION.md). Checked by Opus against the raw file
+     (neon/track_b_ablate/track_b_latest.json, sha256 9e0df32af002; 82 chunks, 3,589 discovery pairs) and the
+     declared rule (a part carries the gain when it reaches >= 50 % of the bundle's gain on BOTH metrics):
+     - bundle - control: cal_wdl_mse -0.00048 [-0.00070, -0.00026], cal_res_forge_wdl -0.00383 [-0.00436, -0.00330].
+     - mix 0.65 alone - control: -0.00075 [-0.00093, -0.00057] and -0.00266 [-0.00313, -0.00219] (156 % and
+       69.5 % of the bundle): CARRIES THE GAIN (suggestive, one seed).
+     - 40 lr-cycles with w1-decay 0.1 alone - control: +0.00005 [-0.00013, +0.00023] and -0.00137
+       [-0.00182, -0.00092] (35.8 %): DOES NOT CARRY THE GAIN (suggestive).
+     - mix 0.65 alone - bundle: cal_wdl_mse -0.00027 [-0.00047, -0.00007] (better), cal_res_forge_wdl +0.00117
+       [+0.00066, +0.00168] (worse): the other two settings add to the second metric.
+     - Calibration diagnostics (R5), not strength: on plain VAL_MIX60 the control stays best (0.014735; mix 0.65
+       alone 0.015028). Only a declared match decides.
+
+8. THE FINE-TUNE TEST (Neon's Track B2, declared before any chunk: neon/DIAG_SF19_FINETUNE_DECL.md; ONE look at 100
+   chunks, 13:59 PC; Opus's reader diag_verdict.py agrees with Neon's verdict on all 10 lines: diag_verdict_100.txt)
+   The question: can Forge's 768 net (r0067) hold SF19's judgement on these positions, or is that a limit of the
+   net? Neon fine-tuned r0067 for 15 epochs on SF19's values of 717,143 quiet positions from 3,298 openings and judged
+   it on 231,241 positions from 1,085 other openings (held-out games never read; 3,434 transpositions dropped).
+   - The calibrated error against SF19 fell by 28.2 % (all quiet positions) and 19.1 % (|SF19| <= 3). The declared
+     bar was 30 %; 10 to 30 % is INCONCLUSIVE by the declared rule D4. VERDICT: INCONCLUSIVE.
+   - RubiChess's bishop-pair and king-cover residuals (excess over the baseline) shrank by 94.9 % and 76.4 %, but
+     the control queens_off shrank as well (81.4 %): the shrinking is not specific to these features.
+   - The price: on the loop's own validation set (VAL_MIX60) the fine-tuned net got much worse, 0.014415 -> 0.022767.
+   Reading (hypothesis): no sign of a hard limit of the net, and no proof that it learns these features without
+   losing the rest. The test cannot separate SF19's label depth from the RubiChess games' positions (D5).
+
+9. THE TEN-TIMES-NODES RE-SEARCH (research10x, Opus; added 27 Nov after 14:51 PC)
+   - Declared before the run: tmp/opus_scratch/rubichess/loss_ledger/R10X_M4_DECLARATION.txt.
+   - Ended at 14:51 PC. tmp/opus_scratch/followups/r10x_launch.out: rows 5163 (want 5163), duplicates 0, determinism
+     20 of 20, POOL PASS.
+   - NOT the SF19 study: the judge is RubiChess at J = 5,000,000 nodes, a stronger engine but not the truth.
+   The question: at the critical move of each M4 loss, would ten times the game's own nodes have found a move the
+   judge rates as no mistake? All 5163 critical moves, with 95 % intervals:
+   - judge sees no mistake: 39.8 % (+- 1.3);
+   - fixed by depth: 23.7 % (+- 1.2);
+   - partly: 7.5 % (+- 0.7);
+   - not fixed: 29.0 % (+- 1.2).
+   The declared guess was 35 to 45 % fixed and 15 to 25 % not fixed. It was WRONG on both: fewer were fixed and
+   more were not.
+   - By phase:
+     - 14 pieces or fewer (322 rows): fixed 32.9 %, not fixed 36.6 %;
+     - 25 pieces or more (2925 rows): fixed 21.9 %, not fixed 25.9 %, no mistake 44.6 %.
+   - By the game's nodes: not fixed 32.4 % below the median and 25.6 % at or above it (fixed 21.5 % and 25.9 %).
+   Reading (as declared): many "not fixed" means the lever is what Forge sees at all (the net, or depth far beyond
+   10x), more than search time. Not shown: whether ten times the time is affordable in a game.
+
+
+WHAT WAS CORRECTED ON THE WAY (kept here so that nobody repeats it)
+- Rule-draw endings: when a game ended by the 50-move rule or repetition, Stockfish judged the last position as if
+  play went on, so the last move looked like a blunder. 9 such fake blunders in the first 1,000 games; both programs
+  exclude them since 05:48 (L8).
+- Opus claimed at about 07:1x that "position values revert rather than add up"; there was no evidence for it.
+  Withdrawn at 07:18.
+- FOR_THE_USER file 50 said "every number above was counted by both"; corrected at 07:20 to say which.
+- Opus wrote at 07:59 that Neon's selection and stratified programs used held-out games. False: they excluded them
+  from the start; the error came from a capped grep (HELDOUT_DECLARATION_ERRATUM.txt).
+- Opus predicted that holding Stockfish's loss equal would make H3 larger; it did not (section 4).
+- A ply-0 mean in Forge's view is zero by design (each opening is played with both colours); H2b is therefore taken
+  in the side-to-move view.
+- H2b was first read as "the net is a little too cautious at the start". A check (run 09:03:20 PC) showed it is the net's
+  compressed scale (slope 0.74) on an unbalanced book (section 3).
+
+
+WHAT IT COULD MEAN FOR FORGE (hypotheses for the engine work, not results)
+- Forge's evaluation is optimistic for Forge's side, and more so deeper into the game. The search inherits it (H1)
+  and steers towards positions the net overrates (H3, small per move).
+- A net that is more accurate in the middlegame and less optimistic deeper into the game should help. Training data
+  from positions like the ones Forge reaches, judged by a strong engine, is one way to test that.
+- The blunder rate in the first moves after the book (up to move 10: 2.4 times RubiChess's, 3.2 times Forge's own
+  overall rate, counted by both) points at the opening-to-middlegame transition. Hypothesis: the net or the
+  search is weakest on the open, unbalanced positions just out of the book. Not tested yet.
+  One clue for it (section 3, H2b): on the book positions the net is less extreme than Stockfish. It rates the side
+  that is about a pawn better 0.27 to 0.40 too low, and the side that is worse 0.17 too high. Whether that leads to
+  the early blunders is untested.
+- Section 9: at the critical moves of Forge's losses, ten times the nodes fixed fewer than guessed (23.7 %), and
+  29.0 % stayed wrong. Together with H1 and H2, this points at the net (what Forge sees) more than at search time.
+  It is a hypothesis; games have not tested it.
+- Every such idea needs a match: lower loss or smaller errors are not Elo.
+
+
+FILES (filled at 100 chunks)
+- numbers/: the result files of both sides; programs/: the programs; SHA256SUMS.txt; PROVENANCE.txt (which program
+  made each result: "hash OK" or "time order only").
+- The INTERIM version (sections 1 to 7): the numbers were typed by hand from the outputs and checked against them one by one by
+  Opus (27 Nov, 08:07 to 08:09 PC by the files' times). Sources: findings_numbers.py 30 (saved as tmp/opus_scratch/sf19_m4/numbers_at_30.txt),
+  eng_scale_30chunks(.txt, _discovery.txt), static_replicate_30_discovery.txt, recount_bucket_map_30.txt,
+  recount_stratified_30_discovery.txt (section 6, added 08:36), recount_moveband.py's output (section 1's early
+  moves), and Neon's reports for sections 4 and 7.
+  A program check at about 08:09 (numbers_at_30.txt written 08:08:48): 38 of the 40 decimal numbers in sections 1, 2, 3 and 5 are found in those outputs. The
+  other 2 are the declared thresholds +0.240 and +0.366 from HELDOUT_DECLARATION.txt.
+  Since 09:07 a saved program does this: tmp/opus_scratch/sf19_m4/check_findings_numbers.py.
+  - It covers every decimal and every comma-grouped count in this file, against all outputs of both sides.
+  - At 09:07: 126 numbers; 124 were found in a source.
+  - The other 2 (score 0.27975, Elo -164.29) were recomputed from the W-L-D 761-5166-4073: -164.285.
+  Run it again on the final version.
+- The FINAL version (27 Nov after 14:03 PC) did not retype sections 1 to 7: the 100-chunk numbers stand in the
+  block DISCOVERY NUMBERS AT 100 CHUNKS at the top (a copy of NUMBERS_AT_100.txt, findings_numbers.py 100), the
+  held-out results in HELD-OUT VERDICTS; each numbered section keeps the numbers of the wave it names.
+  check_findings_numbers.py --final: 343 numbers, 284 found in a 100-chunk source (run 14:09 PC). The 59
+  others are the earlier waves' numbers in sections 1 to 7 (each section names its wave) and the M4 match result
+  (RUBICHESS_RESULTS.txt). The status and verdict blocks: all 29 distinct decimals stand in NUMBERS_AT_100_WITH_HELDOUT.txt,
+  neon/NEON_FINAL_100CHUNKS_FINDINGS.md or HELDOUT_DECLARATION.txt; the H4 and H5 bounds are B +- 1.96 SE (recomputed).
+  The discovery block holds all 38 lines of NUMBERS_AT_100.txt word for word.

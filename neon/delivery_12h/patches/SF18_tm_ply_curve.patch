@@ -1,0 +1,34 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2590,9 +2590,20 @@
+ 
+ namespace {
+ 
+-[[nodiscard]] ClockPlan clock_plan_for(const SearchLimits& limits) {
++[[nodiscard]] ClockPlan clock_plan_for(const SearchLimits& limits, int fullmove = 0) {
+     const std::int64_t overhead = std::max<std::int64_t>(0, limits.move_overhead_ms);
+-    return plan_clock_budget(limits.time_ms, limits.increment_ms, limits.moves_to_go, overhead, tune::TmSoftDivisor,
++    // Clean-room Stockfish/Stormphrax ply-adaptive sudden-death budget curve:
++    // conserve time in early opening, invest ~15% more in critical middlegame (moves 14..32).
++    int eff_divisor = tune::TmSoftDivisor;
++    if (fullmove > 0 && limits.moves_to_go <= 0) {
++        int shift = 0;
++        if (fullmove <= 8) shift = 4;
++        else if (fullmove < 14) shift = 4 - (fullmove - 8) * 8 / 6;
++        else if (fullmove <= 32) shift = -4;
++        else if (fullmove < 44) shift = -4 + (fullmove - 32) * 4 / 12;
++        eff_divisor = std::clamp(eff_divisor + shift, 8, 80);
++    }
++    return plan_clock_budget(limits.time_ms, limits.increment_ms, limits.moves_to_go, overhead, eff_divisor,
+                              tune::TmIncrementPercent, tune::TmHardPercent, tune::TmHardSoftMultiple);
+ }
+ 
+@@ -2677,7 +2688,7 @@
+         hard_limit_ms_ = std::max<std::int64_t>(1, limits.movetime_ms - overhead);
+         soft_limit_ms_ = hard_limit_ms_;
+     } else if (limits.time_ms >= 0) {
+-        const ClockPlan plan = clock_plan_for(limits);
++        const ClockPlan plan = clock_plan_for(limits, board.fullmove_number());
+         soft_limit_ms_ = plan.soft_ms;
+         hard_limit_ms_ = plan.hard_ms;
+         clock_reserve_empty_ = plan.reserve_empty;

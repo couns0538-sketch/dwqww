@@ -1,0 +1,70 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -505,6 +505,7 @@
+     std::unique_ptr<CounterMoveTable> counter_moves_;
+     std::unique_ptr<CorrectionHistory> correction_history_;
+     std::unique_ptr<CorrectionHistory> material_correction_;
++    std::unique_ptr<CorrectionHistory> minor_correction_;
+     std::unique_ptr<CorrectionHistory> non_pawn_white_correction_;
+     std::unique_ptr<CorrectionHistory> non_pawn_black_correction_;
+     std::array<SearchStack, MaxPly + 8> stack_{};
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1204,6 +1204,7 @@
+       counter_moves_(std::make_unique<CounterMoveTable>()),
+       correction_history_(std::make_unique<CorrectionHistory>()),
+       material_correction_(std::make_unique<CorrectionHistory>()),
++      minor_correction_(std::make_unique<CorrectionHistory>()),
+       non_pawn_white_correction_(std::make_unique<CorrectionHistory>()),
+       non_pawn_black_correction_(std::make_unique<CorrectionHistory>()),
+       rework_history_(std::make_unique<LesserThreatHistory>()),
+@@ -1228,6 +1229,7 @@
+     *counter_moves_ = CounterMoveTable{};
+     *correction_history_ = CorrectionHistory{};
+     *material_correction_ = CorrectionHistory{};
++    *minor_correction_ = CorrectionHistory{};
+     *non_pawn_white_correction_ = CorrectionHistory{};
+     *non_pawn_black_correction_ = CorrectionHistory{};
+     // B4 (forge/r9): cleared here like every other table, so no game inherits another game's statistics.
+@@ -1248,6 +1250,20 @@
+         }
+     }
+     return key * 0x9E3779B97F4A7C15ULL;
++}
++
++// Hash of minor pieces + kings of both sides, for conservative minor-piece correction history (SF9).
++[[nodiscard]] std::uint64_t minor_piece_key(const Board& board) {
++    std::uint64_t key = 0x243F6A8885A308D3ULL;
++    for (const Color color : {White, Black}) {
++        const std::uint64_t csalt = static_cast<std::uint64_t>(color) * 0x517CC1B727220A95ULL;
++        for (const PieceType pt : {Knight, Bishop, King}) {
++            const Bitboard bb = board.pieces(color, pt);
++            key ^= (bb + csalt) * (0x9E3779B97F4A7C15ULL + static_cast<std::uint64_t>(pt) * 0xBF58476D1CE4E5B9ULL);
++            key = (key ^ (key >> 30U)) * 0x94D049BB133111EBULL;
++        }
++    }
++    return key ^ (key >> 31U);
+ }
+ 
+ // Hash of non-pawn piece placements of one side, for non-pawn correction history.
+@@ -1416,7 +1432,8 @@
+         if (dead_material_score(board, fixed)) return fixed;
+     }
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+-    std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
++    std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)] +
++                              (*minor_correction_)[side][minor_piece_key(board) & (CorrectionSize - 1U)] / 2;
+     if (tune::MaterialCorrectionWeight > 0) {
+         correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
+     }
+@@ -1480,6 +1497,10 @@
+         entry = std::clamp(entry + diff * weight / 256, -CorrectionLimit, CorrectionLimit);
+     };
+     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
++    {
++        std::int32_t& me = (*minor_correction_)[side][minor_piece_key(board) & (CorrectionSize - 1U)];
++        me = b4::gravity(me, diff * weight / 256, CorrectionLimit);
++    }
+     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
+     if (tune::NonPawnCorrection) {
+         const std::size_t idx_w = (ss != nullptr && (ss->corr_valid & 1U) != 0U)

@@ -1,0 +1,122 @@
+--- a/pipeline/nnloop/filterqc.py
++++ b/pipeline/nnloop/filterqc.py
+@@ -1,22 +1,59 @@
+ """Filter and quality-check one round of data.
+ 
+ Input: raw files from datagen (.binpack from the official generator, .plain from self-play).
+-Output: filtered.binpack (what the trainer reads), raw.binpack (untouched archive), qc.json.
+-
+-A filtered position is not deleted. Its score is set to VALUE_NONE (32002), which the nnue-pytorch
+-loader skips. Keeping the record keeps the move chains intact, so the binpack stays small.
+-Positions in check and positions whose best move is a capture are skipped by the loader itself
+-(its `filtered` option), so they are not handled here.
++Output: filtered.plain or filtered.binpack (what the trainer reads), raw_selfplay.binpack (archive), qc.json.
++
++When output is "binpack", filtered positions are marked VALUE_NONE (32002) to preserve move chains.
++When output is "plain", Forge trains with --keep-noisy (captures kept) and skips in-check positions in
++forge_parse.py; qc.json now records noisy telemetry so downstream distributions are visible.
+ """
+ from __future__ import annotations
+ 
++import hashlib
+ import os
++import struct
+ import time
+ from pathlib import Path
+ 
+ from .common import VALUE_NONE, atomic_write_json, child_env, log, run_logged, tail_text
+ 
+ SCORE_EDGES = [50, 100, 200, 400, 800, 1600]
++
++
++def _fen4_hash64(parts: list[str]) -> int:
++    """Deterministic 64-bit hash of FEN fields 1..4 (replaces process-randomized Python hash())."""
++    key = " ".join(parts[:4]).encode("ascii", errors="ignore")
++    return struct.unpack("<Q", hashlib.blake2b(key, digest_size=8).digest())[0]
++
++
++def _is_noisy_fen(board_field: str, move: str) -> bool:
++    if len(move) > 4:
++        return True
++    if len(move) < 4:
++        return False
++    fr_f, fr_r = ord(move[0]) - 97, ord(move[1]) - 49
++    to_f, to_r = ord(move[2]) - 97, ord(move[3]) - 49
++    if not (0 <= fr_f < 8 and 0 <= fr_r < 8 and 0 <= to_f < 8 and 0 <= to_r < 8):
++        return False
++    ranks = board_field.split("/")
++    if len(ranks) != 8:
++        return False
++    def at(r: int, fl: int) -> str:
++        col = 0
++        for ch in ranks[7 - r]:
++            if "1" <= ch <= "8":
++                nxt = col + (ord(ch) - 48)
++                if col <= fl < nxt:
++                    return ""
++                col = nxt
++            else:
++                if col == fl:
++                    return ch
++                col += 1
++        return ""
++    if at(to_r, to_f) != "":
++        return True
++    return fr_f != to_f and at(fr_r, fr_f) in ("P", "p")
+ 
+ 
+ def tools_convert(cfg: dict, src: Path, dst: Path, log_path: Path, validate: bool = False) -> None:
+@@ -64,8 +101,9 @@
+     seen: set[int] = set()
+     n = kept = 0
+     why = {"score_limit": 0, "ply": 0, "duplicate": 0, "score_result_conflict": 0, "rule50": 0,
+-           "few_pieces": 0, "already_none": 0}
++           "few_pieces": 0, "already_none": 0, "corrupt": 0}
+     res_kept = {-1: 0, 0: 0, 1: 0}
++    noisy_kept = 0
+     score_hist = [0] * (len(SCORE_EDGES) + 1)
+     ply_hist: dict[int, int] = {}
+     pc_hist: dict[int, int] = {}
+@@ -95,12 +133,14 @@
+                         result = int(line[7:])
+                     elif c == "e":
+                         n += 1
+-                        if ply < last_ply:
++                        if ply <= last_ply:
+                             games += 1
+                         last_ply = ply
+                         parts = fen.split(" ")
+                         reason = None
+-                        if score == VALUE_NONE:
++                        if len(parts) < 2 or parts[1] not in ("w", "b") or result not in (-1, 0, 1):
++                            reason = "corrupt"
++                        elif score == VALUE_NONE:
+                             reason = "already_none"
+                         elif abs(score) > max_abs:
+                             reason = "score_limit"
+@@ -115,7 +155,7 @@
+                             if pieces < min_pieces:
+                                 reason = "few_pieces"
+                             elif dedup:
+-                                key = hash(" ".join(parts[:4]))
++                                key = _fen4_hash64(parts)
+                                 if key in seen:
+                                     reason = "duplicate"
+                                 else:
+@@ -123,6 +163,8 @@
+                         if reason is None:
+                             kept += 1
+                             res_kept[result] = res_kept.get(result, 0) + 1
++                            if _is_noisy_fen(parts[0], move):
++                                noisy_kept += 1
+                             a = abs(score)
+                             sum_abs += a
+                             sum_sq += a * a
+@@ -191,6 +233,7 @@
+     qc = {
+         "records": n, "kept": kept, "kept_pct": round(100.0 * kept / n, 2), "games": games,
+         "marked_skip": why,
++        "noisy_kept": noisy_kept, "noisy_kept_pct": round(100.0 * noisy_kept / kept, 2) if kept else 0.0,
+         "result_side_to_move": {"loss": res_kept.get(-1, 0), "draw": res_kept.get(0, 0), "win": res_kept.get(1, 0)},
+         "draw_pct": round(100.0 * res_kept.get(0, 0) / kept, 2) if kept else 0.0,
+         "abs_score_mean": round(mean_abs, 1), "abs_score_rms": round(rms, 1), "score_result_corr": corr,

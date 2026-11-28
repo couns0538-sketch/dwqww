@@ -1,0 +1,11 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2315,7 +2315,7 @@
+                     continue;
+                 }
+                 const int see_threshold = -tune::SeeNoisyMultiplier * depth;
+-                if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
++                if (!(quiet && gives_check) && !(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+                     !board.see_ge(move, see_threshold)) {
+                     trace_case();
+                     if (tune::SoundPruneTrace && quiet && gives_check && quiet_fail) {

@@ -1,0 +1,28 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2144,7 +2144,13 @@
+         }
+         // ProbCut: a good capture that beats beta by a margin at reduced depth.
+         const int probcut_beta = beta + tune::ProbcutMargin - 50 * improving;
+-        if (depth >= tune::ProbcutDepth && !is_mate_score(beta) &&
++        // SF30 (clean-room Stockfish ProbCut): immediate TT cutoff when stored bound already beats probcut_beta.
++        if (!bare_king_mode && depth >= tune::ProbcutDepth && !is_mate_score(beta) && probcut_beta < MateInMaxPly &&
++            tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score >= probcut_beta &&
++            (tt_bound == BoundLower || tt_bound == BoundExact)) {
++            return tt_score;
++        }
++        if (!bare_king_mode && depth >= tune::ProbcutDepth && !is_mate_score(beta) && probcut_beta < MateInMaxPly &&
+             !(tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta)) {
+             MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+             Move move;
+@@ -2524,8 +2530,9 @@
+     }
+     // Teach the static evaluation about this pawn structure when the search
+     // result is a usable bound in the direction of the difference.
++    // SF30 (clean-room Stockfish CorrHist): exclude quiet promotions too so tactical promotions don't bias corrhist.
+     if (!in_check && excluded.is_none() && !is_mate_score(best_score) &&
+-        (best_move.is_none() || !best_move.is_capture()) &&
++        (best_move.is_none() || (!best_move.is_capture() && !best_move.is_promotion())) &&
+         !(bound == BoundLower && best_score <= ss->static_eval) &&
+         !(bound == BoundUpper && best_score >= ss->static_eval)) {
+         update_correction(board, depth, best_score, ss->static_eval, ss);

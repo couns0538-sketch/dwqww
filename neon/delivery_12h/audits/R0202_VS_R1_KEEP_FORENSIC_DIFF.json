@@ -1,0 +1,263 @@
+{
+  "schema": "r0202_vs_r1_keep_forensic_diff_v1",
+  "created_utc": "2026-11-28T16:19:00Z",
+  "request_ref": "OPUS-2811-R1-VS-R0067-VERIFIED Point 2",
+  "sources": {
+    "r0202_train_log": "C:\\nnue-lab\\runs\\forge\\r0202\\train\\train.log",
+    "r0202_state_json": "C:\\nnue-lab\\runs\\forge\\state.json",
+    "config_forge_toml": "C:\\nnue-lab\\pipeline\\config.forge.toml",
+    "r1_keep_script": "C:\\nnue-lab\\neon\\forge_fixes\\run_opus_r1_keep_twin.py",
+    "r1_keep_dir": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_keepnoisy_twin",
+    "r1_skip_dir": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_skipnoisy",
+    "trainer_script": "C:\\nnue-lab\\pipeline\\forge_train_v3.py",
+    "nnloop_trainer": "C:\\nnue-lab\\pipeline\\nnloop\\trainer.py",
+    "loop_run": "C:\\nnue-lab\\pipeline\\run.py",
+    "triton_ft_kernels": "C:\\nnue-lab\\pipeline\\ft_triton\\ft_kernels.py"
+  },
+  "side_by_side": {
+    "dataset_window": {
+      "r0202": "r0178..r0202 (25 rounds, filtered.plain)",
+      "r1_keep": "r0178..r0202 (25 rounds, filtered.plain)",
+      "r1_skip_ref": "r0178..r0202 (25 rounds, filtered.plain)",
+      "identical_r0202_vs_r1_keep": true
+    },
+    "filter_kept_total": {
+      "r0202": 378856831,
+      "r1_keep": 378856831,
+      "r1_skip_ref": 378856831,
+      "identical_r0202_vs_r1_keep": true
+    },
+    "train_rows_used": {
+      "r0202": 346931328,
+      "r1_keep": 346931328,
+      "r1_skip_ref": 281241466,
+      "noisy_rows_dropped_in_r1_skip": 65689862,
+      "identical_r0202_vs_r1_keep": true
+    },
+    "val_dataset_and_rows": {
+      "r0202": "C:\\nnue-lab\\runs\\forge\\val\\val.plain (78,954 quiet positions)",
+      "r1_keep": "C:\\nnue-lab\\runs\\forge\\val\\val.plain (78,954 quiet positions)",
+      "r1_skip_ref": "C:\\nnue-lab\\runs\\forge\\val\\val.plain (78,954 quiet positions)",
+      "val_sha256": "4a9f57407cfe2a38379d50280d8098b7b83f912d2260b1ffb2e5a6b33819e536",
+      "identical_r0202_vs_r1_keep": true
+    },
+    "keep_noisy_flag": {
+      "r0202": true,
+      "r1_keep": true,
+      "r1_skip_ref": false,
+      "identical_r0202_vs_r1_keep": true
+    },
+    "architecture": {
+      "r0202": "FORGENN3 v3, hidden=768, king_buckets=8, out_buckets=8, mirror=true, eval_scale=400",
+      "r1_keep": "FORGENN3 v3, hidden=768, king_buckets=8, out_buckets=8, mirror=true, eval_scale=400",
+      "r1_skip_ref": "FORGENN3 v3, hidden=768, king_buckets=8, out_buckets=8, mirror=true, eval_scale=400",
+      "identical_r0202_vs_r1_keep": true
+    },
+    "epochs": {
+      "r0202": 40,
+      "r1_keep": 40,
+      "r1_skip_ref": 40,
+      "identical_r0202_vs_r1_keep": true
+    },
+    "lr_schedule": {
+      "r0202": "lr=0.0005, lr_cycles=auto -> [6, 12, 24, 40], warmup_steps=500, min_lr_frac=0.05",
+      "r1_keep": "lr=0.0005, lr_cycles=auto -> [6, 12, 24, 40], warmup_steps=500, min_lr_frac=0.05",
+      "r1_skip_ref": "lr=0.0005, lr_cycles=auto -> [6, 12, 24, 40], warmup_steps=500, min_lr_frac=0.05",
+      "identical_r0202_vs_r1_keep": true
+    },
+    "batch_size": {
+      "r0202": 8192,
+      "r1_keep": 8192,
+      "r1_skip_ref": 8192,
+      "steps_per_epoch_keep": 42350,
+      "identical_r0202_vs_r1_keep": true
+    },
+    "mix": {
+      "r0202": 0.75,
+      "r1_keep": 0.75,
+      "r1_skip_ref": 0.75,
+      "identical_r0202_vs_r1_keep": true
+    },
+    "w1_decay": {
+      "r0202": 0.3,
+      "r1_keep": 0.3,
+      "r1_skip_ref": 0.3,
+      "identical_r0202_vs_r1_keep": true
+    },
+    "teacher_pass": {
+      "r0202": "b_full.pt (residual, distill_weight=0.2, --teacher-once, 1.29 GB on card)",
+      "r1_keep": "b_full.pt (residual, distill_weight=0.2, --teacher-once, 1.29 GB on card)",
+      "r1_skip_ref": "b_full.pt (residual, distill_weight=0.2, --teacher-once)",
+      "teacher_sha256": "52be981d04cc92cadbabb12d84b82c19b0ac3299557a9179968dc7d872039430",
+      "identical_r0202_vs_r1_keep": true
+    },
+    "data_order": {
+      "r0202": "CPU torch.Generator().manual_seed(seed * 1_000_003 + k), FORGE_ORDER_THREAD=1 (default)",
+      "r1_keep": "CPU torch.Generator().manual_seed(seed * 1_000_003 + k), FORGE_ORDER_THREAD=1 (default)",
+      "r1_skip_ref": "CPU torch.Generator().manual_seed(seed * 1_000_003 + k), FORGE_ORDER_THREAD=1 (default)",
+      "identical_r0202_vs_r1_keep": true
+    },
+    "seed": {
+      "r0202": "1 (forge_train_v3.py default when --seed omitted)",
+      "r1_keep": "1 (--seed 1 passed explicitly)",
+      "r1_skip_ref": "1 (default)",
+      "identical_r0202_vs_r1_keep": true
+    },
+    "init_actual_vs_state_json": {
+      "r0202_actual": "scratch (train.log line 37: 'init scratch', config.forge.toml:365 init='scratch')",
+      "r0202_state_json_field": "C:\\nnue-lab\\runs\\forge\\r0067\\train\\cand.fnn3 (METADATA ARTIFACT in trainer.py:229!)",
+      "r1_keep_actual": "scratch",
+      "r1_skip_actual": "scratch",
+      "identical_actual_training": true,
+      "subtle_metadata_diff_flagged": true
+    },
+    "live_env_triton_and_parser_flags": {
+      "triton_compact_stepv2_fused_13_flags": "IDENTICAL (FORGE_COMPACT=1, FORGE_STEP_V2=1, FORGE_FUSED_STEP=1, all TRITON2_* and DENSE_* identical)",
+      "r0202_FORGE_PARSE_PROCS": "4 (config.forge.toml:464)",
+      "r1_keep_FORGE_PARSE_PROCS": "8 (run_opus_r1_keep_twin.py:47; unused at runtime because all 25 .cache-n0c1.npz files existed)",
+      "r1_keep_in_memory_cache_wrapper": "Monkey-patches ft._load_one/_count_one for read-only safety on runs/forge/; delegates directly to orig_load_one for existing .cache-n0c1.npz",
+      "identical_r0202_vs_r1_keep": false,
+      "functional_impact_on_r1_keep": "none (existing .cache-n0c1.npz loaded directly; identical 346,931,328 rows)"
+    },
+    "thermal_pauses_and_wall_time": {
+      "r0202_seconds": 5914.3,
+      "r0202_cooling_pauses": 22,
+      "r0202_gpu_hottest_c": 100,
+      "r1_keep_seconds": 2575.4,
+      "r1_keep_cooling_pauses": 0,
+      "r1_skip_seconds": 5447.2,
+      "r1_skip_cooling_pauses": 0,
+      "identical_r0202_vs_r1_keep": false
+    }
+  },
+  "trajectories": {
+    "r0202_train_log_epochs": [
+      {"epoch": 1, "loss": 0.010121, "lr": 0.000469, "pos_per_s": 5554832},
+      {"epoch": 2, "loss": 0.007953, "lr": 0.000382, "pos_per_s": 5703209},
+      {"epoch": 3, "loss": 0.007539, "lr": 0.000263, "pos_per_s": 5755280},
+      {"epoch": 4, "loss": 0.007230, "lr": 0.000144, "pos_per_s": 5669170},
+      {"epoch": 5, "loss": 0.006991, "lr": 0.0000569, "pos_per_s": 5726314},
+      {"epoch": 6, "loss": 0.006830, "lr": 0.0000250, "pos_per_s": 5764088, "fit_train_sample": 0.010505, "fit_holdout": 0.009627},
+      {"epoch": 7, "loss": 0.007500, "lr": 0.000469, "pos_per_s": 5803386},
+      {"epoch": 8, "loss": 0.007309, "lr": 0.000382, "pos_per_s": 5821802},
+      {"epoch": 9, "loss": 0.007100, "lr": 0.000263, "pos_per_s": 5840799},
+      {"epoch": 10, "loss": 0.006890, "lr": 0.000144, "pos_per_s": 5856877},
+      {"epoch": 11, "loss": 0.006720, "lr": 0.0000569, "pos_per_s": 5870390},
+      {"epoch": 12, "loss": 0.006580, "lr": 0.0000250, "pos_per_s": 5881164, "fit_train_sample": 0.010173, "fit_holdout": 0.009399},
+      {"epoch": 13, "loss": 0.007222, "lr": 0.000492, "pos_per_s": 5894370},
+      {"epoch": 14, "loss": 0.007166, "lr": 0.000468, "pos_per_s": 5910186},
+      {"epoch": 15, "loss": 0.007100, "lr": 0.000431, "pos_per_s": 5919768},
+      {"epoch": 16, "loss": 0.007020, "lr": 0.000382, "pos_per_s": 5926083},
+      {"epoch": 17, "loss": 0.006936, "lr": 0.000324, "pos_per_s": 5931916},
+      {"epoch": 18, "loss": 0.006856, "lr": 0.000263, "pos_per_s": 5938602},
+      {"epoch": 19, "loss": 0.006760, "lr": 0.000201, "pos_per_s": 5943604},
+      {"epoch": 20, "loss": 0.006676, "lr": 0.000144, "pos_per_s": 5949317},
+      {"epoch": 21, "loss": 0.006594, "lr": 0.0000947, "pos_per_s": 5953978},
+      {"epoch": 22, "loss": 0.006506, "lr": 0.0000569, "pos_per_s": 5958691},
+      {"epoch": 23, "loss": 0.006446, "lr": 0.0000331, "pos_per_s": 5960654},
+      {"epoch": 24, "loss": 0.006404, "lr": 0.0000250, "pos_per_s": 5976885, "fit_train_sample": 0.009943, "fit_holdout": 0.009276},
+      {"epoch": 25, "loss": 0.007058, "lr": 0.000496, "pos_per_s": 5991339},
+      {"epoch": 26, "loss": 0.007045, "lr": 0.000482, "pos_per_s": 6005557},
+      {"epoch": 27, "loss": 0.007018, "lr": 0.000460, "pos_per_s": 6018466},
+      {"epoch": 28, "loss": 0.006976, "lr": 0.000431, "pos_per_s": 6029645},
+      {"epoch": 29, "loss": 0.006930, "lr": 0.000395, "pos_per_s": 6040244},
+      {"epoch": 30, "loss": 0.006882, "lr": 0.000354, "pos_per_s": 6050311},
+      {"epoch": 31, "loss": 0.006823, "lr": 0.000309, "pos_per_s": 6056698},
+      {"epoch": 32, "loss": 0.006772, "lr": 0.000263, "pos_per_s": 6064914},
+      {"epoch": 33, "loss": 0.006713, "lr": 0.000216, "pos_per_s": 6072310},
+      {"epoch": 34, "loss": 0.006639, "lr": 0.000172, "pos_per_s": 6080763},
+      {"epoch": 35, "loss": 0.006584, "lr": 0.000131, "pos_per_s": 6087452},
+      {"epoch": 36, "loss": 0.006518, "lr": 0.0000947, "pos_per_s": 6094871},
+      {"epoch": 37, "loss": 0.006467, "lr": 0.0000651, "pos_per_s": 6101873},
+      {"epoch": 38, "loss": 0.006416, "lr": 0.0000431, "pos_per_s": 6108218},
+      {"epoch": 39, "loss": 0.006376, "lr": 0.0000296, "pos_per_s": 6114410},
+      {"epoch": 40, "loss": 0.006358, "lr": 0.0000250, "pos_per_s": 6120017, "fit_train_sample": 0.009874, "fit_holdout": 0.009218}
+    ],
+    "final_metrics": {
+      "r0202": {"final_loss": 0.006358, "val": 0.009218, "val_mix60": 0.014650, "stdout_log_persisted": true},
+      "r1_keep": {"final_loss": 0.006366, "val": 0.009190, "val_mix60": 0.014601, "stdout_log_persisted": false, "source_note": "NEON_TO_OPUS.md NEON-2811-R1-KEEP-TWIN-DONE-0638 + r1_keep_summary.json"},
+      "r1_skip": {"final_loss": 0.004547, "val": 0.008551, "val_mix60": 0.013957, "stdout_log_persisted": false}
+    }
+  },
+  "artifacts_and_weight_stats": {
+    "r0202": {
+      "pt_path": "C:\\nnue-lab\\runs\\forge\\r0202\\train\\cand.pt",
+      "pt_sha256": "17533c41b53b0732fe6c03f5d84969129c7ea9932d06f6047622ceed32f5b555",
+      "fnn3_path": "C:\\nnue-lab\\runs\\forge\\r0202\\train\\cand.fnn3",
+      "fnn3_bytes": 9463528,
+      "fnn3_sha256": "42fd34526c3126096b33c34776184246ed0a01bb542febcc6942f584afad5fbd",
+      "fnn3_checksum": "d93387c0af2536b4",
+      "exported_int_stats": {
+        "w1": {"max_abs": 549, "mean": -10.9691, "std": 88.2107},
+        "b1": {"max_abs": 433, "mean": -177.2812, "std": 100.7680},
+        "w2": {"max_abs": 127, "mean": 3.1563, "std": 19.1121},
+        "b2": {"max_abs": 262, "mean": 98.0000, "std": 87.6556}
+      }
+    },
+    "r1_keep": {
+      "pt_path": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_keepnoisy_twin\\cand.pt",
+      "pt_sha256": "61bb06e19e06cd313a4dc715bf00d7233bd7c5192640524517c3a68bbcb17c29",
+      "fnn3_path": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_keepnoisy_twin\\cand.fnn3",
+      "fnn3_bytes": 9463528,
+      "fnn3_sha256": "8b1158aad16d882063da6673efa1584ac0cb4382cb3358964bdb03bb487b02e7",
+      "fnn3_checksum": "079f2f9a8273b58a",
+      "exported_int_stats": {
+        "w1": {"max_abs": 547, "mean": -11.0378, "std": 88.4690},
+        "b1": {"max_abs": 433, "mean": -173.3815, "std": 97.4511},
+        "w2": {"max_abs": 127, "mean": 3.0888, "std": 19.2247},
+        "b2": {"max_abs": 198, "mean": -42.2500, "std": 131.9335}
+      }
+    },
+    "r1_skip": {
+      "pt_path": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_skipnoisy\\cand.pt",
+      "pt_sha256": "e61691736c1423e11efe708357d25ee0ff25122c6a2e3cb546583bc365e28620",
+      "fnn3_path": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_skipnoisy\\cand.fnn3",
+      "fnn3_bytes": 9463528,
+      "fnn3_sha256": "4902fe653e575c0c73ab78aed18fb6d2a10c8f33c895160cb5b68b1bdb9b21ec",
+      "fnn3_checksum": "3882dcf1eb013c36",
+      "exported_int_stats": {
+        "w1": {"max_abs": 538, "mean": -6.7472, "std": 80.2578},
+        "b1": {"max_abs": 430, "mean": -145.7773, "std": 85.4385},
+        "w2": {"max_abs": 127, "mean": 0.4780, "std": 15.5331},
+        "b2": {"max_abs": 561, "mean": 396.0000, "std": 170.0603}
+      }
+    },
+    "r0202_vs_r1_keep_exported_diff": {
+      "w1": {"cosine": 0.726121, "rms_diff": 65.8866, "max_abs_diff": 1025},
+      "b1": {"cosine": 0.925775, "rms_diff": 77.7566, "max_abs_diff": 400},
+      "w2": {"cosine": 0.776176, "rms_diff": 12.9943, "max_abs_diff": 153},
+      "b2": {"cosine": 0.036866, "rms_diff": 187.4460, "max_abs_diff": 353}
+    }
+  },
+  "flagged_differences": [
+    {
+      "id": "DIFF-1-STATE-JSON-INIT-MISREPORT",
+      "severity": "metadata_artifact",
+      "summary": "state.json round 202 records init='C:\\nnue-lab\\runs\\forge\\r0067\\train\\cand.fnn3', whereas r0202 actually trained from scratch (train.log line 37: 'init scratch').",
+      "root_cause": "pipeline/run.py:661 passes init_net=best.get('net') and pipeline/nnloop/trainer.py:229 writes 'init': init_model or init_net or 'scratch' even though config.forge.toml sets init='scratch' and train_cmd contains neither {init} nor {init_net}."
+    },
+    {
+      "id": "DIFF-2-FORGE-PARSE-PROCS",
+      "severity": "none_on_r1_keep",
+      "summary": "config.forge.toml [train] env sets FORGE_PARSE_PROCS='4', whereas run_opus_r1_keep_twin.py LIVE_ENV sets FORGE_PARSE_PROCS='8'.",
+      "impact": "Zero runtime difference for R1-keep because all 25 .cache-n0c1.npz files already existed and were loaded directly."
+    },
+    {
+      "id": "DIFF-3-THERMAL-PAUSES",
+      "severity": "execution_environment",
+      "summary": "r0202 incurred 22 GPU heat-guard pauses (100 C -> 77..82 C, 5,914.3 s total); R1-keep incurred 0 cooling pauses (2,575.4 s total)."
+    },
+    {
+      "id": "DIFF-4-TRITON-ATOMIC-NONDETERMINISM",
+      "severity": "expected_gpu_trajectory_divergence",
+      "summary": "Despite identical seed=1, pass_order, data, and hyperparameters, r0202 and R1-keep end at distinct weights (w1 cos=0.7261, w2 cos=0.7762) with virtually identical losses (0.006358 vs 0.006366, VAL 0.009218 vs 0.009190).",
+      "root_cause": "pipeline/ft_triton/ft_kernels.py uses tl.atomic_add (lines 77, 231, 241) in backward gradient accumulation, whose floating-point summation order across GPU threadblocks is nondeterministic and compounds across 1,694,000 Adam steps."
+    }
+  ],
+  "match_context": {
+    "OPUS_R1_skip_vs_R1_keep_SPRT_0_10_250k": "1,526g @ 250k, +15.49 [+6.12, +24.89] Elo, LLR +2.97 -> H1 ACCEPTED (SPRT early-stopping upward bias noted; true effect ~+10..+15)",
+    "OPUS_R1_skip_vs_r0067_1000g_250k": "1,000g fixed @ 250k, +30.65 [+18.58, +42.80] Elo, z=+4.989, LOS=100.00%",
+    "OPUS_r0202_vs_r0067_1000g_250k": "1,000g fixed @ 250k, -4.86 [-16.64, +6.90] Elo, z=-0.811, LOS=20.88%",
+    "OPUS_R1_keep_vs_r0202_1000g_250k": "Declared in R1_KEEP_VS_R0202_DECLARATION.json (queued after Seed-2 R1 SPRT and OPUS_R1_skip_vs_r0067_2000g_6p006)"
+  }
+}

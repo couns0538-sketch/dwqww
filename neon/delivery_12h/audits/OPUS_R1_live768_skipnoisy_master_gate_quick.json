@@ -1,0 +1,219 @@
+{
+  "schema": "forge_master_gates_v1",
+  "mode": "quick",
+  "exe": "C:\\nnue-lab\\neon\\forge_fixes\\builds\\base_r15dsg.exe",
+  "net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_skipnoisy\\cand.fnn3",
+  "baseline_exe": null,
+  "strict_net_sanity": false,
+  "overall_status": "PASS_WITH_ADVISORY_FLAGS",
+  "hard_pass": true,
+  "total_elapsed_s": 4.3433,
+  "gates": {
+    "perft": {
+      "status": "PASS",
+      "elapsed_s": 0.0811,
+      "positions_checked": 6,
+      "positions_expected": 6,
+      "perft_5_nodes": 4865609,
+      "perft_5_ok": true,
+      "positions": [
+        {
+          "name": "startpos",
+          "depth": 5,
+          "expected": 4865609,
+          "got": 4865609,
+          "match": true,
+          "elapsed_s": 0.0203
+        },
+        {
+          "name": "kiwipete",
+          "depth": 4,
+          "expected": 4085603,
+          "got": 4085603,
+          "match": true,
+          "elapsed_s": 0.0172
+        },
+        {
+          "name": "position 3",
+          "depth": 5,
+          "expected": 674624,
+          "got": 674624,
+          "match": true,
+          "elapsed_s": 0.0048
+        },
+        {
+          "name": "position 4",
+          "depth": 4,
+          "expected": 422333,
+          "got": 422333,
+          "match": true,
+          "elapsed_s": 0.0019
+        },
+        {
+          "name": "position 5",
+          "depth": 4,
+          "expected": 2103487,
+          "got": 2103487,
+          "match": true,
+          "elapsed_s": 0.009
+        },
+        {
+          "name": "position 6",
+          "depth": 4,
+          "expected": 3894594,
+          "got": 3894594,
+          "match": true,
+          "elapsed_s": 0.0144
+        }
+      ],
+      "errors": []
+    },
+    "bench": {
+      "status": "PASS",
+      "elapsed_s": 0.8685,
+      "target_elapsed_s": 0.8684,
+      "target": {
+        "default_bench_11": {
+          "depth": 11,
+          "nodes": 371870,
+          "time_ms": 122,
+          "nps": 3048114
+        },
+        "default_bench_13": {
+          "depth": 13,
+          "nodes": 913862,
+          "time_ms": 291,
+          "nps": 3140419
+        },
+        "b4_bench_11": {
+          "depth": 11,
+          "nodes": 375559,
+          "time_ms": 131,
+          "nps": 2866862
+        },
+        "b4_bench_13": {
+          "depth": 13,
+          "nodes": 773738,
+          "time_ms": 273,
+          "nps": 2834205
+        }
+      },
+      "errors": []
+    },
+    "v3_parity": {
+      "status": "PASS",
+      "elapsed_s": 1.4526,
+      "rc": 0,
+      "net_info": {
+        "format": "FORGENN3",
+        "hidden": 768,
+        "king_buckets": 8,
+        "output_buckets": 8,
+        "mirror": true,
+        "pairwise": false,
+        "has_psqt": false,
+        "eval_scale": 400
+      },
+      "total_fens": 120,
+      "max_diff_cp": 0,
+      "mismatch_count": 0,
+      "mismatches": [],
+      "hce_nonzero": 0,
+      "nnue_ne_total": 0,
+      "ob_covered": "8/8",
+      "ob_counts": {
+        "0": 15,
+        "1": 15,
+        "2": 15,
+        "3": 15,
+        "4": 15,
+        "5": 15,
+        "6": 15,
+        "7": 15
+      },
+      "min_ob_count": 15,
+      "kb_counts": {
+        "0": 6,
+        "1": 24,
+        "2": 11,
+        "3": 22,
+        "4": 16,
+        "5": 14,
+        "6": 10,
+        "7": 17
+      },
+      "errors": []
+    },
+    "net_sanity": {
+      "status": "ADVISORY_FLAGS",
+      "hard_pass": true,
+      "strict_mode": false,
+      "elapsed_s": 0.1504,
+      "rc": 1,
+      "unit": "unit: one classical pawn = (Q+R+B+N)/20 = 162.2 raw (1.62 raw per cp)",
+      "flags": [
+        "S5 dead draws",
+        "S7 won endings"
+      ],
+      "flag_details": [
+        "FLAG S5 dead draws: K-K +10 (raw +16), KN-K -32 (raw -52), KB-K -28 (raw -45), KNN-K +60 (raw +97) cp (want |e| <= 50)",
+        "FLAG S7 won endings: KQ-K +751 (raw +1218), KR-K +288 (raw +467) cp (want KQ-K>=800, KR-K>=400)"
+      ],
+      "ok_details": [
+        "ok   S1 startpos: +25.9 cp (raw +42; want -10..+60)",
+        "ok   S2 start vs 1.e4, side-to-move part: M +9.9 cp (want |M| <= 20); after 1.e4 (Black to move) -6.2 cp (raw -10), sum +19.7 cp (raw +32; version 1: want |sum| <= 40)",
+        "ok   S2w start vs 1.e4, White part: W +16.0 cp (want -10..+60)",
+        "ok   S3 colour flip: differences [0, 0, 0, 0] raw",
+        "ok   S4 file mirror: differences [0, 0, 0] raw",
+        "ok   S6 middlegame values (proportions): Q 874 (raw 1417), R 432 (raw 700), B 366 (raw 593), N 329 (raw 533), P 110 (raw 179) cp (want Q>=700 R>=350 B>=200 N>=200 P>=40)",
+        "ok   S8 quiet pairs from ply 8: QGD 4...Be7 / 5.e3: P +3.7 (raw +6), P' -0.6 (raw -1), W +2.2, M +1.5; Italian 5...d6 / 6.O-O: P +19.1 (raw +31), P' -15.4 (raw -25), W +17.3, M +1.9 (want |M| <= 20, W -10..+60)"
+      ],
+      "stderr": "",
+      "raw_stdout": "net C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_skipnoisy\\cand.fnn3\n  unit: one classical pawn = (Q+R+B+N)/20 = 162.2 raw (1.62 raw per cp)\n  ok   S1 startpos: +25.9 cp (raw +42; want -10..+60)\n  ok   S2 start vs 1.e4, side-to-move part: M +9.9 cp (want |M| <= 20); after 1.e4 (Black to move) -6.2 cp (raw -10), sum +19.7 cp (raw +32; version 1: want |sum| <= 40)\n  ok   S2w start vs 1.e4, White part: W +16.0 cp (want -10..+60)\n  ok   S3 colour flip: differences [0, 0, 0, 0] raw\n  ok   S4 file mirror: differences [0, 0, 0] raw\n  FLAG S5 dead draws: K-K +10 (raw +16), KN-K -32 (raw -52), KB-K -28 (raw -45), KNN-K +60 (raw +97) cp (want |e| <= 50)\n  ok   S6 middlegame values (proportions): Q 874 (raw 1417), R 432 (raw 700), B 366 (raw 593), N 329 (raw 533), P 110 (raw 179) cp (want Q>=700 R>=350 B>=200 N>=200 P>=40)\n  FLAG S7 won endings: KQ-K +751 (raw +1218), KR-K +288 (raw +467) cp (want KQ-K>=800, KR-K>=400)\n  ok   S8 quiet pairs from ply 8: QGD 4...Be7 / 5.e3: P +3.7 (raw +6), P' -0.6 (raw -1), W +2.2, M +1.5; Italian 5...d6 / 6.O-O: P +19.1 (raw +31), P' -15.4 (raw -25), W +17.3, M +1.9 (want |M| <= 20, W -10..+60)\n  => 2 FLAG(s): S5 dead draws, S7 won endings"
+    },
+    "eval_net_full": {
+      "status": "PASS",
+      "elapsed_s": 1.5663,
+      "script_elapsed_s": 1.4,
+      "m4_n": 4000,
+      "m4_wdl_mse": 0.01314,
+      "m4_corr": 0.7601,
+      "m4_opp_wing_n": 718,
+      "m4_opp_wing_wdl_mse": 0.01606,
+      "ob0_ob1_cliff_n": 100,
+      "ob0_ob1_cliff_median_jump_cp": 108.5,
+      "m4_mid20_26_ols_piece_cp": {
+        "P": 76.7,
+        "N": 267.6,
+        "B": 304.1,
+        "R": 383.9,
+        "Q": 691.1,
+        "tempo": 1.6
+      },
+      "errors": []
+    },
+    "loader_safety": {
+      "status": "PASS",
+      "elapsed_s": 0.2219,
+      "v3p_supported": false,
+      "passed": 13,
+      "total": 13,
+      "cases": [
+        "missing_file",
+        "empty_0B",
+        "trunc_7B",
+        "trunc_192B",
+        "trunc_minus1B",
+        "trailing_plus4B",
+        "bad_magic",
+        "bad_version",
+        "unknown_flag",
+        "bad_checksum",
+        "residual_refused",
+        "oob_w2_128",
+        "oob_acc_32768"
+      ],
+      "failures": []
+    }
+  }
+}

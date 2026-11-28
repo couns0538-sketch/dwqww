@@ -1,0 +1,39 @@
+{
+  "written": "2026-11-28 07:56:00 PC",
+  "request_ref": "OPUS-2811-CLOCK-RECOUNTED-AND-R1-TWIN Point 3 (triggered by Seed-1 SPRT [0,10] H1 acceptance: +15.49 [+6.12, +24.89], LLR=+2.97)",
+  "seed": 2,
+  "runner": "C:\\nnue-lab\\neon\\forge_fixes\\run_opus_r1_keep_twin.py (--seed 2 vs --seed 2 --skip-noisy; pipeline/forge_train_v3.py unchanged)",
+  "window": "r0178..r0202 (exact 25 rounds, b_full.pt w=0.2, hidden=768, 40 epochs, lr=0.0005, batch=8192, mix=0.75, w1-decay=0.3)",
+  "nets_training": {
+    "r1_keep_seed2": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_keepnoisy_seed2\\cand.fnn3",
+    "r1_skip_seed2": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_skipnoisy_seed2\\cand.fnn3"
+  },
+  "matches_declared": [
+    {
+      "name": "OPUS_R1_skip_vs_R1_keep_SEED2_SPRT_0_10_250k",
+      "exe_both": "C:\\nnue-lab\\neon\\forge_fixes\\builds\\base_r15dsg.exe",
+      "cand_net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_skipnoisy_seed2\\cand.fnn3",
+      "base_net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_keepnoisy_seed2\\cand.fnn3",
+      "book": "C:/nnue-lab/tools/book/UHO_Lichess_4852_v1.epd",
+      "nodes": 250000,
+      "concurrency": 8,
+      "seed": 202611953,
+      "sprt": {"elo0": 0, "elo1": 10, "alpha": 0.05, "beta": 0.05, "model": "normalized"},
+      "max_games": 3000,
+      "decision_rule": "Independent Seed-2 replicate of R1-skip vs R1-keep (never pooled with Seed-1). H1 accepted => confirms removing --keep-noisy across two independent training seeds; H0 => reject; cap => inconclusive."
+    },
+    {
+      "name": "OPUS_R1_skip_vs_r0067_2000g_6p006",
+      "exe_both": "C:\\nnue-lab\\runs\\forge\\engines\\v3-r15dsg-sp-clang\\forge.exe",
+      "cand_net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_skipnoisy\\cand.fnn3",
+      "base_net": "C:\\nnue-lab\\runs\\forge\\r0067\\train\\cand.fnn3",
+      "book": "C:/nnue-lab/tools/book/UHO_Lichess_4852_v1.epd",
+      "tc": "6+0.06",
+      "concurrency": 7,
+      "games": 2000,
+      "seed": 202611954,
+      "isolation": "100% idle GPU + 100% idle CPU, CLOCK_MATCH_RUNNING set",
+      "decision_rule": "Equal-time confirmation of R1-skip vs live best r0067 on identical live PGO forge.exe (95% pentanomial CI)."
+    }
+  ]
+}

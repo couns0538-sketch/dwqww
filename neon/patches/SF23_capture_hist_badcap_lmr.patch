@@ -1,0 +1,36 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2413,7 +2413,13 @@
+             if (gives_check) r -= 1;
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+-            if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            if (quiet) {
++                r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            } else if (capture) {
++                // Clean-room Stockfish capture-history & cached bad-capture LMR adjustment.
++                r -= std::clamp(history / 6000, -1, 1);
++                if (!gives_check && !picker.last_move_see_nonnegative()) ++r;
++            }
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+                 const int correction_cp = ss->static_eval - ss->raw_eval;
+@@ -2439,9 +2445,15 @@
+                 }
+                 full_depth_needed = false;
+             }
+-            if (!aborted_ && quiet && score > alpha) {
+-                // A late quiet move that beat expectations deserves a history boost.
+-                update_continuation(ss, moved, move.to, history_bonus(depth) / 2);
++            if (!aborted_ && score > alpha) {
++                if (quiet) {
++                    // A late quiet move that beat expectations deserves a history boost.
++                    update_continuation(ss, moved, move.to, history_bonus(depth) / 2);
++                } else if (capture) {
++                    const int captured = piece_type(board.captured_piece(move));
++                    apply_history((*capture_history_)[static_cast<std::size_t>(moved)][move.to][static_cast<std::size_t>(captured)],
++                                  history_bonus(depth) / 2);
++                }
+             }
+         }
+         if (full_depth_needed && !aborted_) {

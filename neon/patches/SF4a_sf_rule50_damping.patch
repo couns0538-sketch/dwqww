@@ -1,0 +1,30 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -363,9 +363,9 @@
+ // a sliver. Mate scores and ValueNone are never scaled. The hash table stores
+ // the unscaled raw evaluation; this is not applied on the way in.
+ [[nodiscard]] inline int rule50_damped_static(int score, int halfmove) {
+-    if (!tune::EvalRule50Damp || score == ValueNone || is_mate_score(score)) return score;
+-    const int clock = halfmove < 0 ? 0 : (halfmove > 100 ? 100 : halfmove);
+-    return score * (100 - clock) / 100;
++    if (score == ValueNone || is_mate_score(score) || halfmove <= 0) return score;
++    const int clock = halfmove > 100 ? 100 : halfmove;
++    return score - score * clock / 189;
+ }
+ 
+ // Quiet late-move reduction with a signed fraction of a ply from the eval
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -285,9 +285,9 @@
+ // is reused only at that same clock. The raw eval slot stays unscaled and is
+ // scaled again for whatever clock reads it. Option off keeps every score usable.
+ [[nodiscard]] bool rule50_score_for_this_clock(std::uint8_t stored_clock, int halfmove) {
+-    if (!tune::EvalRule50Damp) return true;
+-    const int clock = halfmove < 0 ? 0 : (halfmove > 100 ? 100 : halfmove);
+-    return stored_clock == static_cast<std::uint8_t>(clock);
++    (void)stored_clock;
++    (void)halfmove;
++    return true;
+ }
+ 
+ [[nodiscard]] int mated_in(int ply) { return -MateValue + ply; }

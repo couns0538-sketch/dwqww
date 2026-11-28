@@ -1,0 +1,16 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1849,6 +1849,13 @@
+         ++move_count;
+         if (mate_moves_ == 0 && !in_check && best_score > -MateInMaxPly) {
+             const bool gives_check = board.gives_check(move);
++            // SF32 (clean-room Stockfish qsearch futility): if stand-pat + margin <= alpha and SEE <= 0
++            // (equal or losing exchange, e.g. defended QxQ/RxR trade), capture cannot lift score above alpha.
++            if (!gives_check && !move.is_promotion() && !is_mate_score(alpha) &&
++                futility_base <= alpha && !board.see_ge(move, 1)) {
++                best_score = std::max(best_score, futility_base);
++                continue;
++            }
+             // Futility: even winning the captured piece cannot raise alpha.
+             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
+                 best_score = std::max(best_score, futility_base + capture_value(board, move));

@@ -1,0 +1,61 @@
+--- a/include/forge/eval.hpp
++++ b/include/forge/eval.hpp
+@@ -51,6 +51,7 @@
+ // king score 0; king, bishop and knight versus king scores a corner drive.
+ // Returns false for every other position and leaves `score` untouched.
+ [[nodiscard]] bool dead_material_score(const Board& board, int& score);
++[[nodiscard]] int scale_v3_eval(const Board& board, int stm_eval);
+ 
+ class Evaluator {
+ public:
+--- a/src/eval.cpp
++++ b/src/eval.cpp
+@@ -511,6 +511,37 @@
+ 
+ } // namespace
+ 
++int scale_v3_eval(const Board& board, int stm_eval) {
++    if (stm_eval == 0) return 0;
++    const Color strong = stm_eval > 0 ? board.side_to_move() : opposite(board.side_to_move());
++    const Color weak = opposite(strong);
++    const Bitboard strong_pawns = board.pieces(strong, Pawn);
++    auto non_pawn = [&](Color c) {
++        return PieceValueMg[Knight] * popcount(board.pieces(c, Knight)) +
++               PieceValueMg[Bishop] * popcount(board.pieces(c, Bishop)) +
++               PieceValueMg[Rook] * popcount(board.pieces(c, Rook)) +
++               PieceValueMg[Queen] * popcount(board.pieces(c, Queen));
++    };
++    const int strong_np = non_pawn(strong);
++    const int weak_np = non_pawn(weak);
++    // Exact dead draws & pawnless <=1-minor-ahead endings (reusing eval.cpp scale_factor logic).
++    if (strong_pawns == 0 && strong_np - weak_np <= PieceValueMg[Bishop]) {
++        if (strong_np < PieceValueMg[Rook]) return 0;
++        return stm_eval * 12 / 64;
++    }
++    // Opposite-coloured bishops damping.
++    const Bitboard wb = board.pieces(White, Bishop);
++    const Bitboard bb = board.pieces(Black, Bishop);
++    if (popcount(wb) == 1 && popcount(bb) == 1 &&
++        ((wb & DarkSquares) != 0) != ((bb & DarkSquares) != 0)) {
++        const bool only_b = (board.pieces(Knight) | board.pieces(Rook) | board.pieces(Queen)) == 0;
++        const int sp = popcount(strong_pawns);
++        const int sf = only_b ? std::min(64, 32 + 4 * sp) : std::min(64, 48 + 2 * sp);
++        stm_eval = stm_eval * sf / 64;
++    }
++    return stm_eval;
++}
++
+ bool dead_material_enabled = false;
+ 
+ bool dead_material_score(const Board& board, int& score) {
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -3419,7 +3419,7 @@
+         std::_Exit(3);
+     }
+ #endif
+-    return value;
++    return scale_v3_eval(board, value);
+ }
+ #endif // FORGE_NNUE_V3
+ 

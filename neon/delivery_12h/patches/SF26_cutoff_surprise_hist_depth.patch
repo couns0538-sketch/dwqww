@@ -1,0 +1,18 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2491,10 +2491,12 @@
+     }
+ 
+     if (best_score >= beta) {
++        const int extra_d = static_cast<int>(best_score > beta + 100) +
++                            static_cast<int>(!in_check && ss->static_eval != ValueNone && ss->static_eval <= alpha);
+         if (!best_move.is_capture() && !best_move.is_promotion()) {
+-            update_quiet_stats(board, ss, best_move, depth + (best_score > beta + 100), quiets_tried.data(), quiet_count);
+-        }
+-        update_capture_stats(board, best_move, depth, captures_tried.data(), capture_count);
++            update_quiet_stats(board, ss, best_move, depth + extra_d, quiets_tried.data(), quiet_count);
++        }
++        update_capture_stats(board, best_move, depth + (best_score > beta + 100), captures_tried.data(), capture_count);
+     } else if (!best_move.is_none() && (!best_move.is_capture() && !best_move.is_promotion())) {
+         // Even without a cutoff, a new PV move earned its place.
+         apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],

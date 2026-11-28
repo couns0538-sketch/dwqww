@@ -1,0 +1,46 @@
+--- a/pipeline/forge_train.py
++++ b/pipeline/forge_train.py
+@@ -75,8 +75,24 @@
+     return out
+ 
+ 
++def _hce_exe_fingerprint(hce_exe: str) -> str:
++    """Identity of hce_dump.exe for the cache key (Target 149): size + mtime + first 16 hex of sha256."""
++    import hashlib
++    p = Path(hce_exe)
++    st = p.stat()
++    h = hashlib.sha256()
++    with p.open("rb") as fh:
++        for blk in iter(lambda: fh.read(1 << 20), b""):
++            h.update(blk)
++    return f"{st.st_size}:{int(st.st_mtime)}:{h.hexdigest()[:16]}"
++
++
++def _cache_key(st: os.stat_result, hce_exe: str, skip_noisy: bool, skip_check: bool) -> str:
++    return f"{st.st_size}:{int(st.st_mtime)}:{int(skip_noisy)}{int(skip_check)}:{_hce_exe_fingerprint(hce_exe)}:v2"
++
++
+ def _load_one(path: str, hce_exe: str, skip_noisy: bool, skip_check: bool) -> dict:
+-    """One .plain file -> tensors. The result is cached as <file>.cache.npz (keyed by size and time).
++    """One .plain file -> tensors. The result is cached as <file>.cache.npz (keyed by data + filter + hce_exe).
+ 
+     Another filter than the default gets its own cache file (<file>.cache-n?c?.npz), so the two kinds never
+     overwrite each other. The cache is closed before a rebuild: Windows refuses to replace an open file.
+@@ -84,7 +100,7 @@
+     st = os.stat(path)
+     default_filter = skip_noisy and skip_check
+     cache = Path(str(path) + (".cache.npz" if default_filter else f".cache-n{int(skip_noisy)}c{int(skip_check)}.npz"))
+-    key = f"{st.st_size}:{int(st.st_mtime)}:{int(skip_noisy)}{int(skip_check)}:v1"
++    key = _cache_key(st, hce_exe, skip_noisy, skip_check)
+     if cache.exists():
+         try:
+             with np.load(cache, allow_pickle=False) as z:
+@@ -500,7 +516,7 @@
+     st = os.stat(path)
+     default_filter = skip_noisy and skip_check
+     cache = Path(str(path) + (".cache.npz" if default_filter else f".cache-n{int(skip_noisy)}c{int(skip_check)}.npz"))
+-    key = f"{st.st_size}:{int(st.st_mtime)}:{int(skip_noisy)}{int(skip_check)}:v1"
++    key = _cache_key(st, hce_exe, skip_noisy, skip_check)
+     if cache.exists():
+         try:
+             with np.load(cache, allow_pickle=False) as z:

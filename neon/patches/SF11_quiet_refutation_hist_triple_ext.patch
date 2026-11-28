@@ -1,0 +1,21 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2357,7 +2357,7 @@
+             if (singular_score < singular_beta) {
+                 extension = 1;
+                 if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
+-                    extension = 2;
++                    extension = (!tt_capture && singular_score < singular_beta - 150) ? 3 : 2;
+                 }
+             } else if (singular_beta >= beta) {
+                 return singular_beta;
+@@ -2492,7 +2492,8 @@
+ 
+     if (best_score >= beta) {
+         if (!best_move.is_capture() && !best_move.is_promotion()) {
+-            update_quiet_stats(board, ss, best_move, depth + (best_score > beta + 100), quiets_tried.data(), quiet_count);
++            const int bonus_depth = depth + (best_score > beta + 100) + (!in_check && ss->static_eval != ValueNone && ss->static_eval <= alpha);
++            update_quiet_stats(board, ss, best_move, bonus_depth, quiets_tried.data(), quiet_count);
+         }
+         update_capture_stats(board, best_move, depth, captures_tried.data(), capture_count);
+     } else if (!best_move.is_none() && (!best_move.is_capture() && !best_move.is_promotion())) {

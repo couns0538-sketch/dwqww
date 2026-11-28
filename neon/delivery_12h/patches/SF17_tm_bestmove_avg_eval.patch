@@ -1,0 +1,68 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2931,6 +2931,9 @@
+     int stable_iterations = 0;
+     int score = 0;
+     int previous_score = ValueNone;
++    // Clean-room Stockfish/Viridithas TM: decaying best-move instability & running avg score.
++    double tot_best_changes = 0.0;
++    int avg_score = ValueNone;
+     // AspArmLate: a finished root iteration that failed high or low at least
+     // once makes the following iteration use a full window.
+     bool reopen_full_window = false;
+@@ -3142,11 +3145,18 @@
+             emit(depth, score, result.pv);
+         }
+ 
++        tot_best_changes *= 0.5;
+         if (result.best_move == previous_best) ++stable_iterations;
+-        else stable_iterations = 0;
++        else {
++            stable_iterations = 0;
++            if (depth >= 4 && !previous_best.is_none()) tot_best_changes += 1.0;
++        }
+         previous_best = result.best_move;
+         const int iteration_previous_score = previous_score;
+         previous_score = score;
++        if (!is_mate_score(score)) {
++            avg_score = (avg_score == ValueNone) ? score : (2 * score + avg_score) / 3;
++        }
+ 
+         if (mate_moves > 0 && score >= mate_in(mate_moves * 2 - 1)) break;
+         // The iteration above is finished. Passing the soft budget stops here,
+@@ -3163,7 +3173,10 @@
+             double factor = 1.0;
+             if (stable_iterations >= 6) factor = tune::TmStableFactor / 100.0;
+             else if (stable_iterations >= 3) factor = tune::TmSemiStableFactor / 100.0;
+-            else if (stable_iterations == 0 && depth >= 6) factor = tune::TmUnstableFactor / 100.0;
++            else if (depth >= 6) {
++                const double instab = 1.0 + 0.45 * std::min(tot_best_changes, 2.5);
++                factor = std::max(instab, stable_iterations == 0 ? tune::TmUnstableFactor / 100.0 : 1.0);
++            }
+             // A best move that absorbed most of the effort is clearly best;
+             // spend longer when the alternatives still draw attention.
+             if (local_nodes_ > 0 && depth >= 6) {
+@@ -3177,10 +3190,19 @@
+                     factor *= effort_share_factor(effort, tune::TmEffortBase, tune::TmNodeShare);
+                 }
+             }
+-            // A falling evaluation deserves more thought.
+-            if (iteration_previous_score != ValueNone && !is_mate_score(score) && score < iteration_previous_score) {
+-                const int drop = std::min(iteration_previous_score - score, 150);
+-                factor *= 1.0 + drop * tune::TmFallingEvalPercent / 10000.0;
++            // A falling evaluation (either 1-ply or vs running average) deserves more thought.
++            if (!is_mate_score(score)) {
++                int drop = 0;
++                if (iteration_previous_score != ValueNone && score < iteration_previous_score) {
++                    drop = std::max(drop, iteration_previous_score - score);
++                }
++                if (avg_score != ValueNone && score < avg_score) {
++                    drop = std::max(drop, avg_score - score);
++                }
++                if (drop > 0) {
++                    drop = std::min(drop, 150);
++                    factor *= 1.0 + drop * tune::TmFallingEvalPercent / 10000.0;
++                }
+             }
+             factor = std::max(factor, tune::TmMinFactorPercent / 100.0);
+             // TmNodeShare is clock play only: this block is skipped for depth,

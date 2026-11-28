@@ -1,0 +1,547 @@
+{
+  "declaration": {
+    "written": "2026-11-28 02:44:59",
+    "request_ref": "OPUS-2811-OWNER-BUNDLE-TEST (01:18 PC)",
+    "bundle_exe": "C:\\nnue-lab\\neon\\forge_fixes\\builds\\FORGE_OWNER_BUNDLE_PGO.exe",
+    "bundle_exe_sha256": "95d0608e1a6c4c4ba6606a6ba2a8e4562280f71129b33d5d71f65b7e3c8941b0",
+    "bundle_exe_bytes": 2447872,
+    "bundle_patch": "C:\\nnue-lab\\neon\\forge_fixes\\patches\\FORGE_OWNER_BUNDLE_PGO.patch",
+    "bundle_patch_sha256": "f441957d44396bd022bbdb0dc723416af23d0921c5230d3aa3926431bccff0d8",
+    "live_pgo_exe": "C:\\nnue-lab\\runs\\forge\\engines\\v3-r15dsg-sp-clang\\forge.exe",
+    "live_pgo_exe_sha256": "cef2f21589102392fdd7e3cbde74bfd01baa94f9677a2be33365f68e4bceb03d",
+    "g3_net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\G3_FULL25_v3p_1024_cc0_anchored\\cand.fnn3",
+    "g3_net_sha256": "7ff7789032491aa732846db17ad24ec7fc95c6cb9ad177490f5a06fcccbb9763",
+    "r0067_net": "C:\\nnue-lab\\runs\\forge\\r0067\\train\\cand.fnn3",
+    "r0067_net_sha256": "737f197808fef489017cf46f4daf76663d805bb01761e2b1781fc46fa7c9fc28",
+    "pgo_profile": "Dual-Net Clang ThinLTO+PGO (G3_FULL25 d11/13/16 + r0067 d11/13/15, all 45 live v3_uci_options + LmrDeeperShallower=true)",
+    "build_seconds": 0.0,
+    "patches_included": [
+      {
+        "patch": "C:\\nnue-lab\\neon\\forge_fixes\\patches\\V3P_pairwise_psqt_fused_v3.patch",
+        "name": "V3P_pairwise_psqt_fused_v3.patch",
+        "sha256": "57f3455f185463cfa7859727da9c6a91bcaadb3934da4492a6e78029dcaac763"
+      },
+      {
+        "patch": "C:\\nnue-lab\\neon\\forge_fixes\\patches\\SF13_qs_evasion_pruning.patch",
+        "name": "SF13_qs_evasion_pruning.patch",
+        "sha256": "63eb3288af4712a7d641035177e561448e6fc94041d8ee916776ab3fced6b6e4"
+      },
+      {
+        "patch": "C:\\nnue-lab\\neon\\forge_fixes\\patches\\SF8_conthist_6ply.patch",
+        "name": "SF8_conthist_6ply.patch",
+        "sha256": "62dcf1f3da0ac212a3807e59eb61e144b3705ea2a8a716b70a391e81af4c8779"
+      },
+      {
+        "patch": "C:\\nnue-lab\\neon\\forge_fixes\\teamwork_wave2\\streamA_search\\patches\\proto_1_corrhist_minor.patch",
+        "name": "proto_1_corrhist_minor.patch",
+        "sha256": "e1cd152b4d78cd7880f55dd8967eb561fe246fe5773232ce22825df5b2071b14"
+      }
+    ],
+    "extra_uci_options_on_bundle": {
+      "LmrDeeperShallower": true
+    },
+    "explicitly_excluded": [
+      "SF4b1_v3_endgame_scale (-4.52 in 1000g confirm)",
+      "SF15_rfp_failsoft_blend (-0.35 in 1000g confirm)",
+      "All negative patches (SF7, SF4b2, SF5a, EvasionOrdering, W2_proto_3, W2_proto_4)",
+      "All unscreened Wave 4-6 patches (SF17..SF40, proto_9, proto_10)",
+      "obm4 (training recipe, not a C++ search patch; already represented via G3_FULL25 anchors)"
+    ],
+    "gates": {
+      "perft5": 4865609,
+      "g3_full_hard_pass": true,
+      "r0067_quick_hard_pass": true
+    },
+    "benches": {
+      "builtin_default_11_13": {
+        "d11": {
+          "nodes": 313265,
+          "time_ms": 130,
+          "nps": 2409730
+        },
+        "d13": {
+          "nodes": 773794,
+          "time_ms": 329,
+          "nps": 2351957
+        }
+      },
+      "r0067_plus_B4_live_opts_11_13": {
+        "d11": {
+          "nodes": 209374,
+          "time_ms": 67,
+          "nps": 3124985
+        },
+        "d13": {
+          "nodes": 493972,
+          "time_ms": 151,
+          "nps": 3271337
+        }
+      },
+      "r0067_plus_B4_plus_LmrDeeper_11_13": {
+        "d11": {
+          "nodes": 223638,
+          "time_ms": 72,
+          "nps": 3106083
+        },
+        "d13": {
+          "nodes": 528382,
+          "time_ms": 165,
+          "nps": 3202315
+        }
+      },
+      "G3_plus_B4_plus_LmrDeeper_11_13": {
+        "d11": {
+          "nodes": 222600,
+          "time_ms": 80,
+          "nps": 2782500
+        },
+        "d13": {
+          "nodes": 419338,
+          "time_ms": 148,
+          "nps": 2833364
+        }
+      }
+    },
+    "clean_idle_nps": {
+      "runs": {
+        "live_pgo_r0067": [
+          {
+            "nodes": 576076,
+            "time_ms": 167,
+            "nps": 3449556
+          },
+          {
+            "nodes": 576076,
+            "time_ms": 168,
+            "nps": 3429023
+          },
+          {
+            "nodes": 576076,
+            "time_ms": 167,
+            "nps": 3449556
+          }
+        ],
+        "bundle_pgo_r0067": [
+          {
+            "nodes": 528382,
+            "time_ms": 165,
+            "nps": 3202315
+          },
+          {
+            "nodes": 528382,
+            "time_ms": 164,
+            "nps": 3221841
+          },
+          {
+            "nodes": 528382,
+            "time_ms": 164,
+            "nps": 3221841
+          }
+        ],
+        "bundle_pgo_G3": [
+          {
+            "nodes": 419338,
+            "time_ms": 150,
+            "nps": 2795586
+          },
+          {
+            "nodes": 419338,
+            "time_ms": 148,
+            "nps": 2833364
+          },
+          {
+            "nodes": 419338,
+            "time_ms": 148,
+            "nps": 2833364
+          }
+        ]
+      },
+      "median_nps": {
+        "live_pgo_r0067": 3449556,
+        "bundle_pgo_r0067": 3221841,
+        "bundle_pgo_G3": 2833364
+      },
+      "ratio_bundle_r0067_vs_live": 0.934,
+      "ratio_bundle_G3_vs_live": 0.8214
+    },
+    "arms": {
+      "ARM_A_owners": {
+        "name": "OWNER_BUNDLE_ARMA_bundleG3_vs_liveR0067_2000g_6p006",
+        "cand": "FORGE_OWNER_BUNDLE_PGO.exe (LmrDeeperShallower=true) + G3_FULL25/cand.fnn3",
+        "base": "v3-r15dsg-sp-clang/forge.exe + r0067/train/cand.fnn3",
+        "games": 2000,
+        "tc": "6+0.06",
+        "concurrency": 7,
+        "seed": 202611901
+      },
+      "ARM_B_control": {
+        "name": "OWNER_BUNDLE_ARMB_bundleR0067_vs_liveR0067_2000g_6p006",
+        "cand": "FORGE_OWNER_BUNDLE_PGO.exe (LmrDeeperShallower=true) + r0067/train/cand.fnn3",
+        "base": "v3-r15dsg-sp-clang/forge.exe + r0067/train/cand.fnn3",
+        "games": 2000,
+        "tc": "6+0.06",
+        "concurrency": 7,
+        "seed": 202611902
+      }
+    },
+    "decision_rule": "Evaluate each arm on its own 95% pentanomial Elo CI; any placement still goes by lab-place-a-change."
+  },
+  "arms": {
+    "ARM_A_owners": {
+      "elo": "-7.47",
+      "elo_err": "8.01",
+      "nelo": "-14.20",
+      "nelo_err": "15.23",
+      "games": 2000,
+      "wins": 449,
+      "losses": 492,
+      "draws": 1059,
+      "score_pct": 48.93,
+      "ptnml": [
+        10,
+        260,
+        502,
+        219,
+        9
+      ],
+      "los_pct": 3.38,
+      "verdict": "none",
+      "finished": true,
+      "time_forfeits_by_engine": {},
+      "time_losses": 0,
+      "disconnects": 0,
+      "illegal_moves": 0,
+      "exit_code": 0,
+      "seconds": 5637.5,
+      "heat": {
+        "on": true,
+        "clock": true,
+        "cpu_max_c": 77.4,
+        "seconds_at_limit": 0,
+        "threads_total": 16,
+        "threads_fewest": 16,
+        "changes": 0,
+        "seconds_lost": 0,
+        "stopped_for_heat": false,
+        "stopped_without_reading": false
+      },
+      "pgn": "C:\\nnue-lab\\neon\\forge_fixes\\matches\\OWNER_BUNDLE_ARMA_bundleG3_vs_liveR0067_2000g_6p006\\games_20261128_024459.pgn",
+      "declaration": {
+        "written": "2026-11-28 02:44:59",
+        "name": "OWNER_BUNDLE_ARMA_bundleG3_vs_liveR0067_2000g_6p006",
+        "cand_exe": "C:\\nnue-lab\\neon\\forge_fixes\\builds\\FORGE_OWNER_BUNDLE_PGO.exe",
+        "cand_exe_sha256": "95d0608e1a6c4c4ba6606a6ba2a8e4562280f71129b33d5d71f65b7e3c8941b0",
+        "cand_net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\G3_FULL25_v3p_1024_cc0_anchored\\cand.fnn3",
+        "cand_net_sha256": "7ff7789032491aa732846db17ad24ec7fc95c6cb9ad177490f5a06fcccbb9763",
+        "base_exe": "C:\\nnue-lab\\runs\\forge\\engines\\v3-r15dsg-sp-clang\\forge.exe",
+        "base_exe_sha256": "cef2f21589102392fdd7e3cbde74bfd01baa94f9677a2be33365f68e4bceb03d",
+        "base_net": "C:\\nnue-lab\\runs\\forge\\r0067\\train\\cand.fnn3",
+        "base_net_sha256": "737f197808fef489017cf46f4daf76663d805bb01761e2b1781fc46fa7c9fc28",
+        "book": "C:/nnue-lab/tools/book/UHO_Lichess_4852_v1.epd",
+        "book_sha256": "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a",
+        "cand_uci": {
+          "Threads": 1,
+          "Hash": 16,
+          "OwnBook": false,
+          "MateAlphaGuard": true,
+          "LmrQuietBase": 132,
+          "LmrQuietDivisor": 176,
+          "LmrNoisyBase": 25,
+          "LmrNoisyDivisor": 336,
+          "LmrHistoryDivisor": 6721,
+          "NullMoveBase": 5,
+          "LmpBase": 13,
+          "HistoryPruneMultiplier": 1945,
+          "HistoryBonusQuadratic": 49,
+          "HistoryBonusLinear": 90,
+          "HistoryBonusMax": 2429,
+          "SingularDepth": 6,
+          "IirDepth": 5,
+          "NonPawnCorrection": true,
+          "CuckooRep": true,
+          "HistRework": 2,
+          "TtPruneV2": true,
+          "CorrHistV2": true,
+          "DrawJitter": 2,
+          "NullMoveMinDepth": 2,
+          "NullMoveDepthDivisor": 4,
+          "NullMoveEvalDivisor": 184,
+          "RfpDepth": 6,
+          "RfpMargin": 84,
+          "RfpImproving": 37,
+          "RazorDepth": 3,
+          "RazorBase": 182,
+          "RazorMultiplier": 379,
+          "FutilityDepth": 8,
+          "FutilityBase": 12,
+          "FutilityMultiplier": 59,
+          "HistoryPruneDepth": 2,
+          "SeeQuietMultiplier": 15,
+          "SeeNoisyMultiplier": 83,
+          "SingularMargin": 3,
+          "ProbcutDepth": 7,
+          "ProbcutMargin": 168,
+          "QsFutilityMargin": 123,
+          "AspirationDelta": 16,
+          "CheckExtensionDepth": 3,
+          "LmrCutoffThreshold": 9,
+          "MaterialCorrectionWeight": 48,
+          "CaptureFutilityBase": 45,
+          "FailLowContinuationBonus": 41,
+          "EvalSwingMult": 15,
+          "NNUEArchFile": "C:/nnue-lab/neon/forge_fixes/gpu_runs/G3_FULL25_v3p_1024_cc0_anchored/cand.fnn3",
+          "NNUEArch": true,
+          "LmrDeeperShallower": true
+        },
+        "base_uci": {
+          "Threads": 1,
+          "Hash": 16,
+          "OwnBook": false,
+          "MateAlphaGuard": true,
+          "LmrQuietBase": 132,
+          "LmrQuietDivisor": 176,
+          "LmrNoisyBase": 25,
+          "LmrNoisyDivisor": 336,
+          "LmrHistoryDivisor": 6721,
+          "NullMoveBase": 5,
+          "LmpBase": 13,
+          "HistoryPruneMultiplier": 1945,
+          "HistoryBonusQuadratic": 49,
+          "HistoryBonusLinear": 90,
+          "HistoryBonusMax": 2429,
+          "SingularDepth": 6,
+          "IirDepth": 5,
+          "NonPawnCorrection": true,
+          "CuckooRep": true,
+          "HistRework": 2,
+          "TtPruneV2": true,
+          "CorrHistV2": true,
+          "DrawJitter": 2,
+          "NullMoveMinDepth": 2,
+          "NullMoveDepthDivisor": 4,
+          "NullMoveEvalDivisor": 184,
+          "RfpDepth": 6,
+          "RfpMargin": 84,
+          "RfpImproving": 37,
+          "RazorDepth": 3,
+          "RazorBase": 182,
+          "RazorMultiplier": 379,
+          "FutilityDepth": 8,
+          "FutilityBase": 12,
+          "FutilityMultiplier": 59,
+          "HistoryPruneDepth": 2,
+          "SeeQuietMultiplier": 15,
+          "SeeNoisyMultiplier": 83,
+          "SingularMargin": 3,
+          "ProbcutDepth": 7,
+          "ProbcutMargin": 168,
+          "QsFutilityMargin": 123,
+          "AspirationDelta": 16,
+          "CheckExtensionDepth": 3,
+          "LmrCutoffThreshold": 9,
+          "MaterialCorrectionWeight": 48,
+          "CaptureFutilityBase": 45,
+          "FailLowContinuationBonus": 41,
+          "EvalSwingMult": 15,
+          "NNUEArchFile": "C:/nnue-lab/runs/forge/r0067/train/cand.fnn3",
+          "NNUEArch": true
+        },
+        "games": 2000,
+        "nodes": 0,
+        "tc": "6+0.06",
+        "sprt": "",
+        "acceptance_rule": "Owner Bundle Arm A: FORGE_OWNER_BUNDLE_PGO (V3Pv3+SF13+SF8+W2P1 + LmrDeeperShallower=true) + G3_FULL25 vs live PGO + r0067, 2000g @ 6+0.06 conc=7",
+        "concurrency": 7,
+        "seed": 202611901
+      },
+      "pentanomial_exact": {
+        "pairs": 1000,
+        "games": 2000,
+        "score_pct": 48.925,
+        "elo": -7.47,
+        "elo_ci95_lo": -15.49,
+        "elo_ci95_hi": 0.54,
+        "z": -1.827,
+        "los_pct": 3.38
+      }
+    },
+    "ARM_B_control": {
+      "elo": "3.82",
+      "elo_err": "7.76",
+      "nelo": "7.50",
+      "nelo_err": "15.23",
+      "games": 2000,
+      "wins": 439,
+      "losses": 417,
+      "draws": 1144,
+      "score_pct": 50.55,
+      "ptnml": [
+        5,
+        227,
+        516,
+        245,
+        7
+      ],
+      "los_pct": 83.28,
+      "verdict": "none",
+      "finished": true,
+      "time_forfeits_by_engine": {},
+      "time_losses": 0,
+      "disconnects": 0,
+      "illegal_moves": 0,
+      "exit_code": 0,
+      "seconds": 5737.1,
+      "heat": {
+        "on": true,
+        "clock": true,
+        "cpu_max_c": 76.6,
+        "seconds_at_limit": 0,
+        "threads_total": 16,
+        "threads_fewest": 16,
+        "changes": 0,
+        "seconds_lost": 0,
+        "stopped_for_heat": false,
+        "stopped_without_reading": false
+      },
+      "pgn": "C:\\nnue-lab\\neon\\forge_fixes\\matches\\OWNER_BUNDLE_ARMB_bundleR0067_vs_liveR0067_2000g_6p006\\games_20261128_041857.pgn",
+      "declaration": {
+        "written": "2026-11-28 04:18:57",
+        "name": "OWNER_BUNDLE_ARMB_bundleR0067_vs_liveR0067_2000g_6p006",
+        "cand_exe": "C:\\nnue-lab\\neon\\forge_fixes\\builds\\FORGE_OWNER_BUNDLE_PGO.exe",
+        "cand_exe_sha256": "95d0608e1a6c4c4ba6606a6ba2a8e4562280f71129b33d5d71f65b7e3c8941b0",
+        "cand_net": "C:\\nnue-lab\\runs\\forge\\r0067\\train\\cand.fnn3",
+        "cand_net_sha256": "737f197808fef489017cf46f4daf76663d805bb01761e2b1781fc46fa7c9fc28",
+        "base_exe": "C:\\nnue-lab\\runs\\forge\\engines\\v3-r15dsg-sp-clang\\forge.exe",
+        "base_exe_sha256": "cef2f21589102392fdd7e3cbde74bfd01baa94f9677a2be33365f68e4bceb03d",
+        "base_net": "C:\\nnue-lab\\runs\\forge\\r0067\\train\\cand.fnn3",
+        "base_net_sha256": "737f197808fef489017cf46f4daf76663d805bb01761e2b1781fc46fa7c9fc28",
+        "book": "C:/nnue-lab/tools/book/UHO_Lichess_4852_v1.epd",
+        "book_sha256": "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a",
+        "cand_uci": {
+          "Threads": 1,
+          "Hash": 16,
+          "OwnBook": false,
+          "MateAlphaGuard": true,
+          "LmrQuietBase": 132,
+          "LmrQuietDivisor": 176,
+          "LmrNoisyBase": 25,
+          "LmrNoisyDivisor": 336,
+          "LmrHistoryDivisor": 6721,
+          "NullMoveBase": 5,
+          "LmpBase": 13,
+          "HistoryPruneMultiplier": 1945,
+          "HistoryBonusQuadratic": 49,
+          "HistoryBonusLinear": 90,
+          "HistoryBonusMax": 2429,
+          "SingularDepth": 6,
+          "IirDepth": 5,
+          "NonPawnCorrection": true,
+          "CuckooRep": true,
+          "HistRework": 2,
+          "TtPruneV2": true,
+          "CorrHistV2": true,
+          "DrawJitter": 2,
+          "NullMoveMinDepth": 2,
+          "NullMoveDepthDivisor": 4,
+          "NullMoveEvalDivisor": 184,
+          "RfpDepth": 6,
+          "RfpMargin": 84,
+          "RfpImproving": 37,
+          "RazorDepth": 3,
+          "RazorBase": 182,
+          "RazorMultiplier": 379,
+          "FutilityDepth": 8,
+          "FutilityBase": 12,
+          "FutilityMultiplier": 59,
+          "HistoryPruneDepth": 2,
+          "SeeQuietMultiplier": 15,
+          "SeeNoisyMultiplier": 83,
+          "SingularMargin": 3,
+          "ProbcutDepth": 7,
+          "ProbcutMargin": 168,
+          "QsFutilityMargin": 123,
+          "AspirationDelta": 16,
+          "CheckExtensionDepth": 3,
+          "LmrCutoffThreshold": 9,
+          "MaterialCorrectionWeight": 48,
+          "CaptureFutilityBase": 45,
+          "FailLowContinuationBonus": 41,
+          "EvalSwingMult": 15,
+          "NNUEArchFile": "C:/nnue-lab/runs/forge/r0067/train/cand.fnn3",
+          "NNUEArch": true,
+          "LmrDeeperShallower": true
+        },
+        "base_uci": {
+          "Threads": 1,
+          "Hash": 16,
+          "OwnBook": false,
+          "MateAlphaGuard": true,
+          "LmrQuietBase": 132,
+          "LmrQuietDivisor": 176,
+          "LmrNoisyBase": 25,
+          "LmrNoisyDivisor": 336,
+          "LmrHistoryDivisor": 6721,
+          "NullMoveBase": 5,
+          "LmpBase": 13,
+          "HistoryPruneMultiplier": 1945,
+          "HistoryBonusQuadratic": 49,
+          "HistoryBonusLinear": 90,
+          "HistoryBonusMax": 2429,
+          "SingularDepth": 6,
+          "IirDepth": 5,
+          "NonPawnCorrection": true,
+          "CuckooRep": true,
+          "HistRework": 2,
+          "TtPruneV2": true,
+          "CorrHistV2": true,
+          "DrawJitter": 2,
+          "NullMoveMinDepth": 2,
+          "NullMoveDepthDivisor": 4,
+          "NullMoveEvalDivisor": 184,
+          "RfpDepth": 6,
+          "RfpMargin": 84,
+          "RfpImproving": 37,
+          "RazorDepth": 3,
+          "RazorBase": 182,
+          "RazorMultiplier": 379,
+          "FutilityDepth": 8,
+          "FutilityBase": 12,
+          "FutilityMultiplier": 59,
+          "HistoryPruneDepth": 2,
+          "SeeQuietMultiplier": 15,
+          "SeeNoisyMultiplier": 83,
+          "SingularMargin": 3,
+          "ProbcutDepth": 7,
+          "ProbcutMargin": 168,
+          "QsFutilityMargin": 123,
+          "AspirationDelta": 16,
+          "CheckExtensionDepth": 3,
+          "LmrCutoffThreshold": 9,
+          "MaterialCorrectionWeight": 48,
+          "CaptureFutilityBase": 45,
+          "FailLowContinuationBonus": 41,
+          "EvalSwingMult": 15,
+          "NNUEArchFile": "C:/nnue-lab/runs/forge/r0067/train/cand.fnn3",
+          "NNUEArch": true
+        },
+        "games": 2000,
+        "nodes": 0,
+        "tc": "6+0.06",
+        "sprt": "",
+        "acceptance_rule": "Owner Bundle Arm B (Attribution Control): FORGE_OWNER_BUNDLE_PGO (V3Pv3+SF13+SF8+W2P1 + LmrDeeperShallower=true) + r0067 vs live PGO + r0067, 2000g @ 6+0.06 conc=7",
+        "concurrency": 7,
+        "seed": 202611902
+      },
+      "pentanomial_exact": {
+        "pairs": 1000,
+        "games": 2000,
+        "score_pct": 50.55,
+        "elo": 3.82,
+        "elo_ci95_lo": -3.94,
+        "elo_ci95_hi": 11.59,
+        "z": 0.965,
+        "los_pct": 83.27
+      }
+    }
+  }
+}

@@ -1,0 +1,116 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -280,6 +280,7 @@
+ extern int HistoryBonusQuadratic;
+ extern int HistoryBonusLinear;
+ extern int HistoryBonusMax;
++extern int HistMalusLmpRefine;     // 0 = off, 1 = asymmetric quiet malus + improving/cut-node LMP scaling
+ extern int LmrHistoryDivisor;
+ extern int CheckExtensionDepth;
+ extern int LmrCutoffThreshold;    // child cutoff count above which late moves are reduced more (0 = off)
+@@ -588,8 +589,8 @@
+     // change of a quiet move's score when part of its butterfly term comes from the twin, and the twin's update.
+     [[nodiscard]] std::int16_t& rework_entry(const Board& board, const SearchStack* ss, Move move) const;
+     [[nodiscard]] int rework_quiet_delta(const Board& board, const SearchStack* ss, Move move) const;
+-    void update_rework_history(const Board& board, const SearchStack* ss, Move best, int bonus, const Move* quiets,
+-                               int quiet_count);
++    void update_rework_history(const Board& board, const SearchStack* ss, Move best, int bonus, int malus,
++                               const Move* quiets, int quiet_count);
+     [[nodiscard]] bool should_stop();
+     [[nodiscard]] bool should_stop_with(std::uint64_t pending_nodes);
+     [[nodiscard]] std::int64_t elapsed_ms() const;
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -129,6 +129,7 @@
+ int HistoryBonusQuadratic = 20;
+ int HistoryBonusLinear = 48;
+ int HistoryBonusMax = 2048;
++int HistMalusLmpRefine = 1;
+ int LmrHistoryDivisor = 6000;
+ int CheckExtensionDepth = 2;
+ int LmrCutoffThreshold = 3;
+@@ -207,6 +208,7 @@
+         {"HistoryBonusQuadratic", &HistoryBonusQuadratic, 0, 100},
+         {"HistoryBonusLinear", &HistoryBonusLinear, 0, 500},
+         {"HistoryBonusMax", &HistoryBonusMax, 100, 10000},
++        {"HistMalusLmpRefine", &HistMalusLmpRefine, 0, 1},
+         {"LmrHistoryDivisor", &LmrHistoryDivisor, 1000, 30000},
+         {"CheckExtensionDepth", &CheckExtensionDepth, 1, 30},
+         {"LmrCutoffThreshold", &LmrCutoffThreshold, 0, 20},
+@@ -317,12 +319,24 @@
+     return quiet ? Reductions.quiet[d][m] : Reductions.noisy[d][m];
+ }
+ 
+-[[nodiscard]] int lmp_threshold(int depth, bool improving) {
+-    return improving ? tune::LmpBase + depth * depth : (tune::LmpBase + depth * depth) / 2;
++[[nodiscard]] int lmp_threshold(int depth, bool improving, bool cut_node = false) {
++    const int base = tune::LmpBase + depth * depth;
++    if (tune::HistMalusLmpRefine == 0) return improving ? base : base / 2;
++    // Clean-room Stockfish/Stormphrax: scale LMP by improving and tighten on cut nodes.
++    int thresh = improving ? base : base / 2;
++    if (cut_node) thresh = std::max(2, thresh * 3 / 4);
++    return thresh;
+ }
+ 
+ [[nodiscard]] int history_bonus(int depth) {
+     return std::min(tune::HistoryBonusMax, tune::HistoryBonusQuadratic * depth * depth + tune::HistoryBonusLinear * depth - 32);
++}
++
++[[nodiscard]] int history_malus(int depth) {
++    // Clean-room Stockfish/Stormphrax: gentler depth-scaled quiet malus than cutoff bonus.
++    return std::min(tune::HistoryBonusMax * 3 / 4,
++                    tune::HistoryBonusQuadratic * depth * depth * 2 / 3 +
++                        tune::HistoryBonusLinear * depth * 3 / 4);
+ }
+ 
+ void apply_history(std::int16_t& entry, int bonus) {
+@@ -1645,12 +1659,12 @@
+ }
+ 
+ // The twin learns the same bonus and maluses as the butterfly table (the same apply_history).
+-void Worker::update_rework_history(const Board& board, const SearchStack* ss, Move best, int bonus,
++void Worker::update_rework_history(const Board& board, const SearchStack* ss, Move best, int bonus, int malus,
+                                    const Move* quiets, int quiet_count) {
+     apply_history(rework_entry(board, ss, best), bonus);
+     for (int i = 0; i < quiet_count; ++i) {
+         if (quiets[i] == best) continue;
+-        apply_history(rework_entry(board, ss, quiets[i]), -bonus);
++        apply_history(rework_entry(board, ss, quiets[i]), -malus);
+     }
+ }
+ 
+@@ -1730,18 +1744,19 @@
+     update_pawn_history(board, piece, move, bonus);
+ #endif
+     update_continuation(ss, piece, move.to, bonus);
++    const int malus = tune::HistMalusLmpRefine != 0 ? history_malus(depth) : bonus;
+     for (int i = 0; i < quiet_count; ++i) {
+         const Move quiet = quiets[i];
+         if (quiet == move) continue;
+-        apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
+-        update_threat_quiet(board, quiet, -bonus);
++        apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -malus);
++        update_threat_quiet(board, quiet, -malus);
+ #if FORGE_PAWN_HISTORY
+-        update_pawn_history(board, board.moved_piece(quiet), quiet, -bonus);
+-#endif
+-        update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
++        update_pawn_history(board, board.moved_piece(quiet), quiet, -malus);
++#endif
++        update_continuation(ss, board.moved_piece(quiet), quiet.to, -malus);
+     }
+     // B4 HistRework: the threat-keyed twin learns the same bonus and maluses.
+-    if (tune::HistRework != 0) update_rework_history(board, ss, move, bonus, quiets, quiet_count);
++    if (tune::HistRework != 0) update_rework_history(board, ss, move, bonus, malus, quiets, quiet_count);
+ }
+ 
+ void Worker::update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count) {
+@@ -2269,7 +2284,7 @@
+                     if (is_mate_score(alpha)) ++tune::sound_prune_trace.quiet_check_on_mate_alpha;
+                 }
+             };
+-            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
++            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving, !pv_node && cut_node)) skip_quiets = true;
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+             // B4 TtPruneV2: the TT move is never pruned by futility / history / SEE (it carried a bound before);
+             // quiet futility needs a wider margin when improving; history pruning starts at 3/4 of the threshold

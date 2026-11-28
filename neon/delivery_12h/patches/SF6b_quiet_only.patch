@@ -1,0 +1,76 @@
+diff --git a/src/search.cpp b/src/search.cpp
+index 620c0c2..a0cba4d 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -294,29 +294,36 @@ constexpr int QuietWideGap = 176;
+ [[nodiscard]] int mate_in(int ply) { return MateValue - ply; }
+ 
+ struct ReductionTable {
+-    std::array<std::array<std::uint8_t, 64>, 64> quiet{};
+-    std::array<std::array<std::uint8_t, 64>, 64> noisy{};
++    // SF6b_quiet_only: quiet-only fractional reductions in 1024ths of a ply (no caphist LMR).
++    std::array<std::array<std::uint16_t, 64>, 64> quiet{};
++    std::array<std::array<std::uint16_t, 64>, 64> noisy{};
+     ReductionTable() { refresh(); }
+     void refresh() {
+         for (int depth = 1; depth < 64; ++depth) {
+             for (int moves = 1; moves < 64; ++moves) {
+                 const double product = std::log(static_cast<double>(depth)) * std::log(static_cast<double>(moves));
+-                quiet[static_cast<std::size_t>(depth)][static_cast<std::size_t>(moves)] = static_cast<std::uint8_t>(
+-                    std::max(0.0, tune::LmrQuietBase / 100.0 + product / (tune::LmrQuietDivisor / 100.0)));
+-                noisy[static_cast<std::size_t>(depth)][static_cast<std::size_t>(moves)] = static_cast<std::uint8_t>(
+-                    std::max(0.0, tune::LmrNoisyBase / 100.0 + product / (tune::LmrNoisyDivisor / 100.0)));
++                const double q = std::max(0.0, tune::LmrQuietBase / 100.0 + product / (tune::LmrQuietDivisor / 100.0));
++                const double n = std::max(0.0, tune::LmrNoisyBase / 100.0 + product / (tune::LmrNoisyDivisor / 100.0));
++                quiet[static_cast<std::size_t>(depth)][static_cast<std::size_t>(moves)] =
++                    static_cast<std::uint16_t>(std::min(65535.0, q * 1024.0));
++                noisy[static_cast<std::size_t>(depth)][static_cast<std::size_t>(moves)] =
++                    static_cast<std::uint16_t>(std::min(65535.0, n * 1024.0));
+             }
+         }
+     }
+ };
+ ReductionTable Reductions;
+ 
+-[[nodiscard]] int reduction(bool quiet, int depth, int moves) {
++[[nodiscard]] int reduction_fp(bool quiet, int depth, int moves) {
+     const std::size_t d = static_cast<std::size_t>(std::min(depth, 63));
+     const std::size_t m = static_cast<std::size_t>(std::min(moves, 63));
+     return quiet ? Reductions.quiet[d][m] : Reductions.noisy[d][m];
+ }
+ 
++[[nodiscard]] int reduction(bool quiet, int depth, int moves) {
++    return reduction_fp(quiet, depth, moves) >> 10;
++}
++
+ [[nodiscard]] int lmp_threshold(int depth, bool improving) {
+     return improving ? tune::LmpBase + depth * depth : (tune::LmpBase + depth * depth) / 2;
+ }
+@@ -2405,15 +2412,18 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
+             move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+             (quiet || !ss->tt_pv || move_count > 4)) {
+-            int r = reduction(quiet, depth, move_count);
+-            if (ss->tt_pv) r -= 1;
+-            if (!improving) r += 1;
+-            if (cut_node) r += 2;
+-            if (tt_capture && quiet) r += 1;
+-            if (gives_check) r -= 1;
+-            if (in_check) r -= 1;
+-            if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+-            if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            int r_fp = reduction_fp(quiet, depth, move_count);
++            if (ss->tt_pv) r_fp -= 1024;
++            if (!improving) r_fp += 1024;
++            if (cut_node) r_fp += 2048;
++            if (tt_capture && quiet) r_fp += 1024;
++            if (gives_check) r_fp -= 1024;
++            if (in_check) r_fp -= 1024;
++            if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r_fp += 1024;
++            if (quiet) {
++                r_fp -= std::clamp(history * 1024 / tune::LmrHistoryDivisor, -2048, 2048);
++            }
++            int r = r_fp >= 0 ? (r_fp >> 10) : -((-r_fp) >> 10);
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+                 const int correction_cp = ss->static_eval - ss->raw_eval;

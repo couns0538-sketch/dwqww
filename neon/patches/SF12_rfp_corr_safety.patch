@@ -1,0 +1,14 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2085,8 +2085,10 @@
+         const int rfp_worsening = tt_prune_v2_ && (ss - 1)->static_eval != ValueNone &&
+                                           ss->static_eval + (ss - 1)->static_eval > 2
+                                       ? tune::RfpMargin / 3 : 0;
++        const int rfp_corr_guard = (ss->raw_eval != ValueNone && ss->static_eval != ValueNone)
++                                       ? std::abs(ss->static_eval - ss->raw_eval) / 2 : 0;
+         if (!bare_king_mode && depth <= tune::RfpDepth &&
+-            eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening) >= beta &&
++            eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening + rfp_corr_guard) >= beta &&
+             eval < MateInMaxPly) {
+             return eval;
+         }

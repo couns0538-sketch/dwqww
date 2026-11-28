@@ -1,0 +1,54 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -508,13 +508,13 @@
+     }
+     TTEntry* replace = &cluster.entries[0];
+     int replace_score = replace->occupied()
+-                            ? replace->depth - 4 * static_cast<int>((32U + generation - replace->generation()) & 31U)
++                            ? replace->depth - 8 * static_cast<int>((32U + generation - replace->generation()) & 31U)
+                             : 0;
+ #pragma GCC unroll 1
+     for (TTEntry& entry : cluster.entries) {
+         if (!entry.occupied()) return snapshot(entry, false);
+         const int age = static_cast<int>((32U + generation - entry.generation()) & 31U);
+-        const int score = entry.depth - 4 * age;
++        const int score = entry.depth - 8 * age;
+         if (score < replace_score) {
+             replace = &entry;
+             replace_score = score;
+@@ -553,7 +553,7 @@
+     }
+     const bool same_position = entry->key32 == key32 && entry->occupied();
+     const bool stale_slot = entry != &cluster.entries[probe.slot_];
+-    const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
++    const bool admit = bound == BoundExact || !same_position || depth + 4 + (pv ? 2 : 0) > entry->depth ||
+                        entry->generation() != generation_;
+     // Same-slot stores still refresh the move when the new score is rejected.
+     // A stale slot must not paint that rejected move onto the deeper entry.
+@@ -623,7 +623,7 @@
+     };
+     for (const TTEntry& entry : cluster.entries) {
+         if (!entry.occupied()) return snapshot(entry, false);
+-        if (entry.depth - 4 * relative_age(entry) < replace->depth - 4 * relative_age(*replace)) replace = &entry;
++        if (entry.depth - 8 * relative_age(entry) < replace->depth - 8 * relative_age(*replace)) replace = &entry;
+     }
+     return snapshot(*replace, false);
+ }
+@@ -647,7 +647,7 @@
+     }
+     const bool same_position = entry->key32 == key32 && entry->occupied();
+     const bool stale_slot = entry != &cluster.entries[probe.slot_];
+-    const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
++    const bool admit = bound == BoundExact || !same_position || depth + 4 + (pv ? 2 : 0) > entry->depth ||
+                        entry->generation() != generation_;
+     // Same rule as store_body: keep a rejected shallow move off a different slot.
+     if ((!stale_slot || admit) && (!move.is_none() || !same_position)) entry->move = move;
+@@ -2507,6 +2507,8 @@
+ #endif
+         // B4 HistRework: the twin gets the same bonus.
+         if (tune::HistRework != 0) apply_history(rework_entry(board, ss, best_move), history_bonus(depth) / 4);
++        // SF40 (clean-room Stockfish): quiet new-PV move also teaches continuation history.
++        update_continuation(ss, board.moved_piece(best_move), best_move.to, history_bonus(depth) / 4);
+     } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+                (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
+         // Every move failed low: the parent's quiet move refuted this line.

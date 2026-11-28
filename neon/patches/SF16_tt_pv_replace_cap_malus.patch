@@ -1,0 +1,36 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -553,7 +553,7 @@
+     }
+     const bool same_position = entry->key32 == key32 && entry->occupied();
+     const bool stale_slot = entry != &cluster.entries[probe.slot_];
+-    const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
++    const bool admit = bound == BoundExact || !same_position || depth + 4 + (pv ? 2 : 0) > entry->depth ||
+                        entry->generation() != generation_;
+     // Same-slot stores still refresh the move when the new score is rejected.
+     // A stale slot must not paint that rejected move onto the deeper entry.
+@@ -647,7 +647,7 @@
+     }
+     const bool same_position = entry->key32 == key32 && entry->occupied();
+     const bool stale_slot = entry != &cluster.entries[probe.slot_];
+-    const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
++    const bool admit = bound == BoundExact || !same_position || depth + 4 + (pv ? 2 : 0) > entry->depth ||
+                        entry->generation() != generation_;
+     // Same rule as store_body: keep a rejected shallow move off a different slot.
+     if ((!stale_slot || admit) && (!move.is_none() || !same_position)) entry->move = move;
+@@ -2493,6 +2493,15 @@
+     if (best_score >= beta) {
+         if (!best_move.is_capture() && !best_move.is_promotion()) {
+             update_quiet_stats(board, ss, best_move, depth + (best_score > beta + 100), quiets_tried.data(), quiet_count);
++        } else if (quiet_count > 0) {
++            const int malus = -history_bonus(depth);
++            for (int i = 0; i < quiet_count; ++i) {
++                const Move qm = quiets_tried[static_cast<std::size_t>(i)];
++                apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][qm.from][qm.to], malus);
++                update_continuation(ss, board.moved_piece(qm), qm.to, malus);
++                update_threat_quiet(board, qm, malus);
++                if (tune::HistRework != 0) apply_history(rework_entry(board, ss, qm), malus);
++            }
+         }
+         update_capture_stats(board, best_move, depth, captures_tried.data(), capture_count);
+     } else if (!best_move.is_none() && (!best_move.is_capture() && !best_move.is_promotion())) {

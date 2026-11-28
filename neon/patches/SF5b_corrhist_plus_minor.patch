@@ -1,0 +1,119 @@
+--- a/include/forge/b4.hpp
++++ b/include/forge/b4.hpp
+@@ -19,7 +19,7 @@
+ 
+ constexpr int MaxReworkLevel = 3;
+ constexpr int HistoryLimit = 16384;        // search.cpp asserts that this is its HistoryMax
+-constexpr int CorrectionEntryLimit = 8192; // search.cpp asserts that this is CorrectionLimit
++constexpr int CorrectionEntryLimit = 32768; // search.cpp asserts that this is CorrectionLimit (+/-128 cp)
+ 
+ [[nodiscard]] constexpr int clamp_level(int level) {
+     return level < 1 ? 1 : (level > MaxReworkLevel ? MaxReworkLevel : level);
+@@ -69,9 +69,9 @@
+ // Self-damping update of a joint-correction entry: entry + step - entry * |step| / limit. For |entry| <= limit and
+ // |step| <= limit the result stays within +-limit; the clamp is a guard. |entry * step| <= limit^2 = 2^26 fits int32.
+ [[nodiscard]] constexpr std::int32_t gravity(std::int32_t entry, std::int32_t step, std::int32_t limit) {
+-    const std::int32_t magnitude = step < 0 ? -step : step;
+-    const std::int32_t next = entry + step - entry * magnitude / limit;
+-    return next < -limit ? -limit : (next > limit ? limit : next);
++    const std::int64_t magnitude = step < 0 ? -static_cast<std::int64_t>(step) : static_cast<std::int64_t>(step);
++    const std::int64_t next = static_cast<std::int64_t>(entry) + step - static_cast<std::int64_t>(entry) * magnitude / limit;
++    return static_cast<std::int32_t>(next < -limit ? -limit : (next > limit ? limit : next));
+ }
+ 
+ // Non-pawn material signature: 4 bits per (colour, knight/bishop/rook/queen) count, saturated at 15.
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -412,7 +412,7 @@
+ using CounterMoveTable = std::array<std::array<Move, 64>, 13>;
+ constexpr std::size_t CorrectionSize = 1U << 14U;
+ constexpr int CorrectionGrain = 256;
+-constexpr int CorrectionLimit = 32 * CorrectionGrain;
++constexpr int CorrectionLimit = 128 * CorrectionGrain;
+ using CorrectionHistory = std::array<std::array<std::int32_t, CorrectionSize>, 2>;
+ 
+ struct SearchStack {
+@@ -505,6 +505,7 @@
+     std::unique_ptr<CounterMoveTable> counter_moves_;
+     std::unique_ptr<CorrectionHistory> correction_history_;
+     std::unique_ptr<CorrectionHistory> material_correction_;
++    std::unique_ptr<CorrectionHistory> minor_correction_;
+     std::unique_ptr<CorrectionHistory> non_pawn_white_correction_;
+     std::unique_ptr<CorrectionHistory> non_pawn_black_correction_;
+     std::array<SearchStack, MaxPly + 8> stack_{};
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1204,6 +1204,7 @@
+       counter_moves_(std::make_unique<CounterMoveTable>()),
+       correction_history_(std::make_unique<CorrectionHistory>()),
+       material_correction_(std::make_unique<CorrectionHistory>()),
++      minor_correction_(std::make_unique<CorrectionHistory>()),
+       non_pawn_white_correction_(std::make_unique<CorrectionHistory>()),
+       non_pawn_black_correction_(std::make_unique<CorrectionHistory>()),
+       rework_history_(std::make_unique<LesserThreatHistory>()),
+@@ -1228,6 +1229,7 @@
+     *counter_moves_ = CounterMoveTable{};
+     *correction_history_ = CorrectionHistory{};
+     *material_correction_ = CorrectionHistory{};
++    *minor_correction_ = CorrectionHistory{};
+     *non_pawn_white_correction_ = CorrectionHistory{};
+     *non_pawn_black_correction_ = CorrectionHistory{};
+     // B4 (forge/r9): cleared here like every other table, so no game inherits another game's statistics.
+@@ -1248,6 +1250,20 @@
+         }
+     }
+     return key * 0x9E3779B97F4A7C15ULL;
++}
++
++// Hash of minor pieces + kings of both sides, for minor-piece correction history (SF5b).
++[[nodiscard]] std::uint64_t minor_piece_key(const Board& board) {
++    std::uint64_t key = 0x243F6A8885A308D3ULL;
++    for (const Color color : {White, Black}) {
++        const std::uint64_t csalt = static_cast<std::uint64_t>(color) * 0x517CC1B727220A95ULL;
++        for (const PieceType pt : {Knight, Bishop, King}) {
++            const Bitboard bb = board.pieces(color, pt);
++            key ^= (bb + csalt) * (0x9E3779B97F4A7C15ULL + static_cast<std::uint64_t>(pt) * 0xBF58476D1CE4E5B9ULL);
++            key = (key ^ (key >> 30U)) * 0x94D049BB133111EBULL;
++        }
++    }
++    return key ^ (key >> 31U);
+ }
+ 
+ // Hash of non-pawn piece placements of one side, for non-pawn correction history.
+@@ -1416,7 +1432,8 @@
+         if (dead_material_score(board, fixed)) return fixed;
+     }
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+-    std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
++    std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)] +
++                              (*minor_correction_)[side][minor_piece_key(board) & (CorrectionSize - 1U)] * 3 / 4;
+     if (tune::MaterialCorrectionWeight > 0) {
+         correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
+     }
+@@ -1474,12 +1491,15 @@
+ 
+ void Worker::update_correction(const Board& board, int depth, int best_score, int static_eval, const SearchStack* ss) {
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+-    const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
+     const int weight = std::min(depth + 1, 16);
++    // SF5a: scaled gravity update (Stockfish def601cc / Stormphrax principle).
++    // At diff=100 cp and depth=7 (weight=8), step=1600 (~6.25 cp/table) damped by gravity toward +-128 cp.
++    const int step = std::clamp((best_score - static_eval) * weight * 2, -CorrectionLimit / 4, CorrectionLimit / 4);
+     auto apply = [&](std::int32_t& entry) {
+-        entry = std::clamp(entry + diff * weight / 256, -CorrectionLimit, CorrectionLimit);
++        entry = b4::gravity(entry, step, CorrectionLimit);
+     };
+     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
++    apply((*minor_correction_)[side][minor_piece_key(board) & (CorrectionSize - 1U)]);
+     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
+     if (tune::NonPawnCorrection) {
+         const std::size_t idx_w = (ss != nullptr && (ss->corr_valid & 1U) != 0U)
+@@ -1498,7 +1518,7 @@
+             ? (board.pawn_key() ^ ss->corr_mat_mix)
+             : b4::joint_key(board);
+         std::int32_t& entry = (*joint_correction_)[side][jkey & (CorrectionSize - 1U)];
+-        entry = b4::gravity(entry, diff * weight / 256, CorrectionLimit);
++        entry = b4::gravity(entry, step, CorrectionLimit);
+     }
+     // B4 CorrHistV2: the two continuation entries take the same step as the tables above.
+     if (tune::CorrHistV2 && ss != nullptr) {

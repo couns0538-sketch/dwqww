@@ -1,0 +1,41 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -251,6 +251,7 @@
+ extern int LmrQuietDivisor;   // x0.01
+ extern int LmrNoisyBase;      // x0.01
+ extern int LmrNoisyDivisor;   // x0.01
++extern int CutNodeHistRefine; // 0 = off, 1 = cut-node missing-TT LMR + non-losing capture-history LMR
+ extern int NullMoveMinDepth;
+ extern int NullMoveBase;
+ extern int NullMoveDepthDivisor;
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -100,6 +100,7 @@
+ int LmrQuietDivisor = 220;
+ int LmrNoisyBase = 10;
+ int LmrNoisyDivisor = 340;
++int CutNodeHistRefine = 1;
+ int NullMoveMinDepth = 3;
+ int NullMoveBase = 3;
+ int NullMoveDepthDivisor = 3;
+@@ -188,6 +189,7 @@
+     static const std::vector<Parameter> table{
+         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
+         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
++        {"CutNodeHistRefine", &CutNodeHistRefine, 0, 1},
+         {"NullMoveMinDepth", &NullMoveMinDepth, 1, 10},  {"NullMoveBase", &NullMoveBase, 1, 6},
+         {"NullMoveDepthDivisor", &NullMoveDepthDivisor, 1, 10},
+         {"NullMoveEvalDivisor", &NullMoveEvalDivisor, 50, 1000},
+@@ -2414,6 +2416,12 @@
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            if (tune::CutNodeHistRefine != 0) {
++                if (cut_node && tt_move.is_none()) r += 1;
++                if (capture && (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
++                    r -= std::clamp(history / 6000, -1, 1);
++                }
++            }
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+                 const int correction_cp = ss->static_eval - ss->raw_eval;

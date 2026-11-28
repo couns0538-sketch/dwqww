@@ -1,0 +1,33 @@
+--- a/pipeline/tools/v3_model_check.py
++++ b/pipeline/tools/v3_model_check.py
+@@ -21,7 +21,14 @@
+ import forge_parse  # noqa: E402
+ import forge_train as ft  # noqa: E402
+ import forge_train_v3 as v3  # noqa: E402
+-import forge_v3  # noqa: E402
++try:
++    import forge_v3p as forge_v3  # noqa: E402  # supports both legacy FORGENN3 and FORGENN3-P
++except ImportError:
++    import forge_v3  # noqa: E402
++try:
++    import forge_train_v3p as v3p  # noqa: E402
++except ImportError:
++    v3p = None
+ 
+ KNOWN_FEN = "rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"   # Black's queen missing, White to move
+ KNOWN_MIN_CP = 200
+@@ -31,7 +38,13 @@
+     model_path, net_path, exe = sys.argv[1:4]
+     npos = int(sys.argv[4]) if len(sys.argv) > 4 else 3000
+     dev = torch.device("cuda")
+-    model = v3.load_model(model_path).to(dev).eval()
++    ckpt_hdr = torch.load(model_path, map_location='cpu', weights_only=False)
++    if isinstance(ckpt_hdr, dict) and ckpt_hdr.get('arch') == 'v3p':
++        if v3p is None:
++            raise RuntimeError('FORGENN3-P checkpoint requires pipeline/forge_train_v3p.py')
++        model = v3p.load_model(model_path).to(dev).eval()
++    else:
++        model = v3.load_model(model_path).to(dev).eval()
+     net = forge_v3.read_net(net_path)
+     fens = []
+     with open("C:/nnue-lab/runs/forge/val/val.plain", "r", encoding="ascii", errors="replace") as fh:

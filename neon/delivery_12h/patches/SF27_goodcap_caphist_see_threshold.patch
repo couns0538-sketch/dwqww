@@ -1,0 +1,51 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -721,7 +721,8 @@
+                 while (index_ < count_) {
+                     const Move move = pick_best();
+                     if (move == tt_move_) continue;
+-                    if (!board_.see_ge(move, -move_score_threshold(move))) {
++                    const int see_thr = -move_score_threshold(move);
++                    if (!board_.see_ge(move, see_thr)) {
+ #if FORGE_SDK_BADCAP_PREFIX
+                         // bad_count_ < index_: this slot's move has already been handed out (or skipped).
+                         moves_[bad_count_++].move = move;
+@@ -730,6 +731,7 @@
+ #endif
+                         continue;
+                     }
++                    last_see_nonneg_ = (see_thr >= 0);
+                     return move;
+                 }
+                 stage_ = Killer1;
+@@ -803,7 +805,7 @@
+ 
+     // Valid for the move just returned by next(), until the next next() call.
+     // Only Main/GoodCaptures returns after a successful SEE >= 0 test.
+-    [[nodiscard]] bool last_move_see_nonnegative() const { return stage_ == GoodCaptures; }
++    [[nodiscard]] bool last_move_see_nonnegative() const { return stage_ == GoodCaptures && last_see_nonneg_; }
+     // Every move yielded from the Evasions stage (not EvasionTT) was produced by Board::generate_legal_evasions.
+     [[nodiscard]] bool last_move_known_legal() const { return stage_ == Evasions; }
+ 
+@@ -859,6 +861,7 @@
+     bool sorted_ = false;
+     bool quiet_tail_closed_ = false;
+     bool evasion_tie_filter_ = false;
++    bool last_see_nonneg_ = false;
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
+     std::array<Bitboard, 64> legal_to_by_from_;
+     std::array<Bitboard, 7> check_squares_;
+@@ -943,7 +946,12 @@
+     };
+ #endif
+ 
+-    [[nodiscard]] static int move_score_threshold(Move) { return 0; }
++    [[nodiscard]] int move_score_threshold(Move move) const {
++        // Clean-room Stockfish capture-history-adjusted GoodCaptures SEE threshold.
++        if (!move.is_capture()) return 0;
++        const int cap_h = searcher_.capture_history_value(board_, move);
++        return std::clamp(cap_h / 128, -40, 80);
++    }
+ 
+     [[nodiscard]] bool is_valid_quiet(Move move) const {
+         return !move.is_none() && move != tt_move_ && !move.is_capture() && !move.is_promotion() &&

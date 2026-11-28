@@ -1,0 +1,24 @@
+--- a/train_v3p.py
++++ b/train_v3p.py
+@@ -310,8 +310,10 @@
+     ap.add_argument("--fqs-shards", nargs="+", default=[], help="Optional .fqs/.fqs.z shard files or directories to mix with --datasets")
+     ap.add_argument("--fqs-repeat", type=int, default=1, help="Oversampling factor for --fqs-shards when mixed with older --datasets")
+     ap.add_argument("--skip-fqs-noisy", action="store_true", help="Skip FQS rows with flags bit 0 (noisy capture/promo) set")
+-    ap.add_argument("--keep-fqs-check", "--keep-fqs-in-check", dest="keep_fqs_check", action="store_true",
+-                    help="Keep FQS rows with flags bit 1 (in_check) set (default: skipped)")
++    ap.add_argument("--keep-fqs-check", "--keep-fqs-in-check", "--no-skip-fqs-in-check", dest="keep_fqs_check",
++                    action="store_true", help="Keep FQS rows with flags bit 1 (in_check) set (default: skipped)")
++    ap.add_argument("--skip-fqs-in-check", dest="keep_fqs_check", action="store_false",
++                    help="Skip FQS rows with flags bit 1 (in_check) set (default)")
+     ap.add_argument("--anchor-shards", nargs="+", default=[], help="Optional pure-draw/Syzygy FQS anchor shards (exact WDL teacher_p)")
+     ap.add_argument("--anchor-repeat", type=int, default=20, help="Oversampling factor for --anchor-shards")
+     ap.add_argument("--max-rows", type=int, default=0, help="Optional cap on non-anchor training rows (for equal-retained Filter Quest comparisons)")
+@@ -557,6 +559,8 @@
+         cr.free_teacher_inputs(d)
+         torch.cuda.empty_cache()
+         print(f"TEACHER ONCE ({t_arch or 'hce'} {t_path.name}, w={t_weight}): {n_before_anchors:,} distilled + {d['n']-n_before_anchors:,} exact-draw anchors in {time.time()-t_pre:.1f}s", flush=True)
++    elif n_before_anchors < d["n"]:
++        print(f"ANCHORS EXACT-WDL (no distill-net): {d['n'] - n_before_anchors:,} anchor rows forced to 0.5*(res8+1)", flush=True)
+ 
+     sample_w = None
+     if need_weights:

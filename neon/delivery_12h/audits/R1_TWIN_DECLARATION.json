@@ -1,0 +1,103 @@
+{
+  "written": "2026-11-28 04:47:31 PC",
+  "request_ref": "OPUS-2811-CLOCK-RECOUNTED-AND-R1-TWIN Point 3 & OPUS-2811-OWNER-NONSTOP Point 5-6",
+  "training_twin": {
+    "script": "C:\\nnue-lab\\neon\\forge_fixes\\run_opus_r1_keep_twin.py",
+    "runner": "pipeline/forge_train_v3.py unchanged (exact same standalone runner as OPUS_R1_live768_skipnoisy)",
+    "window": "r0178..r0202 (25 rounds, existing read-only .cache-n0c1.npz, zero writes in runs/forge/)",
+    "params": {
+      "hidden": 768,
+      "epochs": 40,
+      "lr": 0.0005,
+      "batch_size": 8192,
+      "lr_cycles": "auto",
+      "w1_decay": 0.3,
+      "mix": 0.75,
+      "distill_net": "C:\\nnue-lab\\runs\\forge\\teachers\\b_full.pt",
+      "distill_weight": 0.2,
+      "teacher_once": true,
+      "seed": 1,
+      "keep_noisy": true
+    },
+    "single_variable_diff_vs_R1_skip": "ONLY --keep-noisy added (R1-skip omitted --keep-noisy).",
+    "out_net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_keepnoisy_twin\\cand.fnn3"
+  },
+  "r1_skip_completed_net": {
+    "path": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_skipnoisy\\cand.fnn3",
+    "bytes": 9463528,
+    "sha256": "4902fe653e575c0c73ab78aed18fb6d2a10c8f33c895160cb5b68b1bdb9b21ec"
+  },
+  "matches_declared": [
+    {
+      "name": "OPUS_R1_skip_vs_R1_keep_1000g_250k",
+      "exe_both": "C:\\nnue-lab\\neon\\forge_fixes\\builds\\base_r15dsg.exe",
+      "exe_sha256": "5e6f333b95b7ceda01a599a713d6bad536633b235dc73b409e1f12c1bb809011",
+      "cand_net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_skipnoisy\\cand.fnn3",
+      "base_net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_keepnoisy_twin\\cand.fnn3",
+      "book": "C:\\nnue-lab\\tools\\book\\UHO_Lichess_4852_v1.epd",
+      "book_sha256": "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a",
+      "games": 1000,
+      "nodes": 250000,
+      "seed": 202611951,
+      "concurrency": 8,
+      "decision_rule": "95% pentanomial Elo CI lower bound > 0 => R1-skip wins (proceed to seed-2 of both + R1-skip vs r0067 at 250k and 6+0.06 conc=7); upper bound < 0 => R1-keep wins; straddling 0 => inconclusive."
+    },
+    {
+      "name": "OPUS_R1_skip_vs_r0067_1000g_250k",
+      "exe_both": "C:\\nnue-lab\\neon\\forge_fixes\\builds\\base_r15dsg.exe",
+      "exe_sha256": "5e6f333b95b7ceda01a599a713d6bad536633b235dc73b409e1f12c1bb809011",
+      "cand_net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_skipnoisy\\cand.fnn3",
+      "base_net": "C:\\nnue-lab\\runs\\forge\\r0067\\train\\cand.fnn3",
+      "base_net_sha256": "737f197808fef489017cf46f4daf76663d805bb01761e2b1781fc46fa7c9fc28",
+      "book": "C:\\nnue-lab\\tools\\book\\UHO_Lichess_4852_v1.epd",
+      "book_sha256": "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a",
+      "games": 1000,
+      "nodes": 250000,
+      "seed": 202611952,
+      "concurrency": 8,
+      "decision_rule": "Direct fixed-node strength check of R1-skip against live best r0067 (95% pentanomial CI)."
+    }
+  ],
+  "amendment_for_r1_test_size": {
+    "amended_at": "2026-11-28 06:55:40 PC",
+    "request_ref": "OPUS-2811-R1-TEST-SIZE (06:40 PC)",
+    "transparency_note": "Prior 1000g launch ran for ~12s before OPUS-2811-R1-TEST-SIZE was read and cancelled; 7 blind games finished (never inspected, preserved intact in matches/OPUS_R1_skip_vs_R1_keep_1000g_250k/).",
+    "original_rule_preserved_in_matches_declared_0": {
+      "name": "OPUS_R1_skip_vs_R1_keep_1000g_250k",
+      "exe_both": "C:\\nnue-lab\\neon\\forge_fixes\\builds\\base_r15dsg.exe",
+      "exe_sha256": "5e6f333b95b7ceda01a599a713d6bad536633b235dc73b409e1f12c1bb809011",
+      "cand_net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_skipnoisy\\cand.fnn3",
+      "base_net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_keepnoisy_twin\\cand.fnn3",
+      "book": "C:\\nnue-lab\\tools\\book\\UHO_Lichess_4852_v1.epd",
+      "book_sha256": "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a",
+      "games": 1000,
+      "nodes": 250000,
+      "seed": 202611951,
+      "concurrency": 8,
+      "decision_rule": "95% pentanomial Elo CI lower bound > 0 => R1-skip wins (proceed to seed-2 of both + R1-skip vs r0067 at 250k and 6+0.06 conc=7); upper bound < 0 => R1-keep wins; straddling 0 => inconclusive."
+    },
+    "active_match": {
+      "name": "OPUS_R1_skip_vs_R1_keep_SPRT_0_10_250k",
+      "exe_both": "C:\\nnue-lab\\neon\\forge_fixes\\builds\\base_r15dsg.exe",
+      "exe_sha256": "5e6f333b95b7ceda01a599a713d6bad536633b235dc73b409e1f12c1bb809011",
+      "cand_net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_skipnoisy\\cand.fnn3",
+      "cand_net_sha256": "4902fe653e575c0c73ab78aed18fb6d2a10c8f33c895160cb5b68b1bdb9b21ec",
+      "base_net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_keepnoisy_twin\\cand.fnn3",
+      "base_net_sha256": "8b1158aad16d882063da6673efa1584ac0cb4382cb3358964bdb03bb487b02e7",
+      "book": "C:\\nnue-lab\\tools\\book\\UHO_Lichess_4852_v1.epd",
+      "book_sha256": "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a",
+      "nodes": 250000,
+      "seed": 202611951,
+      "concurrency": 8,
+      "sprt": {
+        "elo0": 0,
+        "elo1": 10,
+        "alpha": 0.05,
+        "beta": 0.05,
+        "model": "normalized"
+      },
+      "max_games": 3000,
+      "decision_rule": "Normalized SPRT [0, 10] (alpha=0.05, beta=0.05) capped at 3,000 games @ 250k. H1 accepted => R1-skip wins (proceed to seed-2 of both + R1-skip vs r0067 at 250k and 6+0.06 conc=7); H0 accepted => reject; cap reached without decision => inconclusive."
+    }
+  }
+}

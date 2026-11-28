@@ -1,0 +1,64 @@
+THE BIG TUNE: HOW MUCH STRONGER, BY SEARCH DEPTH
+
+Saved on the owner's word (24 November 2026, Opus's window): "okay save those results it  will be important for
+each time control itl be stronger at shorter time controls and weaker at longer but 40 on fast games and 20 on
+longer is still a big improvment"
+
+What is compared: the tune's 40 final values against the settings the loop plays with today. The same engine
+(the loop's exe), the same net on both sides, every opening played with both colours. Elo is the tuned side's;
+the brackets are the 95 % range. These are games between two settings of our own engine on this PC, not a rating.
+
+Depth (nodes a move)       Net                      Games   Tuned won-lost-drawn   Elo
+20,000 (short searches)    round 67 (loop's best)   1,000   344-189-467            +54.3  [+40.1, +68.6]
+20,000, second openings    round 67                 1,000   356-187-457            +59.3  [+45.1, +73.7]
+20,000                     round 33 (tuned on it)   1,000   353-193-454            +56.1  [+42.3, +70.0]
+20,000, second openings    round 33                 1,000   334-197-469            +47.9  [+34.0, +61.9]
+50,000                     round 67                 4,000   1175-799-2026          +32.8  [+26.4, +39.2]
+50,000                     round 33                 4,000   1215-793-1992          +36.8  [+30.2, +43.5]
+250,000 (deep searches)    round 67                 4,000   1016-789-2195          +19.7  [+14.0, +25.5]
+250,000                    round 33                 running since 24 Nov 16:54 PC; first 1,000 of 4,000 games
+                                                    (18:19): 248-204-548, +15.3 [+3.9, +26.7]; not a result yet.
+                                                    A block of 1,000 games starts only when the CPU is below 88 C,
+                                                    and the loop's self-play keeps it at 91 to 92 C, so block 2
+                                                    waits since 18:19 (until round 169's self-play has its
+                                                    positions, about 18:55). A block took 85 minutes: the end is
+                                                    not before about 23:10 PC, later if a block waits again.
+
+In plain words: about +50 at short searches, about +35 at medium, about +20 at deep ones. The tuned settings are
+stronger at every depth measured so far; what shrinks with depth is the SIZE of the gain. Whether it stays above
+zero at much longer time controls is not measured. How many nodes a move a given time control means on this PC is
+not measured here either.
+
+Why it shrinks: the tune mostly changed how hard the search cuts moves it thinks are bad (reductions and pruning).
+In a short search those cuts decide a lot; in a long one the search has time to find what a cut hid. The first tune
+(15 November) showed the same shape: +79 at very short searches (2,000 nodes), about +10 at 250,000.
+
+The tune's own progress checks (all at 20,000 nodes, 2,000 games each, tuned-so-far against the start values):
+snapshot 8 +40.5, 9 +42.8, 10 +56.6, 11 +52.5, 12 +55.5, 13 (the end, 640,000 games) +46.3.
+
+Still to come, by themselves (in this order): the second net at 250,000 nodes; then at self-play depth (2,000 soft
+nodes) for both nets, which must pass the "not weaker" test (a sequential test between -3 and 0 Elo, up to
+100,000 games each; the plan's rule R1, which replaced the first bar "-5 or better" by addendum 21); then round 27's
+512-wide net at 20,000 nodes. If all hold, a sanitizer run, and then the values go into the loop's settings between two rounds.
+Where the results land: tmp/opus_scratch/bigtune/STAGE3.txt (one line a match) and WEEK_RESULTS.txt (the collector
+copies every line of runs/forge/experiments/chain_screens.log). The declaration with every bar, written before the
+games: tmp/opus_scratch/bigtune/DECLARATION.txt, section STAGE 3.
+Written 2026-11-24 18:02 PC clock by Opus; numbers copied from tmp/opus_scratch/bigtune/STAGE3.txt and runs/forge/spsa/big_r15dsp_r33_n20k/SNAPSHOTS.txt.
+
+2026-11-24 19:48 PC clock (Opus), a step on the way: the second net (round 33's) at 250,000 nodes, half done:
+2,000 of 4,000 games, 515 wins, 404 losses, 1,081 draws for the tuned values, +19.3 Elo [+11.0, +27.6] (95 %, from
+the opening pairs). The first net (round 67's) gave +19.7 [+14.0, +25.5] over its 4,000 games. The match goes on by
+itself; its final line lands in tmp/opus_scratch/bigtune/STAGE3.txt.
+Checked the same evening (bug hunt 19:47): the step that will put the values into the loop's settings accepts the REAL
+results file and the real final values, and changes exactly those 40 settings (a dry run on a copy of the settings;
+two planted faults were refused). Before, it had only been tested with stand-in values from 17 November.
+
+2026-11-24 20:50 PC clock (Opus), the next step: the second net (round 33's) at 250,000 nodes, three quarters done:
+3,000 of 4,000 games, 776 wins, 617 losses, 1,607 draws for the tuned values, +18.4 Elo [+11.6, +25.3] (95 %, from
+the opening pairs). The last 1,000 games run by themselves; the final line lands in tmp/opus_scratch/bigtune/STAGE3.txt.
+
+2026-11-24 21:18 PC clock (Opus), that step is DONE: the second net (round 33's) at 250,000 nodes, all 4,000 games:
+1,035 wins, 820 losses, 2,145 draws for the tuned values, +18.7 Elo [+12.8, +24.6] (95 %, from the opening pairs;
+pairs 22 / 401 / 950 / 594 / 33). It holds by its rule (the lower end above -3). The tuned values beat the old ones
+with both nets at 250,000 nodes. Next, running by itself: the test at the depth of self-play (2,000 soft nodes,
+round 67's net, "not weaker", up to 100,000 games), then the remaining checks and the placing.

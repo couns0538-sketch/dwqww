@@ -1,0 +1,36 @@
+--- a/forge/r15dsg/src/uci.cpp
++++ b/forge/r15dsg/src/uci.cpp
+@@ -300,6 +300,7 @@
+     int draw_ply = 80;
+     int draw_score = 5;
+     int draw_count = 8;
++    int skip_check = 0;  // opt-in (default 0 = byte-identical to live r15dsg); 1 = skip emitting in-check records
+ };
+ 
+ struct SgState {
+@@ -377,6 +378,8 @@
+             slot = 5;
+         } else if (key == "drawcount") {
+             slot = 6;
++        } else if (key == "skipcheck") {
++            slot = 7;
+         }
+         if (slot < 0 || (seen_mask & (1U << slot)) != 0U) {
+             bad_word = key;
+@@ -401,6 +404,7 @@
+                 else if (slot == 4) cfg.draw_ply = parsed;
+                 else if (slot == 5) cfg.draw_score = parsed;
+                 else if (slot == 6) cfg.draw_count = parsed;
++                else if (slot == 7) cfg.skip_check = parsed;
+             }
+         }
+         if (!ok) {
+@@ -536,7 +540,7 @@
+         const std::string best_uci = info.best_move.is_none()
+             ? "0000"
+             : forge::Board::move_to_uci(info.best_move);
+-        if (ply >= cfg.write_min_ply) {
++        if (ply >= cfg.write_min_ply && (cfg.skip_check == 0 || !st.check)) {
+             records.push_back(SgRecord{ply, x_val, best_uci, board.sg_fen()});
+         }
+ 

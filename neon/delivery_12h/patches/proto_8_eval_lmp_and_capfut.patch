@@ -1,0 +1,71 @@
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index 6e1ce1f..1193b86 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -298,6 +298,7 @@ extern int TmMinFactorPercent;    // lower bound of the combined soft-limit fact
+ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (0 = off)
+ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
++extern int EvalLmpRefine;          // 0 = off, 1 = eval-margin LMP tightening + improving-aware capture futility
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+diff --git a/src/search.cpp b/src/search.cpp
+index 620c0c2..1492dcb 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -146,6 +146,7 @@ int TmMinFactorPercent = 45;
+ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
++int EvalLmpRefine = 1;
+ int FailLowContinuationBonus = 0;
+ // packc28 (ported into forge/r12 on 2026-11-15, see forge/tools/make_r12_e.py): three ideas, all 0 = off.
+ int AspFailHighReduce = 0;      // 1: after a root fail-high the re-search is one ply shallower per fail-high in a row
+@@ -218,6 +219,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"EvalLmpRefine", &EvalLmpRefine, 0, 1},
+         {"AspFailHighReduce", &AspFailHighReduce, 0, 1},         {"AspFailHighMaxReduce", &AspFailHighMaxReduce, 1, 6},
+         {"EvalSwingMult", &EvalSwingMult, 0, 64},                {"EvalSwingMax", &EvalSwingMax, 50, 400},
+         {"TtCutoffHistory", &TtCutoffHistory, 0, 1},
+@@ -2269,7 +2271,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                     if (is_mate_score(alpha)) ++tune::sound_prune_trace.quiet_check_on_mate_alpha;
+                 }
+             };
+-            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
++            int lmp_lim = lmp_threshold(depth, improving);
++            if (tune::EvalLmpRefine != 0 && !in_check && ss->static_eval != ValueNone &&
++                !is_mate_score(alpha) && depth <= 6 && ss->static_eval + 120 + 60 * depth <= alpha) {
++                lmp_lim = std::max(2, lmp_lim * 3 / 4);
++            }
++            if (quiet && !skip_quiets && move_count >= lmp_lim) skip_quiets = true;
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+             // B4 TtPruneV2: the TT move is never pruned by futility / history / SEE (it carried a bound before);
+             // quiet futility needs a wider margin when improving; history pruning starts at 3/4 of the threshold
+@@ -2304,12 +2311,21 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             } else if (prunable) {
+                 // Futility pruning for captures: even winning the piece cannot
+                 // bring the position back to alpha.
+-                if (tune::CaptureFutilityBase > 0 && capture && !in_check && !gives_check &&
+-                    lmr_depth <= tune::CaptureFutilityDepth &&
++                const int cap_fut_base =
++                    tune::CaptureFutilityBase > 0
++                        ? (tune::CaptureFutilityBase + (tune::EvalLmpRefine != 0 ? (improving ? 35 : -35) : 0))
++                        : (tune::EvalLmpRefine != 0 && !improving ? 40 : 0);
++                const int cap_fut_mult =
++                    tune::CaptureFutilityBase > 0 ? tune::CaptureFutilityMultiplier : 180;
++                const int cap_fut_depth =
++                    tune::CaptureFutilityBase > 0 ? tune::CaptureFutilityDepth : 3;
++                if ((tune::CaptureFutilityBase > 0 || (tune::EvalLmpRefine != 0 && !improving)) &&
++                    capture && !in_check && !gives_check &&
++                    lmr_depth <= cap_fut_depth &&
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+                     (!tune::MateAlphaGuard || !is_mate_score(alpha)) &&
+ #endif
+-                    ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
++                    ss->static_eval + cap_fut_base + cap_fut_mult * lmr_depth +
+                             capture_value(board, move) + history / 8 <= alpha) {
+                     trace_case();
+                     continue;

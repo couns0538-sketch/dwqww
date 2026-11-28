@@ -1,0 +1,86 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -394,6 +394,7 @@
+ // [side][threat 0..3][from][to]. Threat bit 1: mover attacked by a cheaper enemy.
+ // Threat bit 0: the destination square is attacked by a cheaper enemy than the mover.
+ using ThreatQuietHistory = std::array<std::array<std::array<std::array<std::int16_t, 64>, 64>, 4>, 2>;
++using LowPlyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 4>;
+ // forge/r15: the pawn-structure history is compiled in only with -DFORGE_PAWN_HISTORY=1. Compiled out (the default)
+ // its table is not allocated, its reads and updates are not in the code and its four tunables are not offered.
+ // Reason: with the tunable off the engine was about 2 % slower than without the code (timing t4, 2026-11-15:
+@@ -498,6 +499,7 @@
+     int id_ = 0;
+     Evaluator evaluator_;
+     std::unique_ptr<ButterflyHistory> main_history_;
++    std::unique_ptr<LowPlyHistory> low_ply_history_;
+     std::unique_ptr<ThreatQuietHistory> threat_history_;
+     std::unique_ptr<PawnHistoryTable> pawn_history_;
+     std::unique_ptr<CaptureHistory> capture_history_;
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -893,6 +893,7 @@
+         const PieceToHistory* cont1;
+         const PieceToHistory* cont2;
+         const PieceToHistory* cont4;
++        const std::array<std::array<std::int16_t, 64>, 64>* low_ply;
+         const Board& board;
+         const Worker& worker;
+         const LesserThreatHistory::value_type* rework_side;
+@@ -907,6 +908,7 @@
+               cont2(ss != nullptr ? (ss - 2)->continuation : nullptr),
+               cont4(tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+                         ? (ss - 4)->continuation : nullptr),
++              low_ply(ss != nullptr && ss->ply >= 0 && ss->ply < 4 ? &(*searcher.low_ply_history_)[static_cast<std::size_t>(ss->ply)] : nullptr),
+               board(b),
+               worker(searcher),
+               rework_side(tune::HistRework != 0 && ss != nullptr
+@@ -933,6 +935,7 @@
+             if (cont1 != nullptr) value += (*cont1)[p][move.to];
+             if (cont2 != nullptr) value += (*cont2)[p][move.to];
+             if (cont4 != nullptr) value += (*cont4)[p][move.to] / 2;
++            if (low_ply != nullptr) value += (*low_ply)[move.from][move.to];
+             if (use_threat_hist) [[unlikely]] value += worker.threat_quiet_bonus(board, move);
+ #if FORGE_PAWN_HISTORY
+             value += worker.pawn_history_value(board, piece, move);
+@@ -1193,6 +1196,7 @@
+     : shared_(shared),
+       id_(id),
+       main_history_(std::make_unique<ButterflyHistory>()),
++      low_ply_history_(std::make_unique<LowPlyHistory>()),
+       threat_history_(std::make_unique<ThreatQuietHistory>()),
+ #if FORGE_PAWN_HISTORY
+       pawn_history_(std::make_unique<PawnHistoryTable>()),
+@@ -1218,6 +1222,7 @@
+     stack_dirty_limit_ = MaxPly + 7;
+     evaluator_.clear();
+     *main_history_ = ButterflyHistory{};
++    *low_ply_history_ = LowPlyHistory{};
+     *threat_history_ = ThreatQuietHistory{};
+     // No temporary of the table's size on the stack (13.6 MB): fill in place. Untouched while the feature is off.
+ #if FORGE_PAWN_HISTORY
+@@ -1620,6 +1625,9 @@
+         if (tune::ContHist4PlyRead && (ss - 4)->continuation != nullptr && !(ss - 4)->current_move.is_none()) {
+             score += (*(ss - 4)->continuation)[p][move.to] / 2;
+         }
++        if (ss->ply >= 0 && ss->ply < 4) {
++            score += (*low_ply_history_)[static_cast<std::size_t>(ss->ply)][move.from][move.to];
++        }
+     }
+     if (tune::ThreatHistory) [[unlikely]] score += threat_quiet_bonus(board, move);
+ #if FORGE_PAWN_HISTORY
+@@ -1725,6 +1733,7 @@
+     }
+     const Piece piece = board.moved_piece(move);
+     apply_history((*main_history_)[static_cast<std::size_t>(us)][move.from][move.to], bonus);
++    if (ss->ply >= 0 && ss->ply < 4) apply_history((*low_ply_history_)[static_cast<std::size_t>(ss->ply)][move.from][move.to], bonus);
+     update_threat_quiet(board, move, bonus);
+ #if FORGE_PAWN_HISTORY
+     update_pawn_history(board, piece, move, bonus);
+@@ -1734,6 +1743,7 @@
+         const Move quiet = quiets[i];
+         if (quiet == move) continue;
+         apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
++        if (ss->ply >= 0 && ss->ply < 4) apply_history((*low_ply_history_)[static_cast<std::size_t>(ss->ply)][quiet.from][quiet.to], -bonus);
+         update_threat_quiet(board, quiet, -bonus);
+ #if FORGE_PAWN_HISTORY
+         update_pawn_history(board, board.moved_piece(quiet), quiet, -bonus);

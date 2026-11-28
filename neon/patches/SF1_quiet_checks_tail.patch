@@ -1,0 +1,20 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2269,7 +2269,7 @@
+                     if (is_mate_score(alpha)) ++tune::sound_prune_trace.quiet_check_on_mate_alpha;
+                 }
+             };
+-            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
++            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) picker.close_quiet_tail();
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+             // B4 TtPruneV2: the TT move is never pruned by futility / history / SEE (it carried a bound before);
+             // quiet futility needs a wider margin when improving; history pruning starts at 3/4 of the threshold
+@@ -2287,7 +2287,7 @@
+                     ss->static_eval + tune::FutilityBase + futility_improving + tune::FutilityMultiplier * lmr_depth <= alpha) {
+                     trace_case();
+                     quiet_fail = true;
+-                    skip_quiets = true;
++                    picker.close_quiet_tail();
+                     note_deferred_quiet_checks();
+                     continue;
+                 }

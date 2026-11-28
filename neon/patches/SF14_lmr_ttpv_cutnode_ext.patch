@@ -1,0 +1,21 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2408,7 +2408,7 @@
+             int r = reduction(quiet, depth, move_count);
+             if (ss->tt_pv) r -= 1;
+             if (!improving) r += 1;
+-            if (cut_node) r += 2;
++            if (cut_node) r += ss->tt_pv ? 1 : 2;
+             if (tt_capture && quiet) r += 1;
+             if (gives_check) r -= 1;
+             if (in_check) r -= 1;
+@@ -2423,7 +2423,8 @@
+             // four replies are the likely refutations, so they lose one ply of reduction.
+             if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
+             if (bare_king_lmr_cap) r = std::min(r, 1);
+-            const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
++            const int max_lmr_depth = new_depth + (!root_node && depth >= 4 && r <= -2 ? 1 : 0);
++            const int reduced_depth = std::clamp(new_depth - r, 1, max_lmr_depth);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search_child(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;

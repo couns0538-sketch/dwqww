@@ -1,0 +1,19 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -927,8 +927,15 @@
+             int value = plain;
+             if (rework) {
+                 const Bitboard set = threats->by_type[pt];
+-                const int twin = (*rework_side)[b4::square_bit(set, move.from)][b4::square_bit(set, move.to)][move.from][move.to];
++                const int from_t = b4::square_bit(set, move.from);
++                const int to_t = b4::square_bit(set, move.to);
++                const int twin = (*rework_side)[from_t][to_t][move.from][move.to];
+                 value = b4::blend(plain, twin, quarters);
++                // SF36 (clean-room Stockfish/Stormphrax): zero-cost threat escape/entry move ordering bonus.
++                if (from_t != to_t) {
++                    static constexpr std::array<int, 7> kThreatBonus{0, 0, 2400, 2400, 4200, 6400, 0};
++                    value += (from_t - to_t) * kThreatBonus[pt];
++                }
+             }
+             if (cont1 != nullptr) value += (*cont1)[p][move.to];
+             if (cont2 != nullptr) value += (*cont2)[p][move.to];

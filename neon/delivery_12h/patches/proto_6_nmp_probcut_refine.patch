@@ -1,0 +1,88 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -255,6 +255,7 @@
+ extern int NullMoveBase;
+ extern int NullMoveDepthDivisor;
+ extern int NullMoveEvalDivisor;
++extern int NmpProbcutRefine;       // 0 = off, 1 = NMP eval-excess cap + ProbCut TT-fail guard & depth refinement
+ extern int RfpDepth;
+ extern int RfpMargin;
+ extern int RfpImproving;
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -104,6 +104,7 @@
+ int NullMoveBase = 3;
+ int NullMoveDepthDivisor = 3;
+ int NullMoveEvalDivisor = 200;
++int NmpProbcutRefine = 1;
+ int RfpDepth = 8;
+ int RfpMargin = 72;
+ int RfpImproving = 40;
+@@ -191,6 +192,7 @@
+         {"NullMoveMinDepth", &NullMoveMinDepth, 1, 10},  {"NullMoveBase", &NullMoveBase, 1, 6},
+         {"NullMoveDepthDivisor", &NullMoveDepthDivisor, 1, 10},
+         {"NullMoveEvalDivisor", &NullMoveEvalDivisor, 50, 1000},
++        {"NmpProbcutRefine", &NmpProbcutRefine, 0, 1},
+         {"RfpDepth", &RfpDepth, 0, 15},                  {"RfpMargin", &RfpMargin, 10, 300},
+         {"RfpImproving", &RfpImproving, 0, 200},         {"RazorDepth", &RazorDepth, 0, 6},
+         {"RazorBase", &RazorBase, 0, 1000},              {"RazorMultiplier", &RazorMultiplier, 0, 1000},
+@@ -2098,8 +2100,11 @@
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta) &&
+             !(tune::NullSeeVeto && null_see_veto_threat(board))) {
+             ++null_tries_;
++            // Clean-room Stockfish/Viridithas: cap NMP eval-excess reduction at 2 plies and add !improving step.
++            const int eval_cap = tune::NmpProbcutRefine != 0 ? 2 : 3;
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+-                                  std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
++                                  std::min((eval - beta) / tune::NullMoveEvalDivisor, eval_cap) +
++                                  (tune::NmpProbcutRefine != 0 && !improving ? 1 : 0);
+             ss->current_move = Move::none();
+             ss->moved_piece = Empty;
+             ss->continuation = &(*continuation_history_)[Empty][0];
+@@ -2144,13 +2149,21 @@
+         }
+         // ProbCut: a good capture that beats beta by a margin at reduced depth.
+         const int probcut_beta = beta + tune::ProbcutMargin - 50 * improving;
+-        if (depth >= tune::ProbcutDepth && !is_mate_score(beta) &&
+-            !(tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta)) {
++        // Clean-room Stockfish/Viridithas: TT-fail guard ignores BoundLower entries and bounds ProbCut captures.
++        const bool probcut_tt_fail =
++            tune::NmpProbcutRefine != 0
++                ? (tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta &&
++                   tt_bound != BoundLower)
++                : (tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta);
++        if (depth >= tune::ProbcutDepth && !is_mate_score(beta) && !probcut_tt_fail) {
+             MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+             Move move;
++            int probcut_count = 0;
++            const int probcut_max = 2 + 2 * static_cast<int>(cut_node);
+             while (!(move = picker.next(false)).is_none()) {
+                 if (move == excluded || !board.is_legal(move)) continue;
+                 if (!board.see_ge(move, probcut_beta - ss->static_eval)) continue;
++                if (tune::NmpProbcutRefine != 0 && ++probcut_count > probcut_max) break;
+                 ss->current_move = move;
+                 ss->moved_piece = board.moved_piece(move);
+                 ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
+@@ -2162,17 +2175,19 @@
+ #if FORGE_SEARCH_SPEED2
+                 shared_.tt.prefetch(board.key());
+ #endif
++                const int pc_depth = tune::NmpProbcutRefine != 0 ? std::max(1, depth - 4) : (depth - 4);
+                 int value = -qsearch_child(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+                 if (value >= probcut_beta && !aborted_) {
+-                    value = -search_child(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
++                    value = -search_child(board, ss + 1, pc_depth, -probcut_beta, -probcut_beta + 1, !cut_node);
+                 }
+                 board.unmake_move(move, undo);
+                 if (aborted_) return 0;
+                 if (value >= probcut_beta) {
++                    const int pc_store_depth = tune::NmpProbcutRefine != 0 ? (pc_depth + 1) : (depth - 3);
+ #if FORGE_SPD_TT_NOTLS
+-                    store_tt(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
++                    store_tt(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, pc_store_depth, BoundLower, ss->tt_pv, board.halfmove_clock());
+ #else
+-                    shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
++                    shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, pc_store_depth, BoundLower, ss->tt_pv, board.halfmove_clock());
+ #endif
+                     return value;
+                 }

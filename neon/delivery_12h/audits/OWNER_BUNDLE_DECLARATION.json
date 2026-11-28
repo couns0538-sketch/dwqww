@@ -1,0 +1,187 @@
+{
+  "written": "2026-11-28 02:44:59",
+  "request_ref": "OPUS-2811-OWNER-BUNDLE-TEST (01:18 PC)",
+  "bundle_exe": "C:\\nnue-lab\\neon\\forge_fixes\\builds\\FORGE_OWNER_BUNDLE_PGO.exe",
+  "bundle_exe_sha256": "95d0608e1a6c4c4ba6606a6ba2a8e4562280f71129b33d5d71f65b7e3c8941b0",
+  "bundle_exe_bytes": 2447872,
+  "bundle_patch": "C:\\nnue-lab\\neon\\forge_fixes\\patches\\FORGE_OWNER_BUNDLE_PGO.patch",
+  "bundle_patch_sha256": "f441957d44396bd022bbdb0dc723416af23d0921c5230d3aa3926431bccff0d8",
+  "live_pgo_exe": "C:\\nnue-lab\\runs\\forge\\engines\\v3-r15dsg-sp-clang\\forge.exe",
+  "live_pgo_exe_sha256": "cef2f21589102392fdd7e3cbde74bfd01baa94f9677a2be33365f68e4bceb03d",
+  "g3_net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\G3_FULL25_v3p_1024_cc0_anchored\\cand.fnn3",
+  "g3_net_sha256": "7ff7789032491aa732846db17ad24ec7fc95c6cb9ad177490f5a06fcccbb9763",
+  "r0067_net": "C:\\nnue-lab\\runs\\forge\\r0067\\train\\cand.fnn3",
+  "r0067_net_sha256": "737f197808fef489017cf46f4daf76663d805bb01761e2b1781fc46fa7c9fc28",
+  "pgo_profile": "Dual-Net Clang ThinLTO+PGO (G3_FULL25 d11/13/16 + r0067 d11/13/15, all 45 live v3_uci_options + LmrDeeperShallower=true)",
+  "build_seconds": 0.0,
+  "patches_included": [
+    {
+      "patch": "C:\\nnue-lab\\neon\\forge_fixes\\patches\\V3P_pairwise_psqt_fused_v3.patch",
+      "name": "V3P_pairwise_psqt_fused_v3.patch",
+      "sha256": "57f3455f185463cfa7859727da9c6a91bcaadb3934da4492a6e78029dcaac763"
+    },
+    {
+      "patch": "C:\\nnue-lab\\neon\\forge_fixes\\patches\\SF13_qs_evasion_pruning.patch",
+      "name": "SF13_qs_evasion_pruning.patch",
+      "sha256": "63eb3288af4712a7d641035177e561448e6fc94041d8ee916776ab3fced6b6e4"
+    },
+    {
+      "patch": "C:\\nnue-lab\\neon\\forge_fixes\\patches\\SF8_conthist_6ply.patch",
+      "name": "SF8_conthist_6ply.patch",
+      "sha256": "62dcf1f3da0ac212a3807e59eb61e144b3705ea2a8a716b70a391e81af4c8779"
+    },
+    {
+      "patch": "C:\\nnue-lab\\neon\\forge_fixes\\teamwork_wave2\\streamA_search\\patches\\proto_1_corrhist_minor.patch",
+      "name": "proto_1_corrhist_minor.patch",
+      "sha256": "e1cd152b4d78cd7880f55dd8967eb561fe246fe5773232ce22825df5b2071b14"
+    }
+  ],
+  "extra_uci_options_on_bundle": {
+    "LmrDeeperShallower": true
+  },
+  "explicitly_excluded": [
+    "SF4b1_v3_endgame_scale (-4.52 in 1000g confirm)",
+    "SF15_rfp_failsoft_blend (-0.35 in 1000g confirm)",
+    "All negative patches (SF7, SF4b2, SF5a, EvasionOrdering, W2_proto_3, W2_proto_4)",
+    "All unscreened Wave 4-6 patches (SF17..SF40, proto_9, proto_10)",
+    "obm4 (training recipe, not a C++ search patch; already represented via G3_FULL25 anchors)"
+  ],
+  "gates": {
+    "perft5": 4865609,
+    "g3_full_hard_pass": true,
+    "r0067_quick_hard_pass": true
+  },
+  "benches": {
+    "builtin_default_11_13": {
+      "d11": {
+        "nodes": 313265,
+        "time_ms": 130,
+        "nps": 2409730
+      },
+      "d13": {
+        "nodes": 773794,
+        "time_ms": 329,
+        "nps": 2351957
+      }
+    },
+    "r0067_plus_B4_live_opts_11_13": {
+      "d11": {
+        "nodes": 209374,
+        "time_ms": 67,
+        "nps": 3124985
+      },
+      "d13": {
+        "nodes": 493972,
+        "time_ms": 151,
+        "nps": 3271337
+      }
+    },
+    "r0067_plus_B4_plus_LmrDeeper_11_13": {
+      "d11": {
+        "nodes": 223638,
+        "time_ms": 72,
+        "nps": 3106083
+      },
+      "d13": {
+        "nodes": 528382,
+        "time_ms": 165,
+        "nps": 3202315
+      }
+    },
+    "G3_plus_B4_plus_LmrDeeper_11_13": {
+      "d11": {
+        "nodes": 222600,
+        "time_ms": 80,
+        "nps": 2782500
+      },
+      "d13": {
+        "nodes": 419338,
+        "time_ms": 148,
+        "nps": 2833364
+      }
+    }
+  },
+  "clean_idle_nps": {
+    "runs": {
+      "live_pgo_r0067": [
+        {
+          "nodes": 576076,
+          "time_ms": 167,
+          "nps": 3449556
+        },
+        {
+          "nodes": 576076,
+          "time_ms": 168,
+          "nps": 3429023
+        },
+        {
+          "nodes": 576076,
+          "time_ms": 167,
+          "nps": 3449556
+        }
+      ],
+      "bundle_pgo_r0067": [
+        {
+          "nodes": 528382,
+          "time_ms": 165,
+          "nps": 3202315
+        },
+        {
+          "nodes": 528382,
+          "time_ms": 164,
+          "nps": 3221841
+        },
+        {
+          "nodes": 528382,
+          "time_ms": 164,
+          "nps": 3221841
+        }
+      ],
+      "bundle_pgo_G3": [
+        {
+          "nodes": 419338,
+          "time_ms": 150,
+          "nps": 2795586
+        },
+        {
+          "nodes": 419338,
+          "time_ms": 148,
+          "nps": 2833364
+        },
+        {
+          "nodes": 419338,
+          "time_ms": 148,
+          "nps": 2833364
+        }
+      ]
+    },
+    "median_nps": {
+      "live_pgo_r0067": 3449556,
+      "bundle_pgo_r0067": 3221841,
+      "bundle_pgo_G3": 2833364
+    },
+    "ratio_bundle_r0067_vs_live": 0.934,
+    "ratio_bundle_G3_vs_live": 0.8214
+  },
+  "arms": {
+    "ARM_A_owners": {
+      "name": "OWNER_BUNDLE_ARMA_bundleG3_vs_liveR0067_2000g_6p006",
+      "cand": "FORGE_OWNER_BUNDLE_PGO.exe (LmrDeeperShallower=true) + G3_FULL25/cand.fnn3",
+      "base": "v3-r15dsg-sp-clang/forge.exe + r0067/train/cand.fnn3",
+      "games": 2000,
+      "tc": "6+0.06",
+      "concurrency": 7,
+      "seed": 202611901
+    },
+    "ARM_B_control": {
+      "name": "OWNER_BUNDLE_ARMB_bundleR0067_vs_liveR0067_2000g_6p006",
+      "cand": "FORGE_OWNER_BUNDLE_PGO.exe (LmrDeeperShallower=true) + r0067/train/cand.fnn3",
+      "base": "v3-r15dsg-sp-clang/forge.exe + r0067/train/cand.fnn3",
+      "games": 2000,
+      "tc": "6+0.06",
+      "concurrency": 7,
+      "seed": 202611902
+    }
+  },
+  "decision_rule": "Evaluate each arm on its own 95% pentanomial Elo CI; any placement still goes by lab-place-a-change."
+}

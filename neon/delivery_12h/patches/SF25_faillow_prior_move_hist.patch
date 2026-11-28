@@ -1,0 +1,34 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2507,11 +2507,26 @@
+ #endif
+         // B4 HistRework: the twin gets the same bonus.
+         if (tune::HistRework != 0) apply_history(rework_entry(board, ss, best_move), history_bonus(depth) / 4);
+-    } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+-               (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
+-        // Every move failed low: the parent's quiet move refuted this line.
+-        update_continuation(ss - 1, (ss - 1)->moved_piece, (ss - 1)->current_move.to,
+-                            history_bonus(depth) * tune::FailLowContinuationBonus / 100);
++    } else if (best_move.is_none() && !(ss - 1)->current_move.is_none() &&
++               (ss - 1)->moved_piece != Empty && ply > 0) {
++        const Move prev = (ss - 1)->current_move;
++        if (!prev.is_capture() && !prev.is_promotion()) {
++            if (tune::FailLowContinuationBonus > 0) {
++                // Every move failed low: the parent's quiet move refuted this line.
++                update_continuation(ss - 1, (ss - 1)->moved_piece, prev.to,
++                                    history_bonus(depth) * tune::FailLowContinuationBonus / 100);
++            }
++            if (depth >= 3) {
++                // Clean-room Stockfish prior quiet move butterfly bonus on fail-low.
++                apply_history((*main_history_)[static_cast<std::size_t>(opposite(board.side_to_move()))][prev.from][prev.to],
++                              history_bonus(depth) / 2);
++            }
++        } else if (depth >= 3 && prev.is_capture() && ss->entered_capture != Empty) {
++            // Clean-room Stockfish prior capture bonus on fail-low.
++            const int cap_pt = piece_type(ss->entered_capture);
++            apply_history((*capture_history_)[static_cast<std::size_t>((ss - 1)->moved_piece)][prev.to][static_cast<std::size_t>(cap_pt)],
++                          history_bonus(depth) / 2);
++        }
+     }
+ 
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);

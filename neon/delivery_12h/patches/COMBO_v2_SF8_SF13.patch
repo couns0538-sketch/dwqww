@@ -1,0 +1,84 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -893,6 +893,7 @@
+         const PieceToHistory* cont1;
+         const PieceToHistory* cont2;
+         const PieceToHistory* cont4;
++        const PieceToHistory* cont6;
+         const Board& board;
+         const Worker& worker;
+         const LesserThreatHistory::value_type* rework_side;
+@@ -905,8 +906,8 @@
+             : main((*searcher.main_history_)[static_cast<std::size_t>(b.side_to_move())]),
+               cont1(ss != nullptr ? (ss - 1)->continuation : nullptr),
+               cont2(ss != nullptr ? (ss - 2)->continuation : nullptr),
+-              cont4(tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+-                        ? (ss - 4)->continuation : nullptr),
++              cont4(ss != nullptr && !(ss - 4)->current_move.is_none() ? (ss - 4)->continuation : nullptr),
++              cont6(ss != nullptr && ss->ply >= 2 && !(ss - 6)->current_move.is_none() ? (ss - 6)->continuation : nullptr),
+               board(b),
+               worker(searcher),
+               rework_side(tune::HistRework != 0 && ss != nullptr
+@@ -933,6 +934,7 @@
+             if (cont1 != nullptr) value += (*cont1)[p][move.to];
+             if (cont2 != nullptr) value += (*cont2)[p][move.to];
+             if (cont4 != nullptr) value += (*cont4)[p][move.to] / 2;
++            if (cont6 != nullptr) value += (*cont6)[p][move.to] / 4;
+             if (use_threat_hist) [[unlikely]] value += worker.threat_quiet_bonus(board, move);
+ #if FORGE_PAWN_HISTORY
+             value += worker.pawn_history_value(board, piece, move);
+@@ -1617,8 +1619,11 @@
+     if (ss != nullptr) {
+         if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[p][move.to];
+         if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[p][move.to];
+-        if (tune::ContHist4PlyRead && (ss - 4)->continuation != nullptr && !(ss - 4)->current_move.is_none()) {
++        if ((ss - 4)->continuation != nullptr && !(ss - 4)->current_move.is_none()) {
+             score += (*(ss - 4)->continuation)[p][move.to] / 2;
++        }
++        if (ss->ply >= 2 && (ss - 6)->continuation != nullptr && !(ss - 6)->current_move.is_none()) {
++            score += (*(ss - 6)->continuation)[p][move.to] / 4;
+         }
+     }
+     if (tune::ThreatHistory) [[unlikely]] score += threat_quiet_bonus(board, move);
+@@ -1703,11 +1708,12 @@
+ }
+ 
+ void Worker::update_continuation(SearchStack* ss, Piece piece, int to, int bonus) {
+-    for (const int back : {1, 2, 4}) {
++    for (const int back : {1, 2, 4, 6}) {
++        if (back == 6 && ss->ply < 2) continue;
+         const SearchStack* previous = ss - back;
+         if (previous->continuation == nullptr || previous->current_move.is_none()) continue;
+-        apply_history((*previous->continuation)[static_cast<std::size_t>(piece)][static_cast<std::size_t>(to)],
+-                      back == 4 ? bonus / 2 : bonus);
++        const int scaled = back == 6 ? bonus / 4 : (back == 4 ? bonus / 2 : bonus);
++        apply_history((*previous->continuation)[static_cast<std::size_t>(piece)][static_cast<std::size_t>(to)], scaled);
+     }
+ }
+ 
+@@ -1847,14 +1853,19 @@
+     while (!(move = picker.next(false)).is_none()) {
+         if (!picker.last_move_known_legal() && !board.is_legal(move)) continue;
+         ++move_count;
+-        if (mate_moves_ == 0 && !in_check && best_score > -MateInMaxPly) {
+-            const bool gives_check = board.gives_check(move);
+-            // Futility: even winning the captured piece cannot raise alpha.
+-            if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
+-                best_score = std::max(best_score, futility_base + capture_value(board, move));
++        if (mate_moves_ == 0 && best_score > -MateInMaxPly) {
++            if (!in_check) {
++                const bool gives_check = board.gives_check(move);
++                // Futility: even winning the captured piece cannot raise alpha.
++                if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
++                    best_score = std::max(best_score, futility_base + capture_value(board, move));
++                    continue;
++                }
++                if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
++            } else if (move_count > 2 && !move.is_capture() && !move.is_promotion() && !board.gives_check(move) &&
++                       !board.see_ge(move, 0)) {
+                 continue;
+             }
+-            if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
+         }
+ #if FORGE_SPD_PREFETCH_EARLY
+         std::uint64_t child_key = 0;

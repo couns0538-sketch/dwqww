@@ -1,0 +1,116 @@
+{
+  "timestamp": "2026-11-27 21:49:36",
+  "dataset": "C:\\nnue-lab\\neon\\filter_quest\\eval_sets\\final_eval_r0203_w14_w15.plain",
+  "n_games": 1555,
+  "total_positions": 204180,
+  "mean_plies_per_game": 131.31,
+  "global_white_cp_mean": 142.2,
+  "global_white_wdl_mean": 0.5923,
+  "lag_metrics": {
+    "1": {
+      "pairs": 202625,
+      "rho_white_cp": 0.9779,
+      "rho_white_wdl": 0.9958,
+      "piece_jaccard_overlap": 0.8413
+    },
+    "2": {
+      "pairs": 201070,
+      "rho_white_cp": 0.9584,
+      "rho_white_wdl": 0.9933,
+      "piece_jaccard_overlap": 0.7207
+    },
+    "3": {
+      "pairs": 199515,
+      "rho_white_cp": 0.9399,
+      "rho_white_wdl": 0.9905,
+      "piece_jaccard_overlap": 0.6674
+    },
+    "4": {
+      "pairs": 197960,
+      "rho_white_cp": 0.9225,
+      "rho_white_wdl": 0.9878,
+      "piece_jaccard_overlap": 0.6191
+    },
+    "6": {
+      "pairs": 194850,
+      "rho_white_cp": 0.8898,
+      "rho_white_wdl": 0.982,
+      "piece_jaccard_overlap": 0.5386
+    },
+    "8": {
+      "pairs": 191740,
+      "rho_white_cp": 0.86,
+      "rho_white_wdl": 0.9757,
+      "piece_jaccard_overlap": 0.4856
+    },
+    "10": {
+      "pairs": 188630,
+      "rho_white_cp": 0.8328,
+      "rho_white_wdl": 0.9692,
+      "piece_jaccard_overlap": 0.4386
+    },
+    "12": {
+      "pairs": 185520,
+      "rho_white_cp": 0.8074,
+      "rho_white_wdl": 0.9623,
+      "piece_jaccard_overlap": 0.4048
+    },
+    "16": {
+      "pairs": 179300,
+      "rho_white_cp": 0.7612,
+      "rho_white_wdl": 0.9477,
+      "piece_jaccard_overlap": 0.3458
+    },
+    "20": {
+      "pairs": 173085,
+      "rho_white_cp": 0.7206,
+      "rho_white_wdl": 0.9326,
+      "piece_jaccard_overlap": 0.3019
+    }
+  },
+  "tau_int_wdl_lag1_20": 36.592,
+  "n_eff_fraction_at_stride1": 0.0273,
+  "stride_thinning_tradeoff": {
+    "stride_1": {
+      "keep_frac": 1.0,
+      "tau_int_window20": 36.592,
+      "n_eff_ratio_per_stored_pos": 0.0273,
+      "n_eff_ratio_per_raw_cpu_pos": 0.0273,
+      "stored_quality_gain_vs_s1": 1.0,
+      "raw_cpu_cost_multiplier": 1
+    },
+    "stride_2": {
+      "keep_frac": 0.5,
+      "tau_int_window20": 18.693,
+      "n_eff_ratio_per_stored_pos": 0.0535,
+      "n_eff_ratio_per_raw_cpu_pos": 0.0267,
+      "stored_quality_gain_vs_s1": 1.958,
+      "raw_cpu_cost_multiplier": 2
+    },
+    "stride_3": {
+      "keep_frac": 0.3333,
+      "tau_int_window20": 11.678,
+      "n_eff_ratio_per_stored_pos": 0.0856,
+      "n_eff_ratio_per_raw_cpu_pos": 0.0285,
+      "stored_quality_gain_vs_s1": 3.133,
+      "raw_cpu_cost_multiplier": 3
+    },
+    "stride_4": {
+      "keep_frac": 0.25,
+      "tau_int_window20": 9.742,
+      "n_eff_ratio_per_stored_pos": 0.1026,
+      "n_eff_ratio_per_raw_cpu_pos": 0.0257,
+      "stored_quality_gain_vs_s1": 3.756,
+      "raw_cpu_cost_multiplier": 4
+    },
+    "stride_6": {
+      "keep_frac": 0.1667,
+      "tau_int_window20": 6.246,
+      "n_eff_ratio_per_stored_pos": 0.1601,
+      "n_eff_ratio_per_raw_cpu_pos": 0.0267,
+      "stored_quality_gain_vs_s1": 5.859,
+      "raw_cpu_cost_multiplier": 6
+    }
+  },
+  "takeaway": "Consecutive plies in self-play share ~90%+ piece-square features and rho_wdl(lag=1)>0.92, so per-stored-position information density rises with stride thinning (keeping 1 in 2 or 1 in 3 plies) WHEN storage/GPU-epochs are the bottleneck, whereas at fixed datagen CPU budget, keeping every ply + shuffling across millions of games maximizes N_eff per CPU-euro (consistent with Stockfish/Leela/Bullet fixed-CPU datagen + high-diversity opening books + random-ply openings)."
+}

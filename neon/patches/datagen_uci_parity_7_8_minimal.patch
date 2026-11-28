@@ -1,0 +1,111 @@
+--- a/pipeline/nnloop/datagen_uci.py
++++ b/pipeline/nnloop/datagen_uci.py
+@@ -207,7 +207,17 @@
+     return None
+ 
+ 
+-def play_game(eng: UciEngine, rng: random.Random, g: dict, convert, book):
++def _random_count_for_game(g: dict, game_idx: int) -> tuple[int, bool]:
++    """Return (k, alt_active) for this game. When [datagen] random_move_count_alt >= 0 is set,
++    odd game_idx uses random_move_count_alt (e.g. 7) and even game_idx uses random_move_count (e.g. 8)."""
++    base = int(g["random_move_count"])
++    alt = g.get("random_move_count_alt")
++    if alt is not None and int(alt) >= 0:
++        return (int(alt) if (game_idx & 1) else base), True
++    return base, False
++
++
++def play_game(eng: UciEngine, rng: random.Random, g: dict, convert, book, game_idx: int = 0):
+     """Play one self-play game. Returns (plain_text, n_records, result_white, plies)."""
+     import chess
+ 
+@@ -220,8 +230,12 @@
+         pos_prefix = "position startpos"
+     moves: list[str] = []
+     lo, hi = int(g["random_move_min_ply"]), int(g["random_move_max_ply"])
+-    k = min(int(g["random_move_count"]), max(0, hi - lo + 1))
+-    random_plies = set(rng.sample(range(lo, hi + 1), k)) if k > 0 else set()
++    k_raw, alt_active = _random_count_for_game(g, game_idx)
++    k = min(k_raw, max(0, hi - lo + 1))
++    if alt_active and lo == 0 and int(g["random_move_count"]) == hi + 1:
++        random_plies = set(range(k))
++    else:
++        random_plies = set(rng.sample(range(lo, hi + 1), k)) if k > 0 else set()
+     nodes = int(g["nodes"])
+     # [datagen] soft_nodes (2026-11-14): with N > 0 the labelled searches use `go softnodes N`: the engine stops
+     # after the first FINISHED iteration with at least N nodes (hard cap 4 N) instead of being cut off in the
+@@ -230,7 +244,7 @@
+     soft = int(g.get("soft_nodes", 0) or 0)
+     go_cmd = f"go softnodes {soft}" if soft > 0 else f"go nodes {nodes}"
+     eval_limit = int(g["eval_limit"])
+-    write_min_ply = int(g["write_min_ply"])
++    write_min_ply = k if (alt_active and int(g["write_min_ply"]) == int(g["random_move_count"])) else int(g["write_min_ply"])
+     max_ply = int(g["max_ply"])
+     dr_ply, dr_score, dr_count = int(g["draw_adj_ply"]), int(g["draw_adj_score"]), int(g["draw_adj_count"])
+     move_timeout = float(g.get("move_timeout_s", 60))
+@@ -365,6 +379,9 @@
+         return "random_multi_pv > 1"
+     if int(g["random_move_min_ply"]) != 0 or int(g["random_move_count"]) != int(g["random_move_max_ply"]) + 1:
+         return "the random plies are not plies 0 to random_move_count - 1"
++    alt = g.get("random_move_count_alt")
++    if alt is not None and int(alt) >= 0 and int(alt) > int(g["random_move_max_ply"]) + 1:
++        return "random_move_count_alt exceeds random_move_max_ply + 1"
+     if sc.get("unit", "raw") != "raw" or float(sc.get("multiplier", 1.0)) != 1.0:
+         return "the engine's score is converted"
+     return ""
+@@ -377,7 +394,7 @@
+     return "" if any(ln.startswith("sgstate ") for ln in eng.ready()) else "the engine does not answer sgstate"
+ 
+ 
+-def play_game_sg(eng: UciEngine, rng: random.Random, g: dict, book):
++def play_game_sg(eng: UciEngine, rng: random.Random, g: dict, book, game_idx: int = 0):
+     """[datagen] selfgame (Opus 2026-11-20): play_game with the game loop inside the engine (carbon2's `selfgame`
+     command, job 33, read line by line: tmp/opus_scratch/carbon2_j33_tools/READ_selfgame_patch_by_opus.md). The
+     random plies are played here as play_game plays them; then ONE `selfgame` line, and the engine plays on with
+@@ -395,8 +412,12 @@
+         pos_prefix = "position startpos"
+     moves: list[str] = []
+     lo, hi = int(g["random_move_min_ply"]), int(g["random_move_max_ply"])
+-    k = min(int(g["random_move_count"]), max(0, hi - lo + 1))
+-    random_plies = set(rng.sample(range(lo, hi + 1), k)) if k > 0 else set()
++    k_raw, alt_active = _random_count_for_game(g, game_idx)
++    k = min(k_raw, max(0, hi - lo + 1))
++    if alt_active:
++        random_plies = set(range(k))
++    else:
++        random_plies = set(rng.sample(range(lo, hi + 1), k)) if k > 0 else set()
+     max_ply = int(g["max_ply"])
+     eng.new_game()
+     while len(moves) in random_plies:          # selfgame_ok(): plies 0 to k - 1, so they come first
+@@ -411,8 +432,9 @@
+         board.push(mv)
+         moves.append(mv.uci())
+     eng.send(pos_prefix + (" moves " + " ".join(moves) if moves else ""))
++    write_min_ply = k if (alt_active and int(g["write_min_ply"]) == int(g["random_move_count"])) else int(g["write_min_ply"])
+     eng.send(f"selfgame softnodes {int(g['soft_nodes'])} evallimit {int(g['eval_limit'])} maxply {max_ply} "
+-             f"writeminply {int(g['write_min_ply'])} drawply {int(g['draw_adj_ply'])} "
++             f"writeminply {write_min_ply} drawply {int(g['draw_adj_ply'])} "
+              f"drawscore {int(g['draw_adj_score'])} drawcount {int(g['draw_adj_count'])}")
+     move_timeout = float(g.get("move_timeout_s", 60))
+     recs = []
+@@ -462,6 +484,7 @@
+     stamp = f"{int(time.time())}_{os.getpid()}"
+     out = Path(out_dir)
+     idx = 0
++    game_idx = 0
+     fh = None
+     part = None
+     in_file = 0
+@@ -505,9 +528,10 @@
+                         except OSError:
+                             pass
+                 if sg_why == "":
+-                    text, n, _result, plies = play_game_sg(eng, rng, g, book)
++                    text, n, _result, plies = play_game_sg(eng, rng, g, book, game_idx)
+                 else:
+-                    text, n, _result, plies = play_game(eng, rng, g, convert, book)
++                    text, n, _result, plies = play_game(eng, rng, g, convert, book, game_idx)
++                game_idx += 1
+                 fails = 0
+             except EngineError as e:
+                 fails += 1

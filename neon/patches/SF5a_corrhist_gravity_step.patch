@@ -1,0 +1,61 @@
+--- a/include/forge/b4.hpp
++++ b/include/forge/b4.hpp
+@@ -19,7 +19,7 @@
+ 
+ constexpr int MaxReworkLevel = 3;
+ constexpr int HistoryLimit = 16384;        // search.cpp asserts that this is its HistoryMax
+-constexpr int CorrectionEntryLimit = 8192; // search.cpp asserts that this is CorrectionLimit
++constexpr int CorrectionEntryLimit = 32768; // search.cpp asserts that this is CorrectionLimit (+/-128 cp)
+ 
+ [[nodiscard]] constexpr int clamp_level(int level) {
+     return level < 1 ? 1 : (level > MaxReworkLevel ? MaxReworkLevel : level);
+@@ -69,9 +69,9 @@
+ // Self-damping update of a joint-correction entry: entry + step - entry * |step| / limit. For |entry| <= limit and
+ // |step| <= limit the result stays within +-limit; the clamp is a guard. |entry * step| <= limit^2 = 2^26 fits int32.
+ [[nodiscard]] constexpr std::int32_t gravity(std::int32_t entry, std::int32_t step, std::int32_t limit) {
+-    const std::int32_t magnitude = step < 0 ? -step : step;
+-    const std::int32_t next = entry + step - entry * magnitude / limit;
+-    return next < -limit ? -limit : (next > limit ? limit : next);
++    const std::int64_t magnitude = step < 0 ? -static_cast<std::int64_t>(step) : static_cast<std::int64_t>(step);
++    const std::int64_t next = static_cast<std::int64_t>(entry) + step - static_cast<std::int64_t>(entry) * magnitude / limit;
++    return static_cast<std::int32_t>(next < -limit ? -limit : (next > limit ? limit : next));
+ }
+ 
+ // Non-pawn material signature: 4 bits per (colour, knight/bishop/rook/queen) count, saturated at 15.
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -412,7 +412,7 @@
+ using CounterMoveTable = std::array<std::array<Move, 64>, 13>;
+ constexpr std::size_t CorrectionSize = 1U << 14U;
+ constexpr int CorrectionGrain = 256;
+-constexpr int CorrectionLimit = 32 * CorrectionGrain;
++constexpr int CorrectionLimit = 128 * CorrectionGrain;
+ using CorrectionHistory = std::array<std::array<std::int32_t, CorrectionSize>, 2>;
+ 
+ struct SearchStack {
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1474,10 +1474,12 @@
+ 
+ void Worker::update_correction(const Board& board, int depth, int best_score, int static_eval, const SearchStack* ss) {
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+-    const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
+     const int weight = std::min(depth + 1, 16);
++    // SF5a: scaled gravity update (Stockfish def601cc / Stormphrax principle).
++    // At diff=100 cp and depth=7 (weight=8), step=1600 (~6.25 cp/table) damped by gravity toward +-128 cp.
++    const int step = std::clamp((best_score - static_eval) * weight * 2, -CorrectionLimit / 4, CorrectionLimit / 4);
+     auto apply = [&](std::int32_t& entry) {
+-        entry = std::clamp(entry + diff * weight / 256, -CorrectionLimit, CorrectionLimit);
++        entry = b4::gravity(entry, step, CorrectionLimit);
+     };
+     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
+@@ -1498,7 +1500,7 @@
+             ? (board.pawn_key() ^ ss->corr_mat_mix)
+             : b4::joint_key(board);
+         std::int32_t& entry = (*joint_correction_)[side][jkey & (CorrectionSize - 1U)];
+-        entry = b4::gravity(entry, diff * weight / 256, CorrectionLimit);
++        entry = b4::gravity(entry, step, CorrectionLimit);
+     }
+     // B4 CorrHistV2: the two continuation entries take the same step as the tables above.
+     if (tune::CorrHistV2 && ss != nullptr) {

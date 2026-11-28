@@ -1,0 +1,620 @@
+# Engine profile for Forge (lock combo29, source verified against its hash manifest).
+# Run:  C:\nnue-lab\pipeline\run.cmd --config C:\nnue-lab\pipeline\config.forge.toml
+# Same loop as config.toml; only the engine, data and trainer blocks differ.
+
+[paths]
+root   = "C:/nnue-lab"
+runs   = "C:/nnue-lab/runs/forge"
+python = "C:/nnue-lab/venv101/Scripts/python.exe"
+report = "C:/nnue-lab/REPORT.md"
+tmp    = "C:/nnue-lab/tmp"
+
+[limits]
+min_free_gb = 40
+# Disk relief (2026-11-15, the owner: "when selfplay gets too large for disk space filter the positions that frees
+# space"). A round takes about 2.5 GB. When free space falls under relief_below_gb, rounds that are NO LONGER in
+# the training window (see [train] max_window_positions) lose their training cache (rebuildable) and get their
+# positions file packed to a fifth of its size (filtered.plain.gz; unpack with any gzip tool; no position is
+# lost). Oldest first, only until the space is back. Rounds in the window are never touched. 0 = off.
+# The Opus session's experiments read old rounds directly: he is told before this ever acts (it cannot before
+# about round 14, when the window is full, and not before the disk is down to 60 GB, weeks away at 172 GB free).
+relief_below_gb = 60
+# Step 3 (owner, 2026-11-16 about 18:05: "you are allowed to write the self play data if disk space gets right to
+# other disks once all disks are at 30gb thats the stop"; 18:10: build it). When C: is STILL under
+# overflow_below_gb after the packing above, the packed positions file of a round outside the window is moved to
+# the lab's own folder on D: or F: (made once, with a marker file; a folder of that name without the marker is never
+# used; nothing else on those disks is touched), copied, compared byte for byte, a pointer file left in its place.
+# No other disk is taken below overflow_floor_gb (never under 30 in the code). E: (3 GB stick) is never used.
+# Remove overflow_dirs (or set overflow_below_gb = 0) to switch it off. Code: pipeline/nnloop/diskrelief.py.
+# Owner, 2026-11-20 about 17:09: "you have the right to use one folder on each drive till each drive hits 30gb", and he
+# made the two folders himself (exact names, the F: one has TWO spaces); Opus wrote the marker into each at 17:12:00.
+overflow_dirs = ["D:/nnue folder2", "F:/nnuelabs  3"]
+overflow_below_gb = 50
+overflow_floor_gb = 30
+deadline    = ""                 # no end time (set 05:05 on 2026-11-14; was "2026-11-14 09:15"). The owner wants the loop to
+                                 # keep making data. It runs until STOP_LOOP.cmd (in the nnue-lab folder) is used
+                                 # or the disk limit is reached.
+max_rounds  = 0
+# Heat guard (set 06:15 on 2026-11-14). Self-play pauses when the CPU temperature in HWiNFO's log
+# (hwinfo.CSV in the nnue-lab folder) stays at or above cpu_temp_pause_c for 6 checks 20 s apart, and goes on
+# when it is back at cpu_temp_resume_c. Without a fresh log it watches the CPU's speed instead.
+# The trainer has its own guard for the graphics card (100 C on its hottest sensor).
+heat_guard = true
+cpu_temp_pause_c  = 92
+# Resume at 88 instead of 80 (changed 2026-11-14 21:50, after the guard fired for real for the first time): with
+# the graphics card training beside it, the CPU sits at about 89 C even while self-play is paused, so with 80 the
+# pause lasted the full 20 minutes each time. The pause limit (92) is unchanged. With the graphics card idle the
+# CPU stays near 80 C at full load and the guard does not fire at all.
+cpu_temp_resume_c = 88
+# Fewer workers before a full pause (2026-11-14 22:42, `HeatGuard` in pipeline/nnloop/datagen_uci.py). Between
+# 22:06 and 22:36 the guard cycled 2 minutes of play and 3 minutes of pause: self-play ran 40 % of the time
+# (1,632 positions a second over the half hour) and the CPU swung between 86 and 94 C every five minutes. Now, at
+# 92 C or more on two checks in a row, 2 of the 16 workers stop playing (down to heat_min_workers at the least);
+# at heat_add_worker_c or less on two checks in a row one comes back. The 92 C limit is the same; the CPU is held
+# just under it and self-play does not stop. The full pause stays as the last step (when 4 workers are still too
+# hot). Tested with pretended temperatures (pipeline/tools/test_heat_guard.py, both scenarios PASS).
+# heat_throttle = false gives the old behaviour.
+heat_throttle = true
+heat_min_workers = 4
+heat_add_worker_c = 90
+# Matches obey the same limit since 2026-11-15 08:03 (`pipeline/nnloop/heat.py`; before, only self-play and the
+# tuner did, and match games beside a training on the graphics card held the CPU at 92 to 94 C for 28 minutes).
+# A match at fixed nodes is not paused: at cpu_temp_pause_c on two checks 20 s apart, fastchess and its engines
+# may use 2 processor threads fewer (one core), down to match_min_cpus; at heat_add_worker_c or cooler they get
+# 2 back. The games go on and, at fixed nodes, are the same games (tested: a 160-game match squeezed to 2 threads
+# was identical move for move, `pipeline/tools/test_match_heat.py logic procs match`). The time lost is added to
+# the match's time limit. A match on the clock (the yardstick, see [anchor]) is never squeezed.
+# Defaults, written here so they can be changed: match_heat_guard = true, match_min_cpus = 4 (heat_min_workers),
+# match_cpu_step = 2, match_heat_check_seconds = 20.
+match_heat_guard = true
+max_consecutive_failures = 3
+keep_checkpoints = false
+keep_models = false
+
+# ---------------------------------------------------------------- the engine
+[engine]
+name = "forge"
+mode = "build_per_net"           # Forge has its net compiled in: every net gets its own exe
+cmd  = "C:/nnue-lab/forge/build/forge_lock.exe"          # the lock build (used when no net is given)
+initial_net = "C:/nnue-lab/forge/lock/src/nnue_weights.inc"   # the lock net (AL1 s198) is the first "best"
+built_exe_name = "forge.exe"
+# builds an exe for {net} from the verified lock source with the portable GCC.
+# From round 3 (set 04:07): PGO + LTO build. Same node counts as the plain build for the lock net and
+# the round 2 net (bench 13: 862329 and 722569), 1.8 to 2.0 % faster (bench 15, 7 interleaved runs).
+# build_tag is part of the engine cache folder, so every net is rebuilt this way and no match mixes build types.
+# Plain build: forge/tools/build_forge.sh with build_tag = "".
+# From round 7 (set 10:00 on 2026-11-14, with the owner's OK of that morning): the engine is built from
+# C:/nnue-lab/forge/t21, the source of carbon/t21-integrate-round2 (the lock plus the reviewed fixes of the
+# cloud agents: capture-list overflow, clock parsing, node-limit move/score, net-file loader, start-up race,
+# option messages, eval command, MultiPV, uci_loop). Exact-byte export, hash list forge/t21/SOURCE_INPUTS.sha256.
+# Checked here before the switch: bench 11 / 13 / perft 5 = 312866 / 862329 / 4865609, 0 warnings; with the
+# round 2 net bench 13 = 722569 as before; 700 positions at depth 9 give the same move, score and node count
+# as the lock build; a self-play test ran clean. Back to the lock source: build_forge_pgo.sh and build_tag = "pgo".
+# Changed again at 10:10, still before round 7: the source is now C:/nnue-lab/forge/all = the t21 source plus
+# Carbon's three other branches merged here (t23 mate search and 50-move rule, t12 two-thread mate fix, t22
+# three search options that are off by default). Hash list forge/all/SOURCE_INPUTS.sha256, merge notes
+# forge/all/EXPORT_NOTE.txt. Checked here: 312866 / 862329 / 4865609, 0 warnings; 700 positions at depth 9
+# identical to the lock build (both nets); `go mate 2` finds a mate the lock misses; Astra's two-thread mate
+# position 7k/8/3K4/8/8/8/8/5R2 w: mate score in 10 of 10 runs (lock 0 of 10). The t21-only build: build_forge_t21_pgo.sh, tag "t21pgo".
+# Changed 2026-11-14 18:35, before round 7 started its self-play: the source is now C:/nnue-lab/forge/r4s =
+#   forge/all's twin on GitHub (integrate/combo29-all, e04556dd)
+#   + grok47/r4-01-integrate-r3 at 8e805fb4 (the round-3 fixes: position parsing, helper threads obey a node
+#     budget, mate scores read from the hash table, hash-table duplicates, clock safety; and 16 options, every one
+#     OFF by default)
+#   + four audit fixes applied by hand (r4-08 singular depth, r4-09 hash scores and the 50-move horizon,
+#     r4-11, r4-12)
+#   + three speed branches merged here without conflicts (r3-18 net update and output in one pass, r3-19
+#     hand-written evaluation, r3-20 move generation, legality, hash probe, move picker).
+# Every line was read before it was built (owner's condition of that evening). Hash list
+# forge/r4s/SOURCE_INPUTS.sha256 (its own sha256 starts 1c7691b4). Checked here: 312866 / 862329 / 4865609;
+# bench 13 with each option alone equals the agents' table; with the round 2 net bench 13 = 722569 as before;
+# 3,000 positions (lock net) and 2,000 positions (round 2 net) at depth 9: same move, score and node count as
+# forge/all in every one. Speed under load: about 2.6 % faster than forge/all (forge/r4 alone was 3 % slower,
+# the speed branches give 6 %). Back to forge/all: build_forge_all_pgo.sh and build_tag = "allpgo".
+# forge/r4 without the speed branches: build_forge_r4_pgo.sh, tag "r4pgo".
+# Changed 2026-11-14 21:10, still before round 7's self-play: the source is now C:/nnue-lab/forge/r5 = forge/r4s
+#   + Astra's mate guard (27 lines, his commit a9fddb1f, read line by line; compiled in by the build script with
+#     -DFORGE_MATE_ALPHA_GUARD=1; it is the UCI option MateAlphaGuard and is OFF unless set in uci_options below)
+#   + output buckets in the net code (written here that evening, about 40 lines in nnue.cpp): a net file that says
+#     FORGE_NNUE_OUT_BUCKETS N has N output blocks, chosen by the number of pieces. A net file without that line
+#     (every net so far) is computed exactly as before.
+# Checked here: 312866 / 862329 / 4865609; with the round 2 net bench 13 = 722569; 3,000 positions (lock net) and
+# 2,000 (round 2 net) at depth 9 identical to forge/r4s in move, score and nodes; option counts unchanged. With a
+# test net of 8 buckets: engine and trainer agree on 19,998 of 20,000 positions and differ by 1 centipawn on 2
+# (pipeline/tools/net_eval_check.py); the fast update path and the plain path search identically.
+# Hash list forge/r5/SOURCE_INPUTS.sha256 (its own sha256 starts 278aef5e). Back to forge/r4s: the two lines below.
+# Changed 2026-11-14 21:25, still before round 7's self-play: C:/nnue-lab/forge/r6 = forge/r5 with one function
+# refined, TTEntry::score_usable (the fifty-move rule for scores read from the hash table): a score stored at
+# the SAME clock is always usable; the stricter clauses of the audit fix r4-09 apply only between different clocks.
+# Found through Astra's question 0008: under r4-09 the position 8/8/2n2r2/3qN1k1/8/8/8/K7 w - - 90 141 gave
+# mate -6 at depth 9, the source before it mate -5; forge/r6 gives mate -5 again with the old node count.
+# Checked: unit test forge/tools/test_score_usable.cpp (9 cases, r4-09's own four included); 312866 / 862329 /
+# 4865609; option counts unchanged; 3,000 positions at depth 9 identical to forge/r5. Hash list
+# forge/r6/SOURCE_INPUTS.sha256 (its own sha256 starts f96c63cc). Back to forge/r5: the two lines below.
+# Changed 2026-11-14 22:06: the SAME source (forge/r6), built with clang instead of GCC, by the recipe of the
+# lock exe in the owner's repo (forge-combo29/windows_build/BUILD_RECIPE.txt): clang 23.1.5 from the official
+# llvm-mingw release 20261104 (the zip's sha256 matches GitHub's, and clang++.exe has the sha256 the recipe
+# records), ThinLTO, profile-guided on bench 11/13/16, -march=znver5. The lock's own table
+# (docs/overnight/RANKED.md) says the speed features in this source are worth about 2 % with GCC and about
+# 10 % with clang. Measured here: 312866 / 862329 / 4865609 unchanged, all option counts unchanged, 2,000
+# positions at depth 9 identical to the GCC build, and 7.0 % more nodes per second (bench 15, 9 runs each,
+# under load). Play is identical; only the speed differs. Back to GCC: the two lines below.
+build_cmd = '"C:/Program Files/Git/bin/bash.exe" C:/nnue-lab/forge/tools/build_forge_clang_pgo.sh "{out_exe}" "{net}"'
+build_tag = "r6clang"
+# Nets of the king-bucket format (files ending in .fnn3; engine source forge/r7, 2026-11-15; see
+# forge/r7/EXPORT_NOTE.txt): one exe for all of them, built once into runs/forge/engines/v3-<v3_build_tag>, the
+# net given to it by the options NNUEArchFile and NNUEArch. Since 2026-11-15 the loop's best net is of this kind
+# (see [train]): self-play and the loop's matches run through this exe.
+# 2026-11-15 22:09: engine source forge/r15 (forge/r15/R15_NOTE.txt) = r9 + the repairs of r12 that are on by
+# default (R1 a drawn root is searched, R3 isready before a net is named, R4b the parsing of go, R5 hard limit
+# already passed, R6b the gentle lone-king rule) + the helper kimik3's update speed patch, with the pawn history
+# compiled out. Same nodes as r9 on ordinary positions (pins, 400 of 400 searches); sanitizers clean.
+# Speed against the exe before (Opus's timing t5): r15 / the loop's exe 0.995 [0.985, 1.006], 30 rounds, t5; rebuild placebo 0.995.
+# Back: config.forge.toml.before_r15_2209 (exe v3-r9on-clang).
+# 2026-11-17 10:43 (Opus): engine source forge/r15c (forge/r15c/R15C_NOTE.txt) = forge/r15 + the helper
+# carbon2's speed patch, read line by line: the same nodes on 1,200 of 1,200 positions (768 and 512 nets), the same
+# output line for line, one trace in all 40 self-play timing runs; ASan + UBSan clean; protocol stress passes.
+# Speed on the loop's self-play workload: wall 1.172 and engine CPU 1.223 of r15 (10 rounds ABBA/BAAB, 40 runs, one trace; tmp/carbon_speed/out/sp_timing_1.json).
+# Back: config.forge.toml.before_r15c_1043 (exe v3-r15-clang).
+# 2026-11-17 16:42 (Opus): engine source forge/r15d (forge/r15d/R15D_NOTE.txt) = forge/r15c + the helper carbon2's
+# step E1 named there, read line by line; every check of its prediction met (same nodes and best moves,
+# same output, planted fault caught, sanitizers clean, half stack; no protocol stress run: E1 is not protocol code).
+# Speed on the loop's self-play workload: wall 1.0435 (10 of 10 rounds faster), CPU 1.0417 (10 of 10), tmp/carbon_e1/out/sp_timing_d.json.
+# Back: config.forge.toml.before_r15d_1642 (exe v3-r15c-clang).
+# 2026-11-17 20:43 (Opus): the same engine source forge/r15d, built with a profile that ALSO holds 60 self-play
+# games (bench alone never runs the per-node stop check, the UCI worker hand-off or the position parsing of
+# self-play; found by the helper carbon2, job 9). Same searches and output as the bench-profiled build (checks:
+# tmp/opus_scratch/pgosp/PLACE_DECLARATION.txt, place_checks.out). Speed: engine CPU 1.0218 (B faster in 9 of 10 rounds), wall 1.0240 (10 of 10), 40 self-play games x 10 rounds against the bench-profiled build, one trace in all 40 runs (tmp/opus_scratch/pgosp/sp_timing_pgosp.json).
+# Back: config.forge.toml.before_pgosp_2043 (exe v3-r15d-clang).
+v3_build_cmd = '"C:/Program Files/Git/bin/bash.exe" C:/nnue-lab/forge/tools/build_forge_v3r15dsg_sp_clang_pgo.sh "{out_exe}" "{net}"'
+v3_build_tag = "r15dsg-sp-clang"
+#build_cmd = '"C:/Program Files/Git/bin/bash.exe" C:/nnue-lab/forge/tools/build_forge_r6_pgo.sh "{out_exe}" "{net}"'
+#build_tag = "r6pgo"
+#build_cmd = '"C:/Program Files/Git/bin/bash.exe" C:/nnue-lab/forge/tools/build_forge_r5_pgo.sh "{out_exe}" "{net}"'
+#build_tag = "r5pgo"
+#build_cmd = '"C:/Program Files/Git/bin/bash.exe" C:/nnue-lab/forge/tools/build_forge_r4s_pgo.sh "{out_exe}" "{net}"'
+#build_tag = "r4spgo"
+#build_cmd = '"C:/Program Files/Git/bin/bash.exe" C:/nnue-lab/forge/tools/build_forge_all_pgo.sh "{out_exe}" "{net}"'
+#build_tag = "allpgo"
+#build_cmd = '"C:/Program Files/Git/bin/bash.exe" C:/nnue-lab/forge/tools/build_forge_pgo.sh "{out_exe}" "{net}"'
+#build_tag = "pgo"
+# Changed 2026-11-14 22:17: MateAlphaGuard = true (Astra's guard: with a mate score as the lower bound, the two
+# futility tests on the static evaluation do not prune, so a shorter mate is not missed). His acceptance and soak
+# are complete (report at his commit 65e600e2): 120 of 120 exact rook endings sound with 1, 2 and 4 threads; on
+# against off over 2,000 games 567-572-861 with 991 of 1,000 pairs level; 708 sanitizer games with it on and off
+# without a fault. Takes effect when the config is next read (round 8, or a restart). Off again: remove the entry.
+uci_options = { Threads = 1, Hash = 16, OwnBook = false, MateAlphaGuard = true }
+# Search settings found by tuning are added from this file once it exists. It is written only after the tuned
+# values have beaten the defaults in two matches (pipeline/tools/spsa_chain.py). Delete the file to switch them off.
+tuned_options_file = "C:/nnue-lab/pipeline/forge_tuned_options.json"
+# Set 2026-11-15 with the change to king-bucket nets: the tuned values of the file above were found with the
+# round 2 net and are given ONLY to that net. King-bucket nets play at the engine's default settings (plus
+# uci_options above), which is how the twin played in the two matches that made it the loop's best. So in the
+# loop's matches candidate and best both run at default settings. When tuned values for the king-bucket nets
+# exist AND have been tested on a second such net, they go into that file and this line goes out (or false).
+tuned_only_for_tuned_net = true
+# Search settings for every king-bucket net (set 2026-11-15 08:26, acts from the next round; read by
+# `engine_for_net` in pipeline/nnloop/engine.py, so self-play, the loop's matches, the yardstick and every tool
+# that asks there get them). These are the 13 "shape" values of the first tuning run plus NonPawnCorrection.
+# Measured on nets they were NOT tuned with, same net on both sides, against the engine's defaults:
+#   250,000 nodes: +11.0 +/- 9.7 (b_full, 2,000 games) and +8.9 +/- 8.5 (the twin, 2,000 games);
+#   2,000 nodes, the depth of self-play: +79.2 +/- 7.5 (the twin, 6,000 games, 2927-1582-1491,
+#   runs/forge/net_tests/exp_v3r8kd_shape_vs_default_2k_6000). So self-play games are played much better at
+#   the same cost per position.
+# The 15 eval-based margins stay at the engine's defaults: a tuning run for them on the twin was stopped at
+# iteration 495 of 1,200 because no value had moved more than half a step (runs/forge/spsa/tune3_twin_margins).
+# To go back to defaults: delete this table.
+# 2026-11-15 15:52: the B4 search bundle (engine source forge/r9, forge/r9/R9_NOTE.txt): CuckooRep, HistRework 2,
+# TtPruneV2, CorrHistV2. Same net and settings on both sides: +17.0 +/- 8.4 at 250,000 nodes (2,000 games),
+# +21.2 +/- 7.1 at 2,000 nodes (6,000 games), +14.0 +/- 7.1 at 2,000 nodes on the round 11 net; at EQUAL TIME
+# (231,000 nodes against r7's 250,000, the measured speed ratio 0.924): +10.60 +/- 8.60 (2,000 games, 524-463-1013, LOS 99.2 %).
+# The exe is profiled with the four switches on. Back: config.forge.toml.before_b4_1552.
+# 2026-11-24 21:51 (Opus): THE BIG TUNE stage 4, the 40 values of A_FINAL.json (the long run big_r15dsp_r33_n20k, addendum 21; stage 3: every match
+# holds, tmp/opus_scratch/bigtune/STAGE3.txt). Back: config.forge.toml.before_bigtune_2151.
+v3_uci_options = { LmrQuietBase = 132, LmrQuietDivisor = 176, LmrNoisyBase = 25, LmrNoisyDivisor = 336, LmrHistoryDivisor = 6721, NullMoveBase = 5, LmpBase = 13, HistoryPruneMultiplier = 1945, HistoryBonusQuadratic = 49, HistoryBonusLinear = 90, HistoryBonusMax = 2429, SingularDepth = 6, IirDepth = 5, NonPawnCorrection = true, CuckooRep = true, HistRework = 2, TtPruneV2 = true, CorrHistV2 = true, DrawJitter = 2, NullMoveMinDepth = 2, NullMoveDepthDivisor = 4, NullMoveEvalDivisor = 184, RfpDepth = 6, RfpMargin = 84, RfpImproving = 37, RazorDepth = 3, RazorBase = 182, RazorMultiplier = 379, FutilityDepth = 8, FutilityBase = 12, FutilityMultiplier = 59, HistoryPruneDepth = 2, SeeQuietMultiplier = 15, SeeNoisyMultiplier = 83, SingularMargin = 3, ProbcutDepth = 7, ProbcutMargin = 168, QsFutilityMargin = 123, AspirationDelta = 16, CheckExtensionDepth = 3, LmrCutoffThreshold = 9, MaterialCorrectionWeight = 48, CaptureFutilityBase = 45, FailLowContinuationBonus = 41, EvalSwingMult = 15 }
+
+[engine.score]
+unit = "raw"                     # Forge prints plain centipawns from the side to move
+multiplier = 1.0
+
+# ---------------------------------------------------------------- data generation
+[datagen]
+# 2026-11-20 11:00 (Opus): the game loop inside the engine, tmp/opus_scratch/selfgame_pc/PLACE_PLAN.txt; back: selfgame = false
+selfgame = true
+backend_round1 = ""              # no bootstrap round: the lock net already exists
+backend  = "uci_selfplay"
+early_selfplay = true            # 2026-11-17 Opus: round r + 1's self-play runs while the card trains round r (datagen_uci.EarlySelfplay, after the trainer's data ready line); false = as before
+# 16 = one worker per CPU thread. Since 2026-11-15 07:30 (from round 11 on) the number that actually PLAYS is set
+# by the loop itself (share_cpu below): it measures every 30 seconds how many threads other programs are using
+# (a match, a tuning run, anything you start) and lets only as many workers play as there is room for, never
+# fewer than 4; when the other programs end, all 16 play again. Tested on 2026-11-15: beside jobs using 13 to 14
+# threads a test run went from 10 workers to its minimum within ten seconds. Before, this number was set by hand
+# to 4 for the hours of a tuning run and back afterwards (round 10 still runs with 4).
+# The heat guard ([limits]) works on top of it: the smaller of the two limits holds.
+workers  = 16
+share_cpu = true                 # false = always all `workers` (as before)
+share_min_workers = 4
+share_check_seconds = 30
+share_reserve_threads = 8         # 2026-11-18 Opus, the big tune (owner 17 Nov: "the tune is the first user after the loop's own gate and
+                                  # yardstick matches: up to 8 games at once. Self-play takes what is left"): while a process matching
+                                  # share_reserve_pattern is alive, 8 threads count as used by others, also while it waits for heat
+                                  # (datagen_uci.CpuShare._reserved); 0 = off. Test tmp/opus_scratch/reserve/test_reserve.py
+share_reserve_pattern = 'spsa_tune(_flipped)?\.py (big_r15dsp_r33_n20k|bigtune_ctl_pos|bigtune_ctl_flip)( |$)'
+# 2026-11-18 addendum 7 of the big tune: while that run is alive, self-play takes workers off from 89 C (2 under
+# the tuner's own 91 C pause) and adds one back at 87 C or cooler; its full pause stays at cpu_temp_pause_c.
+share_reserve_heat_c = 89
+# 5,000 nodes per move and 16 million positions per round, as in rounds 4 to 6. Between 18:15 and 20:10 on
+# 2026-11-14 this was set to 20,000 nodes and 4 million positions for round 7, as a test of deeper labels; no
+# round ran with it. Taken back at 20:10, because that evening a net WITHOUT the hand-written evaluation
+# ("stand-alone", EXPERIMENTS.md) came out level with the loop's net at equal time, and its hold-out loss
+# still falls with every doubling of the data (14, 28, 55 million positions). Such a net is trained from
+# nothing, so the number of positions is what it needs most. The deeper-label test is parked, not refuted.
+nodes    = 5000
+# soft_nodes (set 2026-11-14 23:05, during round 7's self-play): the labelled searches ask the engine with
+# `go softnodes 2000` instead of `go nodes 5000`. The engine then stops after the first FINISHED search depth that
+# has used at least 2,000 nodes (hard cap 8,000), instead of being cut off at 5,000 in the middle of a depth. With
+# the fixed limit the move and the score both came from the last finished depth and the work after it was thrown
+# away. Measured inside real self-play games (pipeline/tools/selfplay_limit_compare.py, 30 games each, one worker):
+#     go nodes 5000      2.638 ms per move, labels from depth 8.44 on average (3,004 nodes)
+#     go softnodes 1500  1.839 ms,          depth 7.84
+#     go softnodes 2000  2.143 ms,          depth 8.56 (3,517 nodes)     <- chosen: 23 % more positions per second
+#     go softnodes 2500  2.567 ms,          depth 8.94                      and labels a little deeper than before
+# Checked on 1,500 positions (pipeline/tools/softnodes_check.py): the move is always the last finished depth's.
+# `nodes` above is still used for the random opening moves. 0 or no line = the old fixed limit.
+soft_nodes = 2000
+positions_round1 = 3000000       # about 12 minutes at 4,100 positions/s (16 workers, CPU otherwise free)
+positions        = 16000000      # from round 4 (set 05:05); 8000000 in round 3, 5000000 in round 2.
+#positions       = 8000000       # from round 3 (set 04:09, before round 3 started); was 5000000 in round 2.
+                                 # Forge now has the PC to itself, the match is the long part of a round, and more
+                                 # new data per round is the lever that has worked so far (about 26 minutes of self-play)
+val_positions    = 100000
+chunk_positions  = 500000
+seed = 1
+book = ""                        # standard start position, as in your own self-play script (tools/nnue/forge_selfplay.py)
+random_move_count   = 8          # the first 8 plies are random moves (your script: --opening-plies 8)
+random_move_min_ply = 0
+random_move_max_ply = 7
+random_multi_pv      = 0
+random_multi_pv_diff = 0
+write_min_ply = 8
+max_ply    = 300
+# Since 2026-11-15 12:35 (Opus's rule; DeepSeek's job 6 led to the check): a game that runs into max_ply while its
+# last ply_limit_skip_count recorded scores all favour the same side by ply_limit_skip_score centipawns or more is
+# written with NO positions: "draw" would be a wrong label and "win" a result the engine never reached. In round 11
+# that was 3 of 966 games, 0.39 % of the positions. One line per game in <round>/data/ply_limit_skipped.log.
+# 0 = off. Test: pipeline/tools/test_ply_limit_skip.py. File before: nnloop/datagen_uci.py.prev_1233.
+ply_limit_skip_score = 300
+ply_limit_skip_count = 6
+# Since 2026-11-15 17:12 (Opus's rule and test, job 9; read and placed by Fable): a self-play game that ends DRAWN by the
+# 50-move rule, a third occurrence or the ply limit while its last position is a lone king against K+Q, K+R, K+B+B on
+# both colours or K+B+N is scored as a win for the side with the material (every record of the game gets that result),
+# unless the lone king can take a piece at once. In rounds 10 to 12 that would have been 1,197 of 373,058 games
+# (0.32 %; 0.66 % of the records): the engine does not convert those endings reliably at self-play depth (K+B+N
+# against K in 21 % of the games). One line per game in <round>/data/bare_king_adjudicated.log. false = off.
+adjudicate_bare_king = true
+# Since 2026-11-16 01:13 (acts from round 17; patch pipeline/experiments/bareking_tablebase.patch.txt). false = the
+# WIDENED rule: a lone king against ANY mating material (a queen, a rook, bishop + knight, bishops on both colours,
+# three knights; pawns are not counted), e.g. K+Q+N or K+R+B against K, which the first rule left as draws (round 14:
+# 358 drawn games K+Q+N against K with scores of +1600 and more). A capture by the lone king saves the draw only when
+# no mating material is left after it. true = the first rule exactly (K+Q, K+R, K+B+N, K+B+B on both colours).
+bare_king_exact = false
+# true = a drawn game whose last position has 5 pieces or fewer is judged by the Syzygy tables instead (a win only
+# when the tables call the start of the ending AND its end a win under the 50-move rule; every draw path, also the
+# draw adjudication). The tables are only read (python-chess opens them read-only).
+# ON since 2026-11-16 01:58 (acts from round 18). Measured by Opus in a sandbox with the live self-play code, 2 workers,
+# 500,000 positions each way (teamwork/OPUS_TO_FABLE.md 01:50): 833.7 against 831.7 positions a second (no cost);
+# a worker holds about 900 handles and 9 MB more (at most 64 mapped tables); no tablebase_problems.log; all 24 games
+# it scored as wins agree with a separate probe; 12 of the 24 are endings the material rule cannot judge (K+R+P v K,
+# K+B+P v K+P, K+R+B v K+B ...). About 0.6 % of a round's games (1.3 % of its positions) get the true result instead
+# of a draw the engine could not avoid at 2,000 nodes. The strength test of such labels on ALL old rounds (relabel
+# match A) needs the card and comes later; this switch only labels new self-play. LOOK at round 18's first minutes:
+# no <round>/data/tablebase_problems.log, the lines of bare_king_adjudicated.log say "tablebase", the rate as before.
+# Back: false (config.forge.toml.before_tblabels_0158).
+adjudicate_tablebase = true
+tablebase_path = "C:/nnue-lab/tablebases/syzygy345"
+eval_limit = 2000                # centipawns; your script adjudicates at 2000
+draw_adj_ply   = 80
+draw_adj_score = 5
+draw_adj_count = 8
+move_timeout_s = 60
+
+[sf_tools]                       # only its format converter is used here (to archive raw data compactly)
+cmd = "C:/nnue-lab/src/Stockfish-tools/src/stockfish.exe"
+net = "C:/nnue-lab/src/Stockfish-tools/src/nn-3c0aa92af1da.nnue"
+hash_mb = 64
+depth   = 20
+
+# ---------------------------------------------------------------- filter rules
+[filter]
+output = "plain"                 # the Forge trainer reads the text file directly
+max_abs_score  = 2000
+min_ply        = 0
+max_ply        = 400
+dedup          = true
+conflict_score = 600
+max_halfmove_clock = 80
+min_pieces     = 4
+
+# ---------------------------------------------------------------- training
+# Since 2026-11-15 (round 10): the loop trains KING-BUCKET nets (file format FORGENN3, ".fnn3"; trainer
+# pipeline/forge_train_v3.py; engine source forge/r7). Such a net stands alone (no hand-written evaluation), is 512
+# wide with 8 mirrored king buckets and 8 output blocks, and is trained FROM NOTHING in every round on all rounds
+# so far, with the recipe of the net that won the engine match of that morning (the "twin", Opus's experiment
+# v3_h512_r1to8_e40_kd): 40 passes, rate 0.0005 in four cosine cycles ending at 15/30/60/100 % of the passes,
+# batch 8192, decay 0.3 on the king-bucketed weights, targets 0.75 score + 0.25 result, captures kept, and a
+# teacher: the best residual net (b_full, copied to runs/forge/teachers/b_full.pt) at weight 0.2.
+# About 35 minutes for 96 million positions on the RX 7900 XT.
+# The lines of the residual-net recipe used until round 9 are kept below as comments; to go back, swap them in
+# and make a residual net (.inc) the best net in runs/forge/state.json.
+[train]
+backend = "command"
+net_suffix   = ".fnn3"
+model_suffix = ".pt"
+# --teacher-once (added 2026-11-15 07:50, from the Opus session): the teacher net's value of every position is
+# computed once before the training instead of for every batch. The same numbers (checked: losses equal to the
+# 4th digit, which is what two runs of the old way differ by; engine-against-trainer check PASS), 25 % faster.
+# 2026-11-20 15:13 (Fable's unplace_td.py): the TD-label trial (PLAN-2011-TD-LABELS) was switched off here.
+train_cmd  = '"{python}" C:/nnue-lab/pipeline/forge_train_v3.py train --datasets {datasets} --val "{val}" --out-model "{model}" --hce-exe C:/nnue-lab/forge/build/hce_dump.exe --epochs {epochs} --lr {lr} --batch-size {batch_size} --keep-noisy --lr-cycles auto --w1-decay 0.3 --mix 0.75 --distill-net C:/nnue-lab/runs/forge/teachers/b_full.pt --distill-weight 0.2 --teacher-once --hidden 768'
+batch_size = 8192                # {batch_size} above
+export_cmd = '"{python}" C:/nnue-lab/pipeline/forge_train_v3.py export --model "{model}" --net "{net}"'
+auto_epochs = false
+max_epochs  = 40                 # passes over the window ({epochs} above); 2026-11-17 13:35 Opus: back to 40 by the revert rule of 07:48 (rounds 32, 33, 34 at 60 not adopted: +6.43, +7.21, -0.69; round 35 still trains with 60, the fourth; if it is adopted 60 comes back from round 37); back: 60
+epoch_size  = 0
+lr          = 0.0005
+lr_continue = 0.0005
+init        = "scratch"          # every round's net is trained from nothing ("best" = continue the best net's model)
+window_rounds   = 1000            # all rounds
+# The window is held on the graphics card, about 90 bytes a position: 96 million positions (rounds 1 to 9) take
+# 8.5 GB of its 20 GB. When the window would hold more than this many positions, the oldest rounds are left out
+# (pipeline/run.py; the round's note says which). Reached at about round 17.
+# 2026-11-15 22:21: 200,000,000 -> 160,000,000, as a MEMORY GUARD, not a recipe decision. Round 14's training
+# (165.8 million positions) took the PC to its commit limit: the trainer held 34.5 GB of commit and 23.6 GB of
+# main memory, 0.4 GB of commit and 2.5 GB of memory were free, and the Opus session's background jobs were
+# closed for low memory. Round 15 would have been 1.2 GB larger. With 160 million the window of round 15 is
+# about 152 million (rounds 1 to 4 are left out), the size of round 13, which trained with room.
+# It goes up again when the positions lie on the card in the compact record (46 bytes instead of 88).
+# 2026-11-16 01:23: 160,000,000 -> 185,000,000 (acts from round 17). THE GUARD OF 22:21 HAD STOPPED THE LOOP'S GAINS:
+# this number counts positions KEPT BY THE FILTER; the trainer uses 91 % of them. With 160 million the candidates of
+# rounds 14, 15 and 16 were trained on 10 rounds = 138 million positions, while the best net (round 13) was trained
+# on 13 rounds = 152 million: less data than the net they had to beat, and none was promoted (-0.6, -3.5, about 0;
+# rounds 10 to 13, each with one round MORE than its opponent, gained about +10 each). The reason for the guard is
+# gone: the memory of 22:21 was the trainer's leak, repaired 22:28 (rounds 15 and 16: main memory flat at 1.4 GB
+# through all 40 passes). 185 million = 12 rounds = about 166 million positions used. CARD MEMORY, from the owner's
+# HWiNFO log (column "GPU D3D Memory Dedicated"): 14.39 GiB during the trainings of rounds 15 and 16 (138.2 million
+# used; 0.49 GiB of it is the desktop's, 0.34 GiB "dynamic" = hardly any spill). That is 92 bytes a used position +
+# about 2 GiB. So: 12 rounds about 16.7 GiB, 13 rounds (cap 200,000,000) about 17.9 GiB, 14 rounds about 19.1 GiB,
+# all 17 rounds over the card's 20. A window of 165.8 million has run on the card before (round 14's first
+# training, 37 passes; it ended from the leak in MAIN memory, not from the card).
+# Next step up: 200,000,000 only after a training at 185 has been watched in that log; all rounds need the compact
+# record of the new trainer (44 bytes a position).
+# 2026-11-16 03:30 (acts from round 18): 360,000,000 = ALL rounds again, as in rounds 10 to 13. Possible because
+# the trainer keeps the window on the card as the compact record now ([train] env FORGE_COMPACT=1, placed 03:29
+# after the night's card session: 44 kernel-test runs, the NaN repair proven, 2 passes on all 17 rounds, and 40
+# passes on the same 12 rounds as round 17: hold-out 0.008807 against the old trainer's 0.008795).
+# Card memory measured: 9.61 GiB at 181.5 M kept, 11.34 GiB at 227.0 M kept = 40.8 bytes a kept position. So
+# 360 M kept = about 16.4 GiB of the card's 20 and 22 minutes for 40 passes; all rounds fit until round 25.
+# LOOK AT THIS NUMBER AGAIN AT ROUND 22 (about 303 M kept, predicted 14.2 GiB): compare the prediction with the
+# owner's HWiNFO log before the window is allowed to grow further.
+# If the compact record is ever refused (train.log: "COMPACT RECORD: could not be used"), the wide record does
+# not fit a window this large and the trainer STOPS with "WIDE RECORD: it does not fit" (on purpose: no spill).
+# Then: max_window_positions = 185000000 and env = { FORGE_FUSED_STEP = "1" } give the old state back
+# (config.forge.toml.before_env_0329; the old trainer file is pipeline/forge_train_v3.py.prev_next_0329).
+# 2026-11-17 20:50 (Opus): 380 M from round 41 (rounds 17 to 41 instead of 19 to 41, +8.7 %): the window was at its
+# 360 M cap since about round 28, so every candidate had as much data as the best net; the card peaked at 15.76 to
+# 16.44 GiB at 318.6 M used, 380 M is about 17.2 to 17.8. Declaration with predictions and revert rules:
+# tmp/opus_scratch/window380/DECLARATION.txt. Back: config.forge.toml.before_window380_2050 (360000000).
+# 2026-11-20 03:48 (Fable; acts from round 80): 388 M, so that the window STAYS at the newest 25 rounds. Since round
+# 68 a round keeps 15.25 M positions instead of 15.12 M (round 67's net plays); the newest 25 rounds held 379.59 M at
+# round 79 (405,033 under the cap), would hold about 379.98 M at round 82 (about 22,000 under it: a coin flip for the
+# fourth round of the TD trial) and from round 83 the cap would have cut the window to 24 rounds (365 M kept, 3.9 %
+# less than the best net's window; the loop's WARNING). 388 M = 25 rounds up to 15.52 M kept each, never 26 (those
+# hold 394.7 M). Card: 17.04 GiB at 346.98 M used rows (round 78); 25 rounds of 15.25 M kept are about 348.8 M used,
+# about +0.1 GiB. Back: the line below to 380000000 (a text edit; the file before, for reading only:
+# config.forge.toml.before_window388_0347). Marker PLAN-2011-WINDOW-388.
+max_window_positions = 388000000
+# Until round 9 (residual nets, continued from the best net with a small rate):
+#net_suffix   = ".inc"
+#train_cmd  = '"{python}" C:/nnue-lab/pipeline/forge_train.py train --datasets {datasets} --val "{val}" --init-model "{init}" --init-net "{init_net}" --out-model "{model}" --hce-exe C:/nnue-lab/forge/build/hce_dump.exe --epochs {epochs} --lr {lr} --batch-size {batch_size}'
+#batch_size = 4096                # (a setting since 2026-11-14 23:22; 16384 for a net trained from nothing)
+#export_cmd = '"{python}" C:/nnue-lab/pipeline/forge_train.py export --model "{model}" --net "{net}"'
+#max_epochs  = 4                  # from round 2 (was 2 in round 1)
+#lr          = 0.00005            # from round 2 (was 0.00002 in round 1): small, the lock net is only fine-tuned
+#lr_continue = 0.00005
+#init        = "best"
+#window_rounds   = 8               # train on the last 8 rounds (10 until 2026-11-14 18:10; 1000 = all before 05:25). The positions are
+                                  # joined in RAM (about 77 bytes each, twice for a moment) and then held on the GPU. With keep_noisy
+                                  # a round of 16 million gives about 13.8 million training positions (11.1 million before), so
+                                  # 8 rounds are about 8.5 GB of the GPU's 20 GB and 17 GB of RAM for a moment, as 10 rounds were.
+# keep_noisy (set 2026-11-14 18:10, from round 7): the trainer also learns from positions whose best move is a capture
+# or a promotion (positions in check stay out). Why: the Opus session's experiment "arm b" (EXPERIMENTS.md): the same
+# recipe on the same number of positions gave a net +15.4 +/- 5.9 Elo stronger over 6,000 games at 50,000 nodes.
+# The hold-out loss gets WORSE with it (the hold-out is quiet positions only); that loss does not track strength here.
+# Every candidate still has to pass both matches. false = the old rule (quiet positions only).
+keep_noisy = true
+# ft_backend (set 2026-11-14 22:35, from round 7's training): "triton" = the first layer of the net is computed by
+# two small GPU programs written here (pipeline/ft_triton/ft_kernels.py, compiled by the official triton-windows
+# package in tools/triton38) instead of a 768-wide matrix product. Measured with this recipe on round 1 (256 wide,
+# batch 4,096, starting from the best net, two passes): 1.43 to 1.54 million positions per second against 0.51
+# million, the same LOSS (0.013260, 0.017237) and hold-out loss (0.014726) to six digits; of the 197,398 numbers
+# in the exported net 120 differ, each by one step. At 512 wide and batch 16,384: 1.7 to 1.9 million against
+# 0.43 million. Before every training the trainer compares the kernels with the old path on 512 positions and
+# uses the old path if they disagree or do not load, so a training cannot fail because of this.
+# Back to the old path: remove this line or write "dense".
+ft_backend = "triton"
+validation_size = 1              # > 0 switches the hold-out set on
+# The step to a 512-wide net (set 10:20 on 2026-11-14; the owner's OK of that day: "only if you think we got
+# enough positions"). When the training window holds widen_min_positions kept positions, the candidate of that
+# round is the best net widened to widen_to hidden units (it computes exactly the same at first) and trained
+# with widen_epochs and widen_lr. Because a wider net is slower per node, its match and its confirmation are
+# played on the clock (sprt.tc, at most sprt.max_games_clock games), not at fixed nodes. It is tried at most
+# widen_max_attempts times; if a wide net is promoted and confirmed, all later nets are 512 wide.
+# Tested on a tiny copy of this profile (runs/forge_wtest) before it was switched on. widen_to = 0 switches it off.
+widen_to = 512                   # does nothing while the best net is a king-bucket net (.fnn3)
+widen_min_positions = 120000000  # kept positions in the window, about 85 million quiet ones; reached at round 10
+widen_epochs = 8
+widen_lr = 0.0001
+widen_max_attempts = 3
+# FORGE_FUSED_STEP = "1" (2026-11-15 21:34, acts from round 15): the king-bucket trainer does its step with three
+# Triton kernels more (pipeline/ft_triton: batch_kernel.py = gathers + target + index rows + output bucket in one
+# launch; dense_kernels.py = dense end + loss + their backward in two). Before every training it runs ONE batch
+# the old way and the new way and uses the new one only if loss and gradients agree (train.log: "FUSED STEP:
+# ... USED"); otherwise it trains the old way by itself. Measured: 4.6 -> 5.7 M positions a second on the real
+# data (Opus's check: loss equal to 7.7e-8, gradients to 5.8e-7), same losses and hold-outs to run-to-run noise.
+# Back to the old step: env = {}. The trainer file before the switch existed: forge_train_v3.py.prev_fused_2130.
+env = { FORGE_COMPACT = "1", FORGE_STEP_V2 = "1", FORGE_TRITON2_BLOCK = "512", FORGE_TRITON2_KC = "32", FORGE_TRITON2_BBLOCK = "256", FORGE_TRITON2_BKC = "16", FORGE_TRITON2_WARPS = "4", FORGE_TRITON2_LPOS = "16", FORGE_DENSE_GW_R = "128", FORGE_DENSE_GW_BC = "128", FORGE_DENSE_GW_WARPS = "8", FORGE_DENSE_FWD_WARPS = "1", FORGE_FUSED_STEP = "1", FORGE_PARSE_PROCS = "4" }
+
+# ---------------------------------------------------------------- SPRT
+[sprt]
+fastchess   = "C:/nnue-lab/tools/fastchess/fastchess-windows-x86-64/fastchess.exe"
+book        = "C:/nnue-lab/tools/book/UHO_Lichess_4852_v1.epd"
+book_format = "epd"
+# Settings follow your own Forge match notes: Threads 1, Hash 16, OwnBook false, UHO book,
+# 12 games at once, time margin 1000 ms, 6 s + 0.06 s, no adjudication, -recover.
+tc          = "6+0.06"
+timemargin_ms = 1000
+concurrency = 12
+elo0 = 0.0
+elo1 = 10.0
+alpha = 0.05
+beta  = 0.05
+model = "normalized"
+# From round 4 (set 05:17, before round 4 started): the first match of a round is played at a fixed
+# 50,000 nodes per move instead of the 6+0.06 clock. Reason: this match is only the first filter, and at
+# the clock it took 16 to 22 minutes for 600 to 800 games (up to 55 minutes at the cap), which is time the
+# CPU does not make data. At 50,000 nodes about 1,000 games take 4 to 5 minutes, and the result does not
+# depend on machine load. A net that passes must still win the confirmation match below at 250,000 nodes
+# (your second standard setting) before it is used. Rounds 1 to 3 used tc 6+0.06 with a cap of 800 / 2000 games.
+nodes       = 50000               # 0 = play on the clock `tc` instead
+max_games   = 4000                # cap of the first match (was 2000 on the clock)
+# default_settings (set 2026-11-15 01:05, from round 8's match): the loop's matches between two nets (the first
+# match and the confirmation) are played with the engine's DEFAULT search settings; the 29 tuned values are left
+# out for both sides. Self-play keeps them. Why: the tuned values were found on 2026-11-14 by self-play of the
+# round 2 net, and they turned out to fit that net rather than the engine. Same two nets, 2,000 games each at
+# 50,000 nodes: at default settings b_full (the loop's recipe with captures kept) beat the round 2 net by
+# +29.2 +/- 10.3 (Opus); with the tuned values on both sides the result was level (runs/forge/net_tests/
+# bfull_vs_r0002_tuned). So a match with the tuned values tested every candidate with settings fitted to its
+# opponent; round 7's candidate (+3.5 +/- 7.2) met that. false or no line = the tuned values in the matches too.
+#
+# Taken back at 01:55 the same night (false from the next start of the loop). What the default-settings match did:
+# it promoted round 8's net (+13.6 +/- 9.4 at 50,000 nodes, default against default), and then two matches showed
+# that this was the wrong question for the loop: (1) the same pair at 250,000 nodes, default settings, stood at
+# -14.5 +/- 16.0 after 720 games (the gain of the capture rule fades at deeper search); (2) as complete engines the
+# round 2 net WITH its tuned values led the round 8 net at default settings by 33 +/- 15 after 1,004 games. The
+# loop's best must be the strongest ENGINE (net plus settings), because it makes the training positions and is
+# what the owner plays. So with false the match is "each net with its best-known settings" (engine_for_net gives
+# the tuned values only to the net they were tuned with): a candidate at default settings must beat the best net
+# with its own tuned values. That is hard to pass, fails fast when it fails, and never puts a weaker engine in
+# charge. A new net needs its own tuning run before it can take over; default-against-default comparisons of
+# nets belong to the experiments (Opus's series), not to the loop's gate.
+default_settings = false
+max_games_clock = 2000            # cap when a match has to be played on the clock (a net of another width)
+max_minutes = 150                 # was 80; a 2,000-game confirmation or clock match must fit even when the CPU is shared
+ratinginterval = 20
+resign_score = 0                 # 0 = no resign adjudication
+draw_movenumber = 0              # 0 = no draw adjudication
+maxmoves = 0
+extra_args = []
+# A net that passes the SPRT must also win a second, independent match before it is used further.
+# It is played at the start of the next Forge round: fixed length, other seed, fixed nodes per move
+# (the second standard setting of your own match scripts), so it does not repeat the first test.
+# Changed at 10:27 on 2026-11-14, while round 6's first match was still being played (so before its result
+# and before any confirmation it could lead to): 2,000 games and 90% instead of 1,000 games and 95%.
+# Reason: 1,000 games resolve only +/- 11.6 Elo. A net that is truly 10 Elo better then reaches 95% in about
+# half of all confirmations, so real gains of the size this loop makes were thrown away (round 5: +8.7 +/- 11.6,
+# 92.8%, rejected). With 2,000 games (+/- 8.3) and 90% a truly +10 net passes about 6 times in 7; a net that
+# is truly equal passes 1 time in 10, and it must have passed the first match before, so both together
+# let a no-better net through about 1 time in 200. Cost: about 40 minutes instead of 20 per promoted net.
+confirm_games   = 2000
+confirm_nodes   = 250000            # nodes per move, no clock
+# Since 2026-11-15 17:16 (Opus's rule C08, his jobs 4 and 10; read and placed by Fable): the confirmation match is an
+# SPRT (normalized Elo 0 against 17.2, alpha 0.08, beta 0.14) with confirm_games as its cap; H1 = confirmed, H0 = failed,
+# and when no bound is crossed at the cap the LOS rule below decides as before. Tested: replay of 36 real matches (no
+# verdict changed), 10,000 simulated matches (false pass 10.6 % against 9.8 %, pass at +10 Elo 78.9 % against 80.5 %,
+# about 1,100 to 1,250 games instead of 2,000), one real round in shadow (round 13: it would have stopped after 219
+# games with the same FAIL), and a live planted pair (the same net twice: H0 after 774 games; a clearly stronger net:
+# H1 after 214). Bounds can be changed with confirm_sprt_elo0 / _elo1 / _alpha / _beta. false or no line = 2,000 games.
+confirm_sprt = true
+confirm_min_los = 90.0              # likelihood of superiority needed, in percent
+# Since 2026-11-20 16:06 (Opus, job 1 (c) of FOR_THE_USER/opus 24h.txt; acts from round 88): the POOLED GATE. When a
+# round's gate does not promote, the pentanomials of the last pooled_gate_k gates against the SAME best net (same time
+# control, never past an earlier pooled promotion) are pooled; if the pool's 95 % lower bound is above 0 Elo and the
+# round's own gate is at or above pooled_gate_min_own (default 0), the candidate is promoted and the confirmation
+# above decides as always. Why: candidates were +3.5 better for 8 and 28 rounds while single gates (+/- 6.5) missed
+# it (tmp/opus_scratch/opus24h/JOB1A_TABLE.txt). Declaration with replay and revert rule:
+# tmp/opus_scratch/opus24h/DECLARATION_1c_pooled_gate.txt. 0 = off (a text edit of this line).
+pooled_gate_k = 8
+
+# ---------------------------------------------------------------- outside yardstick (added 04:57, used from round 4)
+# Each confirmed best net, and once the lock net, plays one fixed-length match against official Stockfish
+# held to a set strength. It answers "where does Forge stand against a 3100 mark" on this PC at this clock.
+# It is a yardstick, not a rating (Stockfish's scale was calibrated at a much longer clock) and not a gate:
+# nothing is promoted or rejected by it. Set enabled = false to switch it off.
+[anchor]
+enabled = true
+# Owner, 2026-11-15 08:50 (in Opus's window): "it needs to be paired against stockfish 19 ... just do uci limit
+# strength to 3100". So since 08:55 the reference is the official RELEASE Stockfish 19 (tag sf_19, built here with
+# its official net nn-1a298aa575a0.nnue; bench 2497913 as its release notes say), held to UCI_Elo 3100.
+# Until then it was the development version of 2026-11-10 at the same setting (name "sf_elo3100"): the lock net
+# +11.3 +/- 23.9, the round 2 net +15.7 +/- 25.3 (with its tuned values +19.1 +/- 28.0).
+name = "sf19_elo3100"
+cmd  = "C:/nnue-lab/src/sf_old/sf_19/src/stockfish.exe"    # official Stockfish 19 (edb0d9db, 2026-09-05), built here
+uci_options = { Threads = 1, Hash = 16, UCI_LimitStrength = true, UCI_Elo = 3100 }
+games = 400                      # about 11 minutes at 6+0.06 with 12 games at once
+tc = "6+0.06"
+include_initial = false          # was true: the lock net was measured once against the first reference (+11.3 +/- 23.9);
+                                 # not repeated against Stockfish 19 (12 minutes of the loop for an old net)
+max_minutes = 40
+# Since 2026-11-15 08:03 this match is only played when the PC has room for it, because on the clock an engine
+# that has to share its processor thread plays weaker and the figure is worth nothing. Before the start the loop
+# measures for 10 s how many threads other programs use. With room it plays fewer games at once (the same share
+# of the free threads as 12 of 16; max_minutes grows in proportion). With fewer than min_concurrency + 1 free
+# threads, or a CPU that stays above heat_add_worker_c for cool_wait_seconds, the match is put off: the end of
+# the next round tries again. share_cpu = false gives the old behaviour (always 12 at once).
+share_cpu = true
+min_concurrency = 4
+cool_wait_seconds = 600
+# Two files for working beside the Opus session (2026-11-15 09:20). busy_files: while one of them exists (his
+# trainings on the graphics card hold tmp/exp_gpu.lock), a clock match waits, at most busy_wait_seconds, and is
+# put off if the file is still there. running_marker: this file exists exactly while a clock match plays; he
+# starts nothing on the card or the CPU while it is there.
+busy_files = ["C:/nnue-lab/tmp/exp_gpu.lock"]
+busy_wait_seconds = 1800
+running_marker = "C:/nnue-lab/teamwork/CLOCK_MATCH_RUNNING"
+# Strength matches owed for the best confirmed net are played at the START of a round (after a confirmation
+# match, before self-play) and again looked at at its end. at_round_start = false: only at the end.
+at_round_start = true
+
+# ---------------------------------------------------------------- rated references (added 2026-11-15 08:50)
+# Old official Stockfish releases are fixed programs with a published rating (CCRL 40/15 list of 13 November 2026,
+# single CPU: Stockfish 3 3129, 4 3155, 5 3238, 6 3280, 7 3302, 8 3358, 9 3422, 10 3443, 11 3494). Built here from
+# the official repository's tags into src/sf_old (each build prints the bench signature of its release).
+# The best confirmed net plays each reference below once, under the yardstick's rules (same clock; only when the
+# PC has room and is cool; put off to the next round otherwise; stopped and replayed with fewer games if it gets
+# hot). Missing keys are taken from [anchor]. By hand: pipeline/tools/rated_match.py <sf3..sf11> [games].
+# READ WITH CARE: "published rating + our difference" is an estimate on that list's scale, not a rating: their
+# clock is far longer and their openings differ. First look, 2026-11-15: the twin against Stockfish 4 (3155) at
+# 6+0.06: 172-6-22 in 200 games, +413 +/- 69. enabled = false switches one off.
+# Results for round 10's net (2026-11-15, 10:14 and 10:24): Stockfish 8 177-45-78 (+164 +/- 32), Stockfish 10
+# 137-67-96 (+83 +/- 29). Stockfish 8 is too weak to bracket Forge now (72 % score), so from the next best net on
+# the two references are Stockfish 10 and Stockfish 11.
+[[anchor_extra]]
+name = "stockfish11_ccrl3494"
+cmd  = "C:/nnue-lab/src/sf_old/sf_11/src/stockfish.exe"
+uci_options = { Threads = 1, Hash = 16, Ponder = false }
+rating = 3494
+rating_source = "CCRL 40/15, list of 2026-11-13, single CPU"
+games = 300
+enabled = true
+# every_rounds = 2 (2026-11-15 15:30): played only in even rounds (saves about 19 minutes in the others)
+every_rounds = 2
+
+[[anchor_extra]]
+name = "stockfish10_ccrl3443"
+cmd  = "C:/nnue-lab/src/sf_old/sf_10/src/stockfish.exe"
+uci_options = { Threads = 1, Hash = 16, Ponder = false }
+rating = 3443
+rating_source = "CCRL 40/15, list of 2026-11-13, single CPU"
+games = 300
+enabled = true
+# every_rounds = 2 (2026-11-15 15:30): played only in even rounds (saves about 19 minutes in the others)
+every_rounds = 2

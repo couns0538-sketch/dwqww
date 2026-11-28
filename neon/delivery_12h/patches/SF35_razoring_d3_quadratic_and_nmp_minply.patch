@@ -1,0 +1,61 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -558,6 +558,7 @@
+     // True only inside a NullThreatVerify confirmation, so that reduced search
+     // does not use null moves. Stays false for the whole default search.
+     bool null_blocked_ = false;
++    int min_nmp_ply_ = 0;
+     // B4 (forge/r9). Allocated with the worker and zeroed by clear(); read and written only while their option is
+     // on. Per worker: rework twin 32 KiB, joint correction 128 KiB, continuation correction 6.5 KiB, maps 7.4 KiB.
+     std::unique_ptr<LesserThreatHistory> rework_history_;          // HistRework
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -2073,11 +2073,13 @@
+ 
+     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta) && mate_moves_ == 0 &&
+         board.halfmove_clock() + depth < 100) {
+-        // Razoring: hopeless positions fall back to quiescence.
+-        if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+-            const int razor = qsearch_child(board, ss, alpha - 1, alpha);
++        // Razoring (SF35 clean-room Stockfish quadratic depth<=3): hopeless positions verify in quiescence.
++        if (!bare_king_mode &&
++            ((depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) ||
++             (depth <= 3 && eval + 450 + 280 * depth * depth < alpha))) {
++            const int razor = qsearch_child(board, ss, alpha, alpha + 1);
+             if (aborted_) return 0;
+-            if (razor < alpha) return razor;
++            if (razor <= alpha) return razor;
+         }
+         // Reverse futility pruning.
+         // B4 TtPruneV2: when the opponent's static eval fell on their move ("opponent worsening"), the fail high is a
+@@ -2091,7 +2093,8 @@
+             return eval;
+         }
+         // Null move pruning.
+-        if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
++        if (!bare_king_mode && depth >= tune::NullMoveMinDepth && ply >= min_nmp_ply_ && eval >= beta &&
++            ss->static_eval >= beta - 24 * depth + 180 &&
+             ss->null_move_allowed && (!tune::NullThreatVerify || !null_blocked_) &&
+             !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+@@ -2129,9 +2132,12 @@
+                 // Same reduced depth as the high-depth verification. A threat
+                 // confirmation also refuses null moves in that whole search.
+                 const bool saved_block = null_blocked_;
++                const int saved_min_nmp = min_nmp_ply_;
+                 if (threat_gate) null_blocked_ = true;
++                min_nmp_ply_ = ply + 3 * std::max(0, depth - reduction) / 4;
+                 ss->null_move_allowed = false;
+                 const int verification = search_child(board, ss, depth - reduction, beta - 1, beta, false);
++                min_nmp_ply_ = saved_min_nmp;
+                 null_blocked_ = saved_block;
+                 ss->double_extensions = inherited_double_extensions;
+                 ss->null_move_allowed = true;
+@@ -2636,6 +2642,7 @@
+     null_tries_ = 0;
+     null_cutoffs_ = 0;
+     null_blocked_ = false;
++    min_nmp_ply_ = 0;
+     root_moves_ = limits.search_moves;
+     root_restricted_ = limits.search_moves_specified;
+     root_bare_king_ = board.occupied(White) == board.pieces(White, King) ||

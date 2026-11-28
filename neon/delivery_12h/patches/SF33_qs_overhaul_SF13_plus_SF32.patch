@@ -1,0 +1,40 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1847,14 +1847,29 @@
+     while (!(move = picker.next(false)).is_none()) {
+         if (!picker.last_move_known_legal() && !board.is_legal(move)) continue;
+         ++move_count;
+-        if (mate_moves_ == 0 && !in_check && best_score > -MateInMaxPly) {
+-            const bool gives_check = board.gives_check(move);
+-            // Futility: even winning the captured piece cannot raise alpha.
+-            if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
+-                best_score = std::max(best_score, futility_base + capture_value(board, move));
+-                continue;
+-            }
+-            if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
++        if (mate_moves_ == 0 && best_score > -MateInMaxPly) {
++            if (in_check) {
++                // SF13 (clean-room Stockfish QS evasion pruning): after a non-mate evasion is found,
++                // skip late quiet evasions that lose material on SEE.
++                if (move_count > 2 && !move.is_capture() && !move.is_promotion() &&
++                    !board.gives_check(move) && !board.see_ge(move, 0)) {
++                    continue;
++                }
++            } else {
++                const bool gives_check = board.gives_check(move);
++                // SF32 (clean-room Stockfish qsearch futility): equal/losing exchange when futility_base <= alpha.
++                if (!gives_check && !move.is_promotion() && !is_mate_score(alpha) &&
++                    futility_base <= alpha && !board.see_ge(move, 1)) {
++                    best_score = std::max(best_score, futility_base);
++                    continue;
++                }
++                // Futility: even winning the captured piece cannot raise alpha.
++                if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
++                    best_score = std::max(best_score, futility_base + capture_value(board, move));
++                    continue;
++                }
++                if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
++            }
+         }
+ #if FORGE_SPD_PREFETCH_EARLY
+         std::uint64_t child_key = 0;

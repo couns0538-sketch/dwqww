@@ -1,0 +1,129 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -454,6 +454,8 @@
+     mutable std::array<std::uint16_t, 2> corr_np_idx{};
+     mutable std::uint64_t corr_mat_mix = 0;
+     mutable std::uint8_t corr_valid = 0;
++    mutable std::uint16_t corr_major_idx = 0;
++    mutable std::uint16_t corr_minor_idx = 0;
+ };
+ 
+ // State shared by every worker of one Searcher.
+@@ -561,7 +563,9 @@
+     // B4 (forge/r9). Allocated with the worker and zeroed by clear(); read and written only while their option is
+     // on. Per worker: rework twin 32 KiB, joint correction 128 KiB, continuation correction 6.5 KiB, maps 7.4 KiB.
+     std::unique_ptr<LesserThreatHistory> rework_history_;          // HistRework
+-    std::unique_ptr<CorrectionHistory> joint_correction_;          // HistRework
++    std::unique_ptr<CorrectionHistory> joint_correction_;
++    std::unique_ptr<CorrectionHistory> major_correction_;
++    std::unique_ptr<CorrectionHistory> minor_correction_;          // HistRework
+     std::unique_ptr<ContinuationCorrection> continuation_correction_;  // CorrHistV2
+     std::array<b4::LesserThreats, MaxPly + 8> threat_maps_{};      // HistRework: maps of the node at each ply
+     bool tt_prune_v2_ = false;                                     // TtPruneV2: this search's snapshot
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -258,6 +258,32 @@
+ // A searched quiet missed alpha by at least this many centipawns.
+ constexpr int QuietWideGap = 176;
+ 
++// Clean-room Stockfish/Stormphrax major-piece (K+R+Q) and minor-piece (K+N+B) structure keys.
++[[nodiscard]] std::uint64_t splitmix64_corr(std::uint64_t x) {
++    x += 0x9e3779b97f4a7c15ULL;
++    x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
++    x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
++    return x ^ (x >> 31);
++}
++
++[[nodiscard]] std::uint64_t major_piece_key(const Board& board) {
++    std::uint64_t h = splitmix64_corr(board.pieces(White, King) ^ (board.pieces(Black, King) * 0x9e3779b97f4a7c15ULL));
++    h ^= splitmix64_corr(board.pieces(White, Rook) ^ 0x1111111111111111ULL);
++    h ^= splitmix64_corr(board.pieces(Black, Rook) ^ 0x2222222222222222ULL);
++    h ^= splitmix64_corr(board.pieces(White, Queen) ^ 0x3333333333333333ULL);
++    h ^= splitmix64_corr(board.pieces(Black, Queen) ^ 0x4444444444444444ULL);
++    return h;
++}
++
++[[nodiscard]] std::uint64_t minor_piece_key(const Board& board) {
++    std::uint64_t h = splitmix64_corr(board.pieces(White, King) ^ (board.pieces(Black, King) * 0x517cc1b727220a95ULL));
++    h ^= splitmix64_corr(board.pieces(White, Knight) ^ 0x5555555555555555ULL);
++    h ^= splitmix64_corr(board.pieces(Black, Knight) ^ 0x6666666666666666ULL);
++    h ^= splitmix64_corr(board.pieces(White, Bishop) ^ 0x7777777777777777ULL);
++    h ^= splitmix64_corr(board.pieces(Black, Bishop) ^ 0x8888888888888888ULL);
++    return h;
++}
++
+ [[nodiscard]] int score_to_tt(int score, int ply) {
+     if (score >= MateInMaxPly) return score + ply;
+     if (score <= -MateInMaxPly) return score - ply;
+@@ -1208,6 +1234,8 @@
+       non_pawn_black_correction_(std::make_unique<CorrectionHistory>()),
+       rework_history_(std::make_unique<LesserThreatHistory>()),
+       joint_correction_(std::make_unique<CorrectionHistory>()),
++      major_correction_(std::make_unique<CorrectionHistory>()),
++      minor_correction_(std::make_unique<CorrectionHistory>()),
+       continuation_correction_(std::make_unique<ContinuationCorrection>()) {
+     clear();
+ }
+@@ -1233,6 +1261,8 @@
+     // B4 (forge/r9): cleared here like every other table, so no game inherits another game's statistics.
+     *rework_history_ = LesserThreatHistory{};
+     *joint_correction_ = CorrectionHistory{};
++    *major_correction_ = CorrectionHistory{};
++    *minor_correction_ = CorrectionHistory{};
+     *continuation_correction_ = ContinuationCorrection{};
+     threat_maps_ = {};
+     for (SearchStack& ss : stack_) ss = SearchStack{};
+@@ -1469,6 +1499,32 @@
+                                                      [static_cast<std::size_t>((ss - 2)->current_move.to)];
+         }
+     }
++    {
++        std::size_t mj_idx;
++        if (ss != nullptr) {
++            if ((ss->corr_valid & 8U) == 0U) {
++                ss->corr_major_idx = static_cast<std::uint16_t>(major_piece_key(board) & (CorrectionSize - 1U));
++                ss->corr_valid |= 8U;
++            }
++            mj_idx = ss->corr_major_idx;
++        } else {
++            mj_idx = major_piece_key(board) & (CorrectionSize - 1U);
++        }
++        correction += (*major_correction_)[side][mj_idx] / 2;
++    }
++    {
++        std::size_t mn_idx;
++        if (ss != nullptr) {
++            if ((ss->corr_valid & 16U) == 0U) {
++                ss->corr_minor_idx = static_cast<std::uint16_t>(minor_piece_key(board) & (CorrectionSize - 1U));
++                ss->corr_valid |= 16U;
++            }
++            mn_idx = ss->corr_minor_idx;
++        } else {
++            mn_idx = minor_piece_key(board) & (CorrectionSize - 1U);
++        }
++        correction += (*minor_correction_)[side][mn_idx] / 2;
++    }
+     return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
+ }
+ 
+@@ -1499,6 +1555,20 @@
+             : b4::joint_key(board);
+         std::int32_t& entry = (*joint_correction_)[side][jkey & (CorrectionSize - 1U)];
+         entry = b4::gravity(entry, diff * weight / 256, CorrectionLimit);
++    }
++    {
++        const std::size_t mj_idx = (ss != nullptr && (ss->corr_valid & 8U) != 0U)
++            ? static_cast<std::size_t>(ss->corr_major_idx)
++            : (major_piece_key(board) & (CorrectionSize - 1U));
++        std::int32_t& mj_entry = (*major_correction_)[side][mj_idx];
++        mj_entry = b4::gravity(mj_entry, diff * weight / 256, CorrectionLimit);
++    }
++    {
++        const std::size_t mn_idx = (ss != nullptr && (ss->corr_valid & 16U) != 0U)
++            ? static_cast<std::size_t>(ss->corr_minor_idx)
++            : (minor_piece_key(board) & (CorrectionSize - 1U));
++        std::int32_t& mn_entry = (*minor_correction_)[side][mn_idx];
++        mn_entry = b4::gravity(mn_entry, diff * weight / 256, CorrectionLimit);
+     }
+     // B4 CorrHistV2: the two continuation entries take the same step as the tables above.
+     if (tune::CorrHistV2 && ss != nullptr) {

@@ -1,0 +1,61 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -258,6 +258,7 @@
+ extern int RfpDepth;
+ extern int RfpMargin;
+ extern int RfpImproving;
++extern int CorrComplexityRefine; // 0 = off, 1 = centered |static_eval - raw_eval| RFP margin & quiet LMR
+ extern int RazorDepth;
+ extern int RazorBase;
+ extern int RazorMultiplier;
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -107,6 +107,7 @@
+ int RfpDepth = 8;
+ int RfpMargin = 72;
+ int RfpImproving = 40;
++int CorrComplexityRefine = 1;
+ int RazorDepth = 2;
+ int RazorBase = 150;
+ int RazorMultiplier = 350;
+@@ -193,6 +194,7 @@
+         {"NullMoveEvalDivisor", &NullMoveEvalDivisor, 50, 1000},
+         {"RfpDepth", &RfpDepth, 0, 15},                  {"RfpMargin", &RfpMargin, 10, 300},
+         {"RfpImproving", &RfpImproving, 0, 200},         {"RazorDepth", &RazorDepth, 0, 6},
++        {"CorrComplexityRefine", &CorrComplexityRefine, 0, 1},
+         {"RazorBase", &RazorBase, 0, 1000},              {"RazorMultiplier", &RazorMultiplier, 0, 1000},
+         {"FutilityDepth", &FutilityDepth, 0, 15},        {"FutilityBase", &FutilityBase, 0, 500},
+         {"FutilityMultiplier", &FutilityMultiplier, 0, 500},
+@@ -2082,9 +2084,13 @@
+         // Reverse futility pruning.
+         // B4 TtPruneV2: when the opponent's static eval fell on their move ("opponent worsening"), the fail high is a
+         // third of a margin step cheaper. 0 with the option off, so the condition is r7's.
+-        const int rfp_worsening = tt_prune_v2_ && (ss - 1)->static_eval != ValueNone &&
+-                                          ss->static_eval + (ss - 1)->static_eval > 2
+-                                      ? tune::RfpMargin / 3 : 0;
++        int rfp_worsening = tt_prune_v2_ && (ss - 1)->static_eval != ValueNone &&
++                                    ss->static_eval + (ss - 1)->static_eval > 2
++                                ? tune::RfpMargin / 3 : 0;
++        if (tune::CorrComplexityRefine != 0 && ss->static_eval != ValueNone && ss->raw_eval != ValueNone) {
++            const int corr_abs = std::min(std::abs(ss->static_eval - ss->raw_eval), 256);
++            rfp_worsening -= std::clamp((corr_abs - 24) / 2, -12, 48);
++        }
+         if (!bare_king_mode && depth <= tune::RfpDepth &&
+             eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening) >= beta &&
+             eval < MateInMaxPly) {
+@@ -2418,6 +2424,15 @@
+                 ss->raw_eval != ValueNone) {
+                 const int correction_cp = ss->static_eval - ss->raw_eval;
+                 if (correction_cp != 0) r = apply_lmr_signed_correction(r, correction_cp);
++            }
++            if (tune::CorrComplexityRefine != 0 && quiet && ss->static_eval != ValueNone &&
++                ss->raw_eval != ValueNone) {
++                const int corr_abs = std::min(std::abs(ss->static_eval - ss->raw_eval), 256);
++                if (corr_abs >= 56) {
++                    --r;
++                } else if (corr_abs <= 8 && !pv_node && depth >= 6) {
++                    ++r;
++                }
+             }
+             // A parent tried after at least six earlier moves is speculative. Its first
+             // four replies are the likely refutations, so they lose one ply of reduction.

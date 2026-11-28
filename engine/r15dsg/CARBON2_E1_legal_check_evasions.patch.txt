@@ -1,0 +1,288 @@
+diff -ruN a/include/forge/board.hpp b/include/forge/board.hpp
+--- a/include/forge/board.hpp	2026-11-17 12:11:34.353143771 +0000
++++ b/include/forge/board.hpp	2026-11-17 12:29:21.033143771 +0000
+@@ -192,6 +192,7 @@
+     void generate_pseudo_legal(MoveList& moves, bool captures_only) const;
+ #endif
+     [[nodiscard]] MoveList legal_moves(bool captures_only = false) const;
++    void generate_legal_evasions(MoveList& moves) const;
+     [[nodiscard]] bool has_legal_move() const;
+     // Contract with FORGE_SPD_KING_LINES on (self-review K3): the fast path of is_legal is exact only for a move that
+     // is already pseudo-legal in this position. Every current caller passes such moves (generated, or checked with
+diff -ruN a/src/board.cpp b/src/board.cpp
+--- a/src/board.cpp	2026-11-17 12:11:34.357143771 +0000
++++ b/src/board.cpp	2026-11-17 12:29:21.105143771 +0000
+@@ -733,6 +733,115 @@
+ }
+ } // namespace
+ 
++void Board::generate_legal_evasions(MoveList& moves) const {
++    moves.clear();
++    assert(checkers_ != 0);
++    const Color us = side_;
++    const Color them = opposite(us);
++    const Bitboard own = occupied(us);
++    const Bitboard enemy = occupied(them);
++    const Bitboard occ = own | enemy;
++    const Bitboard empty = ~occ;
++    const int king = king_square(us);
++
++    auto push = [&](int from, int to, std::uint8_t flags) {
++        moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, flags});
++    };
++    auto push_promotions = [&](int from, int to, std::uint8_t flags) {
++        moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), Queen,
++                             static_cast<std::uint8_t>(flags | Promotion)});
++        for (const int promotion : {Rook, Bishop, Knight}) {
++            moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to),
++                                 static_cast<std::uint8_t>(promotion),
++                                 static_cast<std::uint8_t>(flags | Promotion)});
++        }
++    };
++
++    // In double check only king moves can resolve both checks; non-king evasions exist only in single check.
++    if (!more_than_one(checkers_)) {
++        const int checker = lsb(checkers_);
++        const Bitboard between_mask = attacks::between(king, checker);
++        const Bitboard target_mask = between_mask | checkers_;
++#if FORGE_SPD_KING_LINES
++        const Bitboard pinned = king_lines_.valid
++            ? king_lines_.pinned
++            : (single_blockers(king, pieces(them, Rook) | pieces(them, Queen),
++                               pieces(them, Bishop) | pieces(them, Queen), occ) & own);
++#else
++        const Bitboard pinned = single_blockers(king, pieces(them, Rook) | pieces(them, Queen),
++                                                pieces(them, Bishop) | pieces(them, Queen), occ) & own;
++#endif
++        const int up = pawn_push_delta(us);
++        const Bitboard seventh = us == White ? Rank7BB : Rank2BB;
++        const Bitboard third = us == White ? Rank3BB : Rank6BB;
++        const Bitboard pawns_unpinned = pieces(us, Pawn) & ~pinned;
++        const Bitboard promoting = pawns_unpinned & seventh;
++        const Bitboard regular = pawns_unpinned & ~seventh;
++
++        const Bitboard single_all = pawn_push(us, regular) & empty;
++        for (Bitboard b = single_all & between_mask; b != 0;) {
++            const int to = pop_lsb(b);
++            push(to - up, to, Quiet);
++        }
++        for (Bitboard b = pawn_push(us, single_all & third) & empty & between_mask; b != 0;) {
++            const int to = pop_lsb(b);
++            push(to - 2 * up, to, DoublePush);
++        }
++        for (Bitboard b = pawn_push(us, promoting) & empty & between_mask; b != 0;) {
++            const int to = pop_lsb(b);
++            push_promotions(to - up, to, Quiet);
++        }
++        for (Bitboard b = attacks::pawn(them, checker) & pawns_unpinned; b != 0;) {
++            const int from = pop_lsb(b);
++            if ((square_bb(from) & seventh) != 0) push_promotions(from, checker, Capture);
++            else push(from, checker, Capture);
++        }
++        if (ep_square_ >= 0) {
++            const int ep_sq = ep_square_;
++            const int cap_sq = ep_sq - up;
++            if (cap_sq == checker || (square_bb(ep_sq) & between_mask) != 0) {
++                for (Bitboard b = attacks::pawn(them, ep_sq) & pieces(us, Pawn); b != 0;) {
++                    const Move ep_m{static_cast<std::uint8_t>(pop_lsb(b)), static_cast<std::uint8_t>(ep_sq),
++                                    0, static_cast<std::uint8_t>(Capture | EnPassant)};
++                    if (is_legal_complete(ep_m)) moves.push_back(ep_m);
++                }
++            }
++        }
++
++        auto emit = [&](int from, Bitboard targets) {
++            while (targets != 0) {
++                const int to = pop_lsb(targets);
++                push(from, to, (square_bb(to) & enemy) != 0 ? Capture : Quiet);
++            }
++        };
++        for (Bitboard b = pieces(us, Knight) & ~pinned; b != 0;) {
++            const int from = pop_lsb(b);
++            emit(from, attacks::knight(from) & target_mask);
++        }
++        for (Bitboard b = pieces(us, Bishop) & ~pinned; b != 0;) {
++            const int from = pop_lsb(b);
++            emit(from, attacks::bishop(from, occ) & target_mask);
++        }
++        for (Bitboard b = pieces(us, Rook) & ~pinned; b != 0;) {
++            const int from = pop_lsb(b);
++            emit(from, attacks::rook(from, occ) & target_mask);
++        }
++        for (Bitboard b = pieces(us, Queen) & ~pinned; b != 0;) {
++            const int from = pop_lsb(b);
++            emit(from, attacks::queen(from, occ) & target_mask);
++        }
++    }
++
++    const Bitboard occ_no_king = occ & ~square_bb(king);
++    for (Bitboard b = attacks::king(king) & ~own; b != 0;) {
++        const int to = pop_lsb(b);
++        const Bitboard to_bb = square_bb(to);
++        if (!square_attacked_with_occupancy(to, them, occ_no_king | to_bb, to_bb & enemy)) {
++            push(king, to, (to_bb & enemy) != 0 ? Capture : Quiet);
++        }
++    }
++}
++
+ bool Board::has_legal_move() const {
+     if (checkers_ == 0) {
+         const Color us = side_;
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp	2026-11-17 12:11:34.357143771 +0000
++++ b/src/search.cpp	2026-11-17 12:29:22.141143771 +0000
+@@ -793,6 +793,7 @@
+                 while (index_ < count_) {
+                     const Move move = pick_best();
+                     if (move == tt_move_) continue;
++                    if (evasion_tie_filter_ && (legal_to_by_from_[move.from] & square_bb(move.to)) == 0) continue;
+                     return move;
+                 }
+                 return Move::none();
+@@ -803,6 +804,8 @@
+     // Valid for the move just returned by next(), until the next next() call.
+     // Only Main/GoodCaptures returns after a successful SEE >= 0 test.
+     [[nodiscard]] bool last_move_see_nonnegative() const { return stage_ == GoodCaptures; }
++    // Every move yielded from the Evasions stage (not EvasionTT) was produced by Board::generate_legal_evasions.
++    [[nodiscard]] bool last_move_known_legal() const { return stage_ == Evasions; }
+ 
+     // Drop non-checking quiets. Checks, captures, promotions, killers, and counters stay.
+     void close_quiet_tail() { quiet_tail_closed_ = true; }
+@@ -855,9 +858,12 @@
+     std::size_t list_start_ = 0;
+     bool sorted_ = false;
+     bool quiet_tail_closed_ = false;
++    bool evasion_tie_filter_ = false;
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
++    std::array<Bitboard, 64> legal_to_by_from_;
+     std::array<Bitboard, 7> check_squares_;
+ #else
++    std::array<Bitboard, 64> legal_to_by_from_{};
+     std::array<Bitboard, 7> check_squares_{};
+ #endif
+ 
+@@ -1095,39 +1101,88 @@
+     }
+ 
+     void generate_evasions() {
+-        init_check_squares();
+         buffer_.clear();
+-        board_.generate_pseudo_legal(buffer_, false);
++        board_.generate_legal_evasions(buffer_);
++        MoveList non_tt;
++        for (const Move move : buffer_) {
++            if (!(move == tt_move_)) non_tt.push_back(move);
++        }
+         index_ = 0;
+-        count_ = 0;
+-        seeded_ = false;
++        evasion_tie_filter_ = false;
++        if (non_tt.empty()) {
++            count_ = 0;
++            sorted_ = true;
++            return;
++        }
++        if (non_tt.size() == 1) {
++            moves_[0] = Scored{non_tt[0], 0};
++            count_ = 1;
++            sorted_ = true;
++            return;
++        }
++
++        init_check_squares();
+ #if FORGE_SEARCH_SPEED2
+         const QuietScorer scorer(board_, searcher_, ss_);
+ #endif
+-        // Off: the historical most-valuable-victim score, so default benches stay put.
+-        // On: a capture is victim value plus capture history, and that band sits
+-        // above both quiet history and the legacy promotion scores (captures first).
+-        // Quiet evasions keep the same mix generate_quiets uses.
+         const bool history_evasions = tune::EvasionOrdering;
+-        for (const Move move : buffer_) {
+-            int score;
++        auto score_evasion = [&](Move move) -> int {
+             if (history_evasions && move.is_capture()) {
+                 const int victim =
+                     SeePieceValue[static_cast<std::size_t>(piece_type(board_.captured_piece(move)))];
+-                score = 2'000'000 + victim + searcher_.capture_history_value(board_, move);
+-            } else if (move.is_capture() || move.is_promotion()) {
+-                score = 1'000'000 + 10 * capture_value(board_, move) -
+-                        SeePieceValue[static_cast<std::size_t>(piece_type(board_.moved_piece(move)))] / 10;
+-            } else {
++                return 2'000'000 + victim + searcher_.capture_history_value(board_, move);
++            }
++            if (move.is_capture() || move.is_promotion()) {
++                return 1'000'000 + 10 * capture_value(board_, move) -
++                       SeePieceValue[static_cast<std::size_t>(piece_type(board_.moved_piece(move)))] / 10;
++            }
+ #if FORGE_SEARCH_SPEED2
+-                score = scorer.score(move, check_squares_);
++            return scorer.score(move, check_squares_);
+ #else
+-                score = searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
++            return searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
+ #endif
++        };
++
++        const std::size_t n = non_tt.size();
++        for (std::size_t i = 0; i < n; ++i) {
++            Scored cur{non_tt[i], score_evasion(non_tt[i])};
++            std::size_t j = i;
++            while (j > 0 && cur.score > moves_[j - 1].score) {
++                moves_[j] = moves_[j - 1];
++                --j;
+             }
+-            push_scored(move, score);
++            moves_[j] = cur;
++        }
++        bool has_tie = false;
++        for (std::size_t i = 1; i < n; ++i) {
++            if (moves_[i].score == moves_[i - 1].score) {
++                has_tie = true;
++                break;
++            }
++        }
++        if (!has_tie) {
++            count_ = n;
++            sorted_ = true;
++            return;
++        }
++
++        // Score tie among legal evasions: pick_best()'s 4 selection swaps + unstable std::sort
++        // depend on the full pseudo-legal buffer; pre-populate the 64-square legal target mask
++        // so illegal moves are filtered in O(1) inside MovePicker without calling is_legal_complete.
++        legal_to_by_from_.fill(0);
++        for (std::size_t i = 0; i < n; ++i) {
++            legal_to_by_from_[non_tt[i].from] |= square_bb(non_tt[i].to);
++        }
++        buffer_.clear();
++        board_.generate_pseudo_legal(buffer_, false);
++        index_ = 0;
++        count_ = 0;
++        seeded_ = false;
++        for (const Move move : buffer_) {
++            push_scored(move, score_evasion(move));
+         }
+         sort_moves();
++        evasion_tie_filter_ = true;
+     }
+ };
+ 
+@@ -1790,7 +1845,7 @@
+     int move_count = 0;
+     Move move;
+     while (!(move = picker.next(false)).is_none()) {
+-        if (!board.is_legal(move)) continue;
++        if (!picker.last_move_known_legal() && !board.is_legal(move)) continue;
+         ++move_count;
+         if (mate_moves_ == 0 && !in_check && best_score > -MateInMaxPly) {
+             const bool gives_check = board.gives_check(move);
+@@ -2170,7 +2225,7 @@
+             std::none_of(root_moves_.begin(), root_moves_.end(), [&](const Move& m) { return m == move; })) {
+             continue;
+         }
+-        if (!board.is_legal(move)) continue;
++        if (!picker.last_move_known_legal() && !board.is_legal(move)) continue;
+         ++move_count;
+         ss->move_count = move_count;
+         const bool capture = move.is_capture();

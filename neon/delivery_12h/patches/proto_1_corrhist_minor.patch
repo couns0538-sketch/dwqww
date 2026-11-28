@@ -1,0 +1,139 @@
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index 6e1ce1f..701129d 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -284,6 +284,7 @@ extern int LmrHistoryDivisor;
+ extern int CheckExtensionDepth;
+ extern int LmrCutoffThreshold;    // child cutoff count above which late moves are reduced more (0 = off)
+ extern int MaterialCorrectionWeight; // 0 = off, 100 = same weight as the pawn correction
++extern int MinorCorrectionWeight;    // 0 = off, 100 = same weight as the pawn correction
+ // Time management (sudden-death / increment controls).
+ extern int TmSoftDivisor;         // soft limit = remaining / divisor + increment share
+ extern int TmIncrementPercent;    // share of the increment added to the soft limit
+@@ -452,6 +453,7 @@ struct SearchStack {
+     bool entered_null = false;
+     bool diff_known = false;
+     mutable std::array<std::uint16_t, 2> corr_np_idx{};
++    mutable std::uint16_t corr_minor_idx = 0;
+     mutable std::uint64_t corr_mat_mix = 0;
+     mutable std::uint8_t corr_valid = 0;
+ };
+@@ -505,6 +507,7 @@ private:
+     std::unique_ptr<CounterMoveTable> counter_moves_;
+     std::unique_ptr<CorrectionHistory> correction_history_;
+     std::unique_ptr<CorrectionHistory> material_correction_;
++    std::unique_ptr<CorrectionHistory> minor_correction_;
+     std::unique_ptr<CorrectionHistory> non_pawn_white_correction_;
+     std::unique_ptr<CorrectionHistory> non_pawn_black_correction_;
+     std::array<SearchStack, MaxPly + 8> stack_{};
+diff --git a/src/search.cpp b/src/search.cpp
+index 620c0c2..9a05cde 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -133,6 +133,7 @@ int LmrHistoryDivisor = 6000;
+ int CheckExtensionDepth = 2;
+ int LmrCutoffThreshold = 3;
+ int MaterialCorrectionWeight = 100;
++int MinorCorrectionWeight = 22;
+ int TmSoftDivisor = 22;
+ int TmIncrementPercent = 75;
+ int TmHardPercent = 60;
+@@ -211,6 +212,7 @@ const std::vector<Parameter>& parameters() {
+         {"CheckExtensionDepth", &CheckExtensionDepth, 1, 30},
+         {"LmrCutoffThreshold", &LmrCutoffThreshold, 0, 20},
+         {"MaterialCorrectionWeight", &MaterialCorrectionWeight, 0, 300},
++        {"MinorCorrectionWeight", &MinorCorrectionWeight, 0, 200},
+         {"TmSoftDivisor", &TmSoftDivisor, 5, 80},            {"TmIncrementPercent", &TmIncrementPercent, 0, 150},
+         {"TmHardPercent", &TmHardPercent, 10, 95},           {"TmHardSoftMultiple", &TmHardSoftMultiple, 1, 20},
+         {"TmStableFactor", &TmStableFactor, 20, 150},        {"TmSemiStableFactor", &TmSemiStableFactor, 20, 150},
+@@ -1204,6 +1206,7 @@ Worker::Worker(SharedSearchState& shared, int id)
+       counter_moves_(std::make_unique<CounterMoveTable>()),
+       correction_history_(std::make_unique<CorrectionHistory>()),
+       material_correction_(std::make_unique<CorrectionHistory>()),
++      minor_correction_(std::make_unique<CorrectionHistory>()),
+       non_pawn_white_correction_(std::make_unique<CorrectionHistory>()),
+       non_pawn_black_correction_(std::make_unique<CorrectionHistory>()),
+       rework_history_(std::make_unique<LesserThreatHistory>()),
+@@ -1228,6 +1231,7 @@ void Worker::clear() {
+     *counter_moves_ = CounterMoveTable{};
+     *correction_history_ = CorrectionHistory{};
+     *material_correction_ = CorrectionHistory{};
++    *minor_correction_ = CorrectionHistory{};
+     *non_pawn_white_correction_ = CorrectionHistory{};
+     *non_pawn_black_correction_ = CorrectionHistory{};
+     // B4 (forge/r9): cleared here like every other table, so no game inherits another game's statistics.
+@@ -1260,6 +1264,20 @@ namespace {
+     }
+     return key ^ (key >> 31U);
+ }
++
++// Hash of minor pieces (knights and bishops of both sides) for minor-piece correction history.
++[[nodiscard]] std::uint64_t minor_piece_key(const Board& board) {
++    const Bitboard wn = board.pieces(White, Knight);
++    const Bitboard wb = board.pieces(White, Bishop);
++    const Bitboard bn = board.pieces(Black, Knight);
++    const Bitboard bb = board.pieces(Black, Bishop);
++    if ((wn | wb | bn | bb) == 0) return 0;
++    const std::uint64_t key = wn * 0x9E3779B97F4A7C15ULL ^
++                              wb * 0xBF58476D1CE4E5B9ULL ^
++                              bn * 0x94D049BB133111EBULL ^
++                              bb * 0x517CC1B727220A95ULL;
++    return b4::mix64(key ^ 0x243F6A8885A308D3ULL);
++}
+ } // namespace
+ 
+ namespace {
+@@ -1348,6 +1366,11 @@ void Worker::record_move(SearchStack* ss, const Board& board, const Move& move)
+     else child->corr_np_idx[static_cast<std::size_t>(them)] = ss->corr_np_idx[static_cast<std::size_t>(them)];
+     if (cap_nonpawn || move.is_promotion()) keep &= static_cast<std::uint8_t>(~4U);
+     else child->corr_mat_mix = ss->corr_mat_mix;
++    const bool mover_minor = piece_type(moved) == Knight || piece_type(moved) == Bishop;
++    const bool cap_minor = captured != Empty && (piece_type(captured) == Knight || piece_type(captured) == Bishop);
++    const bool promo_minor = move.is_promotion() && (move.promotion == Knight || move.promotion == Bishop);
++    if (mover_minor || cap_minor || promo_minor) keep &= static_cast<std::uint8_t>(~8U);
++    else child->corr_minor_idx = ss->corr_minor_idx;
+     child->corr_valid = keep;
+ 
+     if (!nnue::enabled || !nnue::available()) return;
+@@ -1394,6 +1417,7 @@ bool null_see_veto_threat(Board& board) {
+ void Worker::record_null_move(SearchStack* ss) {
+     SearchStack* child = ss + 1;
+     child->corr_np_idx = ss->corr_np_idx;
++    child->corr_minor_idx = ss->corr_minor_idx;
+     child->corr_mat_mix = ss->corr_mat_mix;
+     child->corr_valid = ss->corr_valid;
+     child->entered_null = true;
+@@ -1420,6 +1444,19 @@ int Worker::corrected_eval(const Board& board, int raw_eval, const SearchStack*
+     if (tune::MaterialCorrectionWeight > 0) {
+         correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
+     }
++    if (tune::MinorCorrectionWeight > 0 && (board.pieces(Knight) | board.pieces(Bishop)) != 0) {
++        std::size_t idx_m;
++        if (ss != nullptr) {
++            if ((ss->corr_valid & 8U) == 0U) {
++                ss->corr_minor_idx = static_cast<std::uint16_t>(minor_piece_key(board) & (CorrectionSize - 1U));
++                ss->corr_valid |= 8U;
++            }
++            idx_m = ss->corr_minor_idx;
++        } else {
++            idx_m = minor_piece_key(board) & (CorrectionSize - 1U);
++        }
++        correction += (*minor_correction_)[side][idx_m] * tune::MinorCorrectionWeight / 100;
++    }
+     if (tune::NonPawnCorrection) {
+         std::size_t idx_w;
+         std::size_t idx_b;
+@@ -1481,6 +1518,13 @@ void Worker::update_correction(const Board& board, int depth, int best_score, in
+     };
+     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
++    if (tune::MinorCorrectionWeight > 0 && (board.pieces(Knight) | board.pieces(Bishop)) != 0) {
++        const std::size_t idx_m = (ss != nullptr && (ss->corr_valid & 8U) != 0U)
++            ? static_cast<std::size_t>(ss->corr_minor_idx)
++            : (minor_piece_key(board) & (CorrectionSize - 1U));
++        std::int32_t& entry = (*minor_correction_)[side][idx_m];
++        entry = b4::gravity(entry, diff * weight / 256, CorrectionLimit);
++    }
+     if (tune::NonPawnCorrection) {
+         const std::size_t idx_w = (ss != nullptr && (ss->corr_valid & 1U) != 0U)
+             ? static_cast<std::size_t>(ss->corr_np_idx[0])
