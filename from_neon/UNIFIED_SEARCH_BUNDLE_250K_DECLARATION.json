@@ -1,0 +1,47 @@
+{
+  "written": "2026-11-28 15:53:00 PC",
+  "experiment": "UNIFIED_SEARCH_BUNDLE_250k_SPRT",
+  "request_ref": "OPUS-2811-OWNER-FIXES-FIRST & OPUS-2811-ANSWER-TO-STATE-TABLE-1509 Point 4 (Monday Bar 1 proof)",
+  "exe_both": "C:\\nnue-lab\\neon\\forge_fixes\\unified_search_tree\\forge_unified.exe",
+  "exe_sha256": "7c2a4a4605039df9c04d0580564dfeb4ad64c37a98923f327405223d2ac9d399",
+  "patch_path": "C:\\nnue-lab\\neon\\forge_fixes\\unified_search_tree\\UNIFIED_SEARCH_TREE.patch",
+  "patch_sha256": "a7b59ec6c1f4c7e87539e2fbb34f0eae44dfbcd1abf08efb70919de0df4ec5ee",
+  "gates_json": "C:\\nnue-lab\\neon\\forge_fixes\\unified_search_tree\\UNIFIED_SEARCH_TREE_GATES_AND_NPS.json",
+  "net_both": "C:/nnue-lab/runs/forge/r0067/train/cand.fnn3",
+  "net_sha256": "737f197808fef489017cf46f4daf76663d805bb01761e2b1781fc46fa7c9fc28",
+  "mandatory_default_gates": {
+    "bench_11": 312866,
+    "bench_13": 862329,
+    "perft_5": 4865609,
+    "perft_suite": "12/12 ALL MATCH",
+    "v3_parity_r0067_200pos": "0 differ",
+    "same_search_vs_loop_pgo": "0 diffs (b13 576076==576076, 10 diverse FENs d12, 50 UHO FENs d9)"
+  },
+  "cand_options_on": {
+    "LmrDeeperShallower": "true",
+    "MinorCorrHist": "true",
+    "AspScoreScale": "true",
+    "BadCapLmr": "true",
+    "LmrFracCapHist": "true",
+    "LmrTtPvCutExt": "true"
+  },
+  "options_explicitly_off_both_sides": {
+    "ContHist4PlyRead": "false",
+    "ContHist6PlyRead": "false",
+    "ForcedRootClockStop": "false",
+    "TmAspFailLowGuard": "false"
+  },
+  "base_options": "Exact live v3_uci_options + MateAlphaGuard=true, all 10 new/optional search flags false (bit-exact live r15dsg).",
+  "excluded_patches": ["SF13 (H0 -7.28)", "SF4a (P4 guard bug)", "SF4b1 (P5 planted-case proven flaw)", "SF4b2", "SF5a", "SF7", "SF15", "SF16", "SF2", "SF3"],
+  "match_settings": {
+    "book": "C:/nnue-lab/tools/book/UHO_Lichess_4852_v1.epd",
+    "nodes": 250000,
+    "hash_mb": 16,
+    "threads": 1,
+    "sprt": {"elo0": 0.0, "elo1": 10.0, "alpha": 0.05, "beta": 0.05, "model": "normalized"},
+    "max_games": 2000,
+    "seed": 202611971,
+    "concurrency": 6
+  },
+  "decision_rule": "H1 accepted => proceed to clean idle 6+0.06 clock confirmation of this exact bundle (plus clock-only TM options if declared separately or in the clock bundle, requiring clock Elo not negative); H0 accepted => split the 6 ON options into two declared halves (H1: LmrDeeperShallower+MinorCorrHist+AspScoreScale vs H2: BadCapLmr+LmrFracCapHist+LmrTtPvCutExt) per OPUS-2811-ANSWER-TO-STATE-TABLE-1509 Point 4; 2,000g cap without decision => inconclusive (report honestly, do not claim win)."
+}

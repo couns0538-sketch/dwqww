@@ -1,0 +1,442 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -77,6 +77,13 @@
+ 
+ [[nodiscard]] constexpr bool is_mate_score(int score) {
+     return score >= MateInMaxPly || score <= -MateInMaxPly;
++}
++
++// Forced single-legal-move clock stop: after a shallow verification depth,
++// stop burning clock time when there is only one legal root move (unrestricted, non-mate search).
++[[nodiscard]] constexpr bool forced_root_clock_stop(std::size_t legal_count, bool root_restricted,
++                                                    int mate_moves, int depth, bool clock_active) noexcept {
++    return clock_active && legal_count == 1 && !root_restricted && mate_moves == 0 && depth >= 4;
+ }
+ 
+ // Half-width, in centipawns, of repetition and fifty-move leaf scores.
+@@ -321,6 +328,15 @@
+ extern int HistRework;               // 0 = off; 1..3: threat-keyed quiet history twin + pawn x material correction
+ extern bool TtPruneV2;               // TT-move pruning guards, cut-node IIR, opponent-worsening RFP, margins (false = off)
+ extern bool CorrHistV2;              // static-eval correction keyed by the last two moves (false = off)
++// Unified search & clock-TM fixes (all default false = exact r15dsg search).
++extern bool MinorCorrHist;           // minor-piece (K+N+B) static-eval correction history (false = off)
++extern bool AspScoreScale;           // score-magnitude-adaptive initial aspiration delta (false = off)
++extern bool BadCapLmr;               // extra LMR ply for SEE-negative non-checking/non-promo/non-TT captures (false = off)
++extern bool LmrFracCapHist;          // 1024-scale fractional LMR + capture history LMR adjustment (false = off)
++extern bool LmrTtPvCutExt;           // reduced cut_node penalty on tt_pv + bounded negative-R LMR extension (false = off)
++extern bool ContHist6PlyRead;        // 6-ply continuation history read & update at 1/4 weight (false = off)
++extern bool ForcedRootClockStop;     // clock-only stop at depth >= 4 on forced single-legal-move roots (false = off)
++extern bool TmAspFailLowGuard;       // clock-only soft-limit guard after a non-mate root aspiration fail-low (false = off)
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ extern bool MateAlphaGuard;
+ #endif
+@@ -368,6 +384,13 @@
+     return score * (100 - clock) / 100;
+ }
+ 
++// Guard clock soft-limit scaling against premature cutoffs after a root
++// aspiration fail-low: override stability discounts and extend budget by 15%.
++[[nodiscard]] inline double apply_tm_faillow_guard(double factor, bool failed_low_iter, int score) noexcept {
++    if (!failed_low_iter || is_mate_score(score)) return factor;
++    return (factor < 1.0 ? 1.0 : factor) * 1.15;
++}
++
+ // Quiet late-move reduction with a signed fraction of a ply from the eval
+ // correction. correction_cp is the corrected static eval minus the uncorrected
+ // eval (negative when results came back worse). The adjustment is
+@@ -388,6 +411,14 @@
+ // dearer piece by a cheaper piece and static exchange evaluation does not call
+ // that capture a material loss. A capture SEE calls losing is not a threat.
+ [[nodiscard]] bool null_see_veto_threat(Board& board);
++
++// Extra LMR ply for non-checking, non-promoting, non-TT captures that already
++// failed MovePicker's SEE >= 0 filter (i.e. BadCaptures stage).
++[[nodiscard]] constexpr int bad_capture_lmr_bonus(bool in_check, bool capture, bool is_promotion,
++                                                  bool is_tt_move, bool gives_check,
++                                                  bool see_nonnegative) noexcept {
++    return (!in_check && capture && !is_promotion && !is_tt_move && !gives_check && !see_nonnegative) ? 1 : 0;
++}
+ 
+ // Move-ordering statistics.
+ using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
+@@ -452,6 +483,7 @@
+     bool entered_null = false;
+     bool diff_known = false;
+     mutable std::array<std::uint16_t, 2> corr_np_idx{};
++    mutable std::uint16_t corr_minor_idx = 0;
+     mutable std::uint64_t corr_mat_mix = 0;
+     mutable std::uint8_t corr_valid = 0;
+ };
+@@ -505,6 +537,7 @@
+     std::unique_ptr<CounterMoveTable> counter_moves_;
+     std::unique_ptr<CorrectionHistory> correction_history_;
+     std::unique_ptr<CorrectionHistory> material_correction_;
++    std::unique_ptr<CorrectionHistory> minor_correction_;
+     std::unique_ptr<CorrectionHistory> non_pawn_white_correction_;
+     std::unique_ptr<CorrectionHistory> non_pawn_black_correction_;
+     std::array<SearchStack, MaxPly + 8> stack_{};
+@@ -664,4 +697,14 @@
+ // stored under the previous width are not reused. An unchanged value does not.
+ void set_draw_jitter(int value, Searcher& searcher);
+ 
++// Score-magnitude-adaptive initial aspiration half-width: keeps balanced
++// positions unchanged while scaling quadratically in decided evaluations and
++// opening wide on mate scores to avoid redundant root re-searches.
++[[nodiscard]] constexpr int initial_aspiration_delta(int base_delta, int prev_score) noexcept {
++    if (prev_score == ValueNone || is_mate_score(prev_score)) return Infinite;
++    const std::int64_t sq = static_cast<std::int64_t>(prev_score) * static_cast<std::int64_t>(prev_score);
++    const std::int64_t scaled = static_cast<std::int64_t>(base_delta) + sq / 16384;
++    return static_cast<int>(scaled < Infinite ? scaled : Infinite);
++}
++
+ } // namespace forge
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -180,6 +180,14 @@
+ int HistRework = 0;
+ bool TtPruneV2 = false;
+ bool CorrHistV2 = false;
++bool MinorCorrHist = false;
++bool AspScoreScale = false;
++bool BadCapLmr = false;
++bool LmrFracCapHist = false;
++bool LmrTtPvCutExt = false;
++bool ContHist6PlyRead = false;
++bool ForcedRootClockStop = false;
++bool TmAspFailLowGuard = false;
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+ bool MateAlphaGuard = false;
+ #endif
+@@ -296,20 +304,32 @@
+ struct ReductionTable {
+     std::array<std::array<std::uint8_t, 64>, 64> quiet{};
+     std::array<std::array<std::uint8_t, 64>, 64> noisy{};
++    std::array<std::array<std::uint16_t, 64>, 64> quiet_fp{};
++    std::array<std::array<std::uint16_t, 64>, 64> noisy_fp{};
+     ReductionTable() { refresh(); }
+     void refresh() {
+         for (int depth = 1; depth < 64; ++depth) {
+             for (int moves = 1; moves < 64; ++moves) {
+                 const double product = std::log(static_cast<double>(depth)) * std::log(static_cast<double>(moves));
+-                quiet[static_cast<std::size_t>(depth)][static_cast<std::size_t>(moves)] = static_cast<std::uint8_t>(
+-                    std::max(0.0, tune::LmrQuietBase / 100.0 + product / (tune::LmrQuietDivisor / 100.0)));
+-                noisy[static_cast<std::size_t>(depth)][static_cast<std::size_t>(moves)] = static_cast<std::uint8_t>(
+-                    std::max(0.0, tune::LmrNoisyBase / 100.0 + product / (tune::LmrNoisyDivisor / 100.0)));
++                const double q = std::max(0.0, tune::LmrQuietBase / 100.0 + product / (tune::LmrQuietDivisor / 100.0));
++                const double n = std::max(0.0, tune::LmrNoisyBase / 100.0 + product / (tune::LmrNoisyDivisor / 100.0));
++                quiet[static_cast<std::size_t>(depth)][static_cast<std::size_t>(moves)] = static_cast<std::uint8_t>(q);
++                noisy[static_cast<std::size_t>(depth)][static_cast<std::size_t>(moves)] = static_cast<std::uint8_t>(n);
++                quiet_fp[static_cast<std::size_t>(depth)][static_cast<std::size_t>(moves)] =
++                    static_cast<std::uint16_t>(std::min(65535.0, q * 1024.0));
++                noisy_fp[static_cast<std::size_t>(depth)][static_cast<std::size_t>(moves)] =
++                    static_cast<std::uint16_t>(std::min(65535.0, n * 1024.0));
+             }
+         }
+     }
+ };
+ ReductionTable Reductions;
++
++[[nodiscard]] int reduction_fp(bool quiet, int depth, int moves) {
++    const std::size_t d = static_cast<std::size_t>(std::min(depth, 63));
++    const std::size_t m = static_cast<std::size_t>(std::min(moves, 63));
++    return quiet ? Reductions.quiet_fp[d][m] : Reductions.noisy_fp[d][m];
++}
+ 
+ [[nodiscard]] int reduction(bool quiet, int depth, int moves) {
+     const std::size_t d = static_cast<std::size_t>(std::min(depth, 63));
+@@ -893,6 +913,7 @@
+         const PieceToHistory* cont1;
+         const PieceToHistory* cont2;
+         const PieceToHistory* cont4;
++        const PieceToHistory* cont6;
+         const Board& board;
+         const Worker& worker;
+         const LesserThreatHistory::value_type* rework_side;
+@@ -907,6 +928,8 @@
+               cont2(ss != nullptr ? (ss - 2)->continuation : nullptr),
+               cont4(tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+                         ? (ss - 4)->continuation : nullptr),
++              cont6(tune::ContHist6PlyRead && ss != nullptr && ss->ply >= 2 && !(ss - 6)->current_move.is_none()
++                        ? (ss - 6)->continuation : nullptr),
+               board(b),
+               worker(searcher),
+               rework_side(tune::HistRework != 0 && ss != nullptr
+@@ -933,6 +956,7 @@
+             if (cont1 != nullptr) value += (*cont1)[p][move.to];
+             if (cont2 != nullptr) value += (*cont2)[p][move.to];
+             if (cont4 != nullptr) value += (*cont4)[p][move.to] / 2;
++            if (cont6 != nullptr) value += (*cont6)[p][move.to] / 4;
+             if (use_threat_hist) [[unlikely]] value += worker.threat_quiet_bonus(board, move);
+ #if FORGE_PAWN_HISTORY
+             value += worker.pawn_history_value(board, piece, move);
+@@ -1204,6 +1228,7 @@
+       counter_moves_(std::make_unique<CounterMoveTable>()),
+       correction_history_(std::make_unique<CorrectionHistory>()),
+       material_correction_(std::make_unique<CorrectionHistory>()),
++      minor_correction_(std::make_unique<CorrectionHistory>()),
+       non_pawn_white_correction_(std::make_unique<CorrectionHistory>()),
+       non_pawn_black_correction_(std::make_unique<CorrectionHistory>()),
+       rework_history_(std::make_unique<LesserThreatHistory>()),
+@@ -1228,6 +1253,7 @@
+     *counter_moves_ = CounterMoveTable{};
+     *correction_history_ = CorrectionHistory{};
+     *material_correction_ = CorrectionHistory{};
++    *minor_correction_ = CorrectionHistory{};
+     *non_pawn_white_correction_ = CorrectionHistory{};
+     *non_pawn_black_correction_ = CorrectionHistory{};
+     // B4 (forge/r9): cleared here like every other table, so no game inherits another game's statistics.
+@@ -1259,6 +1285,20 @@
+         key = (key ^ (key >> 30U)) * 0x94D049BB133111EBULL;
+     }
+     return key ^ (key >> 31U);
++}
++
++// Hash of minor pieces (knights and bishops of both sides) for minor-piece correction history.
++[[nodiscard]] std::uint64_t minor_piece_key(const Board& board) {
++    const Bitboard wn = board.pieces(White, Knight);
++    const Bitboard wb = board.pieces(White, Bishop);
++    const Bitboard bn = board.pieces(Black, Knight);
++    const Bitboard bb = board.pieces(Black, Bishop);
++    if ((wn | wb | bn | bb) == 0) return 0;
++    const std::uint64_t key = wn * 0x9E3779B97F4A7C15ULL ^
++                              wb * 0xBF58476D1CE4E5B9ULL ^
++                              bn * 0x94D049BB133111EBULL ^
++                              bb * 0x517CC1B727220A95ULL;
++    return b4::mix64(key ^ 0x243F6A8885A308D3ULL);
+ }
+ } // namespace
+ 
+@@ -1348,6 +1388,13 @@
+     else child->corr_np_idx[static_cast<std::size_t>(them)] = ss->corr_np_idx[static_cast<std::size_t>(them)];
+     if (cap_nonpawn || move.is_promotion()) keep &= static_cast<std::uint8_t>(~4U);
+     else child->corr_mat_mix = ss->corr_mat_mix;
++    if (tune::MinorCorrHist) {
++        const bool mover_minor = piece_type(moved) == Knight || piece_type(moved) == Bishop;
++        const bool cap_minor = captured != Empty && (piece_type(captured) == Knight || piece_type(captured) == Bishop);
++        const bool promo_minor = move.is_promotion() && (move.promotion == Knight || move.promotion == Bishop);
++        if (mover_minor || cap_minor || promo_minor) keep &= static_cast<std::uint8_t>(~8U);
++        else child->corr_minor_idx = ss->corr_minor_idx;
++    }
+     child->corr_valid = keep;
+ 
+     if (!nnue::enabled || !nnue::available()) return;
+@@ -1394,6 +1441,7 @@
+ void Worker::record_null_move(SearchStack* ss) {
+     SearchStack* child = ss + 1;
+     child->corr_np_idx = ss->corr_np_idx;
++    if (tune::MinorCorrHist) child->corr_minor_idx = ss->corr_minor_idx;
+     child->corr_mat_mix = ss->corr_mat_mix;
+     child->corr_valid = ss->corr_valid;
+     child->entered_null = true;
+@@ -1420,6 +1468,19 @@
+     if (tune::MaterialCorrectionWeight > 0) {
+         correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
+     }
++    if (tune::MinorCorrHist && (board.pieces(Knight) | board.pieces(Bishop)) != 0) {
++        std::size_t idx_m;
++        if (ss != nullptr) {
++            if ((ss->corr_valid & 8U) == 0U) {
++                ss->corr_minor_idx = static_cast<std::uint16_t>(minor_piece_key(board) & (CorrectionSize - 1U));
++                ss->corr_valid |= 8U;
++            }
++            idx_m = ss->corr_minor_idx;
++        } else {
++            idx_m = minor_piece_key(board) & (CorrectionSize - 1U);
++        }
++        correction += (*minor_correction_)[side][idx_m] * 22 / 100;
++    }
+     if (tune::NonPawnCorrection) {
+         std::size_t idx_w;
+         std::size_t idx_b;
+@@ -1481,6 +1542,13 @@
+     };
+     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
++    if (tune::MinorCorrHist && (board.pieces(Knight) | board.pieces(Bishop)) != 0) {
++        const std::size_t idx_m = (ss != nullptr && (ss->corr_valid & 8U) != 0U)
++            ? static_cast<std::size_t>(ss->corr_minor_idx)
++            : (minor_piece_key(board) & (CorrectionSize - 1U));
++        std::int32_t& entry = (*minor_correction_)[side][idx_m];
++        entry = b4::gravity(entry, diff * weight / 256, CorrectionLimit);
++    }
+     if (tune::NonPawnCorrection) {
+         const std::size_t idx_w = (ss != nullptr && (ss->corr_valid & 1U) != 0U)
+             ? static_cast<std::size_t>(ss->corr_np_idx[0])
+@@ -1619,6 +1687,9 @@
+         if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[p][move.to];
+         if (tune::ContHist4PlyRead && (ss - 4)->continuation != nullptr && !(ss - 4)->current_move.is_none()) {
+             score += (*(ss - 4)->continuation)[p][move.to] / 2;
++        }
++        if (tune::ContHist6PlyRead && ss->ply >= 2 && (ss - 6)->continuation != nullptr && !(ss - 6)->current_move.is_none()) {
++            score += (*(ss - 6)->continuation)[p][move.to] / 4;
+         }
+     }
+     if (tune::ThreatHistory) [[unlikely]] score += threat_quiet_bonus(board, move);
+@@ -1708,6 +1779,13 @@
+         if (previous->continuation == nullptr || previous->current_move.is_none()) continue;
+         apply_history((*previous->continuation)[static_cast<std::size_t>(piece)][static_cast<std::size_t>(to)],
+                       back == 4 ? bonus / 2 : bonus);
++    }
++    if (tune::ContHist6PlyRead && ss->ply >= 2) {
++        const SearchStack* previous = ss - 6;
++        if (previous->continuation != nullptr && !previous->current_move.is_none()) {
++            apply_history((*previous->continuation)[static_cast<std::size_t>(piece)][static_cast<std::size_t>(to)],
++                          bonus / 4);
++        }
+     }
+ }
+ 
+@@ -2405,15 +2483,41 @@
+         if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
+             move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+             (quiet || !ss->tt_pv || move_count > 4)) {
+-            int r = reduction(quiet, depth, move_count);
+-            if (ss->tt_pv) r -= 1;
+-            if (!improving) r += 1;
+-            if (cut_node) r += 2;
+-            if (tt_capture && quiet) r += 1;
+-            if (gives_check) r -= 1;
+-            if (in_check) r -= 1;
+-            if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+-            if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            int r = 0;
++            if (tune::LmrFracCapHist) {
++                int r_fp = reduction_fp(quiet, depth, move_count);
++                if (ss->tt_pv) r_fp -= 1024;
++                if (!improving) r_fp += 1024;
++                if (cut_node) r_fp += (tune::LmrTtPvCutExt && ss->tt_pv) ? 1024 : 2048;
++                if (tt_capture && quiet) r_fp += 1024;
++                if (tune::BadCapLmr) {
++                    r_fp += bad_capture_lmr_bonus(in_check, capture, move.is_promotion(), move == tt_move,
++                                                  gives_check, picker.last_move_see_nonnegative()) * 1024;
++                }
++                if (gives_check) r_fp -= 1024;
++                if (in_check) r_fp -= 1024;
++                if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r_fp += 1024;
++                if (quiet) {
++                    r_fp -= std::clamp(history * 1024 / tune::LmrHistoryDivisor, -2048, 2048);
++                } else {
++                    r_fp -= std::clamp(history * 1024 / (tune::LmrHistoryDivisor * 2), -1024, 1024);
++                }
++                r = r_fp >= 0 ? (r_fp >> 10) : -((-r_fp) >> 10);
++            } else {
++                r = reduction(quiet, depth, move_count);
++                if (ss->tt_pv) r -= 1;
++                if (!improving) r += 1;
++                if (cut_node) r += (tune::LmrTtPvCutExt && ss->tt_pv) ? 1 : 2;
++                if (tt_capture && quiet) r += 1;
++                if (tune::BadCapLmr) {
++                    r += bad_capture_lmr_bonus(in_check, capture, move.is_promotion(), move == tt_move,
++                                               gives_check, picker.last_move_see_nonnegative());
++                }
++                if (gives_check) r -= 1;
++                if (in_check) r -= 1;
++                if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
++                if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            }
+             if (tune::LmrSignedCorrection && quiet && ss->static_eval != ValueNone &&
+                 ss->raw_eval != ValueNone) {
+                 const int correction_cp = ss->static_eval - ss->raw_eval;
+@@ -2423,7 +2527,8 @@
+             // four replies are the likely refutations, so they lose one ply of reduction.
+             if (tune::LmrLateParentRelief && ss->arrival_index >= 7 && move_count <= 4) --r;
+             if (bare_king_lmr_cap) r = std::min(r, 1);
+-            const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
++            const int max_lmr_depth = new_depth + (tune::LmrTtPvCutExt && !root_node && depth >= 4 && r <= -2 ? 1 : 0);
++            const int reduced_depth = std::clamp(new_depth - r, 1, max_lmr_depth);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = new_depth - reduced_depth;
+             score = -search_child(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+             if (tune::HindsightDepth) (ss + 1)->withheld_plies = 0;
+@@ -2962,18 +3067,21 @@
+             tune::TmFinishIteration && time_managed_ &&
+             !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0);
+         const std::int64_t finish_origin = finish_sampling ? elapsed_ms() : 0;
+-        int delta = tune::AspirationDelta;
++        int delta = tune::AspScoreScale ? initial_aspiration_delta(tune::AspirationDelta, score)
++                                        : tune::AspirationDelta;
+         int alpha = -Infinite;
+         int beta = Infinite;
+         // Narrow from depth 4. AspArmLate reopens a full window for one iteration
+         // after the previous iteration failed high or low at least once.
+-        const bool narrow = depth >= 4 && !(tune::AspArmLate && reopen_full_window);
++        const bool narrow = depth >= 4 && (!tune::AspScoreScale || delta < Infinite) &&
++                            !(tune::AspArmLate && reopen_full_window);
+         if (narrow) {
+             alpha = std::max(score - delta, -Infinite);
+             beta = std::min(score + delta, Infinite);
+         }
+         int iteration_score = score;
+         bool failed_window = false;
++        bool failed_low_iter = false;
+ #if FORGE_FIX_ABORT_PUBLISH
+         std::vector<Move> fail_high_pv;        // the line of a root search of THIS iteration that failed high
+ #endif
+@@ -2998,6 +3106,7 @@
+ #endif
+             if (iteration_score <= alpha) {
+                 failed_window = true;
++                failed_low_iter = true;
+                 asp_fail_highs = 0;
+                 beta = (alpha + beta) / 2;
+                 if (tune::AspCappedReopen) {
+@@ -3154,6 +3263,10 @@
+         if (soft_node_limit_ != 0 && total_nodes() + extra_nodes_ >= soft_node_limit_) break;
+         if (should_stop()) break;
+         if (time_managed_ && !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0)) {
++            if (tune::ForcedRootClockStop &&
++                forced_root_clock_stop(legal.size(), root_restricted_, mate_moves, depth, true)) {
++                break;
++            }
+             if (finish_sampling) {
+                 const std::int64_t spent = elapsed_ms() - finish_origin;
+                 finish_prev_ms = finish_last_ms;
+@@ -3181,6 +3294,9 @@
+             if (iteration_previous_score != ValueNone && !is_mate_score(score) && score < iteration_previous_score) {
+                 const int drop = std::min(iteration_previous_score - score, 150);
+                 factor *= 1.0 + drop * tune::TmFallingEvalPercent / 10000.0;
++            }
++            if (tune::TmAspFailLowGuard) {
++                factor = apply_tm_faillow_guard(factor, failed_low_iter, score);
+             }
+             factor = std::max(factor, tune::TmMinFactorPercent / 100.0);
+             // TmNodeShare is clock play only: this block is skipped for depth,
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -774,7 +774,16 @@
+                          "option name CuckooRep type check default false\n"
+                          "option name HistRework type spin default 0 min 0 max 3\n"
+                          "option name TtPruneV2 type check default false\n"
+-                         "option name CorrHistV2 type check default false\n";
++                         "option name CorrHistV2 type check default false\n"
++                         // Unified search & clock-TM fixes: all default off = r15dsg's search.
++                         "option name MinorCorrHist type check default false\n"
++                         "option name AspScoreScale type check default false\n"
++                         "option name BadCapLmr type check default false\n"
++                         "option name LmrFracCapHist type check default false\n"
++                         "option name LmrTtPvCutExt type check default false\n"
++                         "option name ContHist6PlyRead type check default false\n"
++                         "option name ForcedRootClockStop type check default false\n"
++                         "option name TmAspFailLowGuard type check default false\n";
+ #if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+             std::cout << "option name MateAlphaGuard type check default false\n";
+ #endif
+@@ -1031,6 +1040,19 @@
+                 bool* target = name == "CuckooRep" ? &forge::tune::CuckooRep
+                              : name == "TtPruneV2" ? &forge::tune::TtPruneV2
+                                                    : &forge::tune::CorrHistV2;
++                if (value_text == "true" || value_text == "false") *target = value_text == "true";
++                else note_invalid();
++            } else if (name == "MinorCorrHist" || name == "AspScoreScale" || name == "BadCapLmr" ||
++                       name == "LmrFracCapHist" || name == "LmrTtPvCutExt" || name == "ContHist6PlyRead" ||
++                       name == "ForcedRootClockStop" || name == "TmAspFailLowGuard") {
++                bool* target = name == "MinorCorrHist"       ? &forge::tune::MinorCorrHist
++                             : name == "AspScoreScale"       ? &forge::tune::AspScoreScale
++                             : name == "BadCapLmr"           ? &forge::tune::BadCapLmr
++                             : name == "LmrFracCapHist"      ? &forge::tune::LmrFracCapHist
++                             : name == "LmrTtPvCutExt"       ? &forge::tune::LmrTtPvCutExt
++                             : name == "ContHist6PlyRead"    ? &forge::tune::ContHist6PlyRead
++                             : name == "ForcedRootClockStop" ? &forge::tune::ForcedRootClockStop
++                                                             : &forge::tune::TmAspFailLowGuard;
+                 if (value_text == "true" || value_text == "false") *target = value_text == "true";
+                 else note_invalid();
+             } else if (name == "HistRework") {

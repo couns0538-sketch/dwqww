@@ -1,0 +1,38 @@
+{
+  "written": "2026-11-28 15:45:00 PC",
+  "experiment": "F_FIX_25R_v2_vs_R1_skip",
+  "request_ref": "OPUS-2811-OWNER-FILTERING-ESPECIALLY & OPUS-2811-ANSWER-TO-STATE-TABLE-1509 Point 5 (Monday Bar 3 proof)",
+  "faults_addressed": [
+    "F-03: Drawn-game score conflicts (res == 0 and |score| >= 400; 64,679 quiet rows/round = 0.524%, missed by filterqc.py)",
+    "F-03b: Tightened decisive opposite-sign conflicts (res != 0 and score*res <= -300; 6,319 quiet rows/round = 0.051%, filterqc.py only dropped <= -600)",
+    "F-08: Extreme dead-gradient blowout tail (|score| > 1200; 844,346 quiet rows/round = 6.843%, sigmoid gradient collapses > 3,466x and carries +181.8 cp White bias)"
+  ],
+  "exact_filter_module": "C:\\nnue-lab\\neon\\forge_fixes\\run_f_fix_25r_v2.py",
+  "runner_sha256": "46a4d7a14d94a8b48ca9eff76d11f01e0e1dd88c6e0788bafe8925bd88acc4e6",
+  "planted_fault_test": "C:\\nnue-lab\\neon\\forge_fixes\\test_f_fix_25r_v2_filter.py",
+  "planted_fault_test_sha256": "e709fee31ad9c723da291b2166e317f7fcd6b321150b71e7880b162de390c1db",
+  "comparison_baseline": {
+    "name": "OPUS_R1_live768_skipnoisy (Seed 1)",
+    "net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_skipnoisy\\cand.fnn3",
+    "sha256": "4902fe653e575c0c73ab78aed18fb6d2a10c8f33c895160cb5b68b1bdb9b21ec",
+    "recipe": "Exact live pipeline/forge_train_v3.py, hidden=768, r0178..r0202 (25 rounds), skip_noisy=True, skip_check=True, epochs=40, lr=0.0005, batch=8192, lr-cycles=auto, w1-decay=0.3, mix=0.75, distill=b_full.pt w=0.2, seed=1"
+  },
+  "diff_vs_baseline": "ONLY the 3 post-parse quiet-row filter predicates (drop res==0 & |score|>=400, drop res!=0 & score*res<=-300, drop |score|>1200; ~7.42% drop -> ~260.4M rows); identical trainer, window r0178..r0202, hyperparameters, teacher, and seed=1. Strictly read-only on C:\\nnue-lab\\runs\\.",
+  "match_test_declared": {
+    "name": "F_FIX_25R_v2_vs_R1_skip_SPRT_0_10_250k",
+    "exe_both": "C:\\nnue-lab\\neon\\forge_fixes\\builds\\base_r15dsg.exe",
+    "book": "C:/nnue-lab/tools/book/UHO_Lichess_4852_v1.epd",
+    "nodes": 250000,
+    "sprt": {
+      "elo0": 0,
+      "elo1": 10,
+      "alpha": 0.05,
+      "beta": 0.05,
+      "model": "normalized"
+    },
+    "max_games": 2000,
+    "seed": 202611961,
+    "concurrency": 6
+  },
+  "acceptance_and_refutation_rule": "H1 accepted => filter improvement confirmed on Seed 1 (proceed to independent Seed-2 replicate per R1 seed rules); H0 accepted => filter hypothesis refuted (do not place); 2,000g cap without decision => inconclusive (report honestly, do not place)."
+}
