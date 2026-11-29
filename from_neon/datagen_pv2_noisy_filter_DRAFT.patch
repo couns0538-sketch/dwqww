@@ -1,0 +1,184 @@
+diff --git a/pipeline/config.forge.toml b/pipeline/config.forge.toml
+index 50fa6c9..2c275e9 100644
+--- a/pipeline/config.forge.toml
++++ b/pipeline/config.forge.toml
+@@ -277,6 +277,8 @@ random_move_max_ply = 7
+ random_multi_pv      = 0
+ random_multi_pv_diff = 0
+ write_min_ply = 8
++# Skip recording positions where pv[0] or pv[1] is a capture, en-passant, or promotion (fb2-j2; disables selfgame when true).
++filter_pv2_noisy = false
+ max_ply    = 300
+ # Since 2026-11-15 12:35 (Opus's rule; DeepSeek's job 6 led to the check): a game that runs into max_ply while its
+ # last ply_limit_skip_count recorded scores all favour the same side by ply_limit_skip_score centipawns or more is
+diff --git a/pipeline/nnloop/datagen_uci.py b/pipeline/nnloop/datagen_uci.py
+index 215196b..3277606 100644
+--- a/pipeline/nnloop/datagen_uci.py
++++ b/pipeline/nnloop/datagen_uci.py
+@@ -19,6 +19,7 @@ from .common import cpu_speed_pct, read_hwinfo, log, stop_requested
+ from .engine import EngineError, EngineSpec, UciEngine, engine_for_net, make_score_converter
+ 
+ _COUNT_RE = re.compile(r"_n(\d+)\.plain$")
++_UCI_MOVE_RE = re.compile(r"^[a-h][1-8][a-h][1-8][qrbn]?$")
+ LAST_SKIP = None        # set by play_game when it left a ply-limit game out: (last fen, last scores, records dropped)
+ LAST_ADJ = None         # set by play_game when it scored a drawn bare-king game as a win: (last fen, reason, result, records)
+ _TB = None              # this worker's Syzygy tables ([datagen] adjudicate_tablebase): None = not opened yet, False = unusable
+@@ -207,6 +208,119 @@ def bare_king_adjudication(board, ended_by_limit: bool, draw_adjudicated: bool,
+     return None
+ 
+ 
++def _parse_uci_pv(line: str) -> list[str]:
++    if not isinstance(line, str) or not line:
++        return []
++    tokens = line.split()
++    if not tokens or tokens[0] != "info":
++        return []
++    if len(tokens) > 1 and tokens[1] == "string":
++        return []
++    if "pv" not in tokens:
++        return []
++    pv_idx = tokens.index("pv")
++    if "string" in tokens[:pv_idx]:
++        return []
++    pv: list[str] = []
++    for tok in tokens[pv_idx + 1:]:
++        if not _UCI_MOVE_RE.match(tok):
++            break
++        pv.append(tok)
++    return pv
++
++
++def _is_move_noisy(board, move_uci: str) -> bool:
++    import chess
++
++    if not isinstance(move_uci, str):
++        return False
++    s = move_uci.strip()
++    if not s or s in ("0000", "(none)", "none"):
++        return False
++    try:
++        mv = chess.Move.from_uci(s)
++    except ValueError:
++        return False
++    if not mv or not board.is_legal(mv):
++        return False
++    return bool(board.is_capture(mv) or board.is_en_passant(mv) or (mv.promotion is not None))
++
++
++def _is_pv2_noisy(board, pv, bestmove: str | None = None) -> bool:
++    pv_list = list(pv) if pv is not None else []
++    if bestmove is not None:
++        bm = bestmove.strip() if isinstance(bestmove, str) else ""
++        if not pv_list or not isinstance(pv_list[0], str) or pv_list[0].strip() != bm:
++            return _is_move_noisy(board, bm)
++    if not pv_list or not isinstance(pv_list[0], str):
++        return False
++    import chess
++
++    s0 = pv_list[0].strip()
++    if not s0 or s0 in ("0000", "(none)", "none"):
++        return False
++    try:
++        mv0 = chess.Move.from_uci(s0)
++    except ValueError:
++        return False
++    if not mv0 or not board.is_legal(mv0):
++        return False
++    if board.is_capture(mv0) or board.is_en_passant(mv0) or (mv0.promotion is not None):
++        return True
++    if len(pv_list) < 2:
++        return False
++    after = board.copy(stack=False)
++    after.push(mv0)
++    return _is_move_noisy(after, pv_list[1])
++
++
++def _search_with_pv(eng: UciEngine, position_cmd: str, go_cmd: str, timeout: float = 60.0):
++    """Mirror UciEngine.search while also returning the primary PV move list."""
++    eng.send(position_cmd)
++    eng.send(go_cmd)
++    deadline = time.time() + timeout
++    exact = None
++    bound = None
++    exact_pv: list[str] = []
++    bound_pv: list[str] = []
++    last_pv: list[str] = []
++    while True:
++        line = eng._get(deadline)
++        if line.startswith("info"):
++            t = line.split()
++            if len(t) > 1 and t[1] == "string":
++                continue
++            if "multipv" in t:
++                mpv_idx = t.index("multipv")
++                if "string" not in t[:mpv_idx]:
++                    try:
++                        if int(t[mpv_idx + 1]) != 1:
++                            continue
++                    except (ValueError, IndexError):
++                        continue
++            pv_here = _parse_uci_pv(line)
++            if pv_here:
++                last_pv = pv_here
++            if "score" in t:
++                i = t.index("score")
++                if "string" not in t[:i]:
++                    try:
++                        sc = (t[i + 1], int(t[i + 2]))
++                        if len(t) > i + 3 and t[i + 3] in ("lowerbound", "upperbound"):
++                            bound = sc
++                            bound_pv = pv_here
++                        else:
++                            exact = sc
++                            exact_pv = pv_here
++                    except (ValueError, IndexError):
++                        pass
++        elif line.startswith("bestmove"):
++            parts = line.split()
++            bm = parts[1] if len(parts) > 1 else None
++            pv = (exact_pv if exact is not None else bound_pv) or last_pv
++            return bm, (exact or bound), pv
++
++
+ def play_game(eng: UciEngine, rng: random.Random, g: dict, convert, book):
+     """Play one self-play game. Returns (plain_text, n_records, result_white, plies)."""
+     import chess
+@@ -236,6 +350,7 @@ def play_game(eng: UciEngine, rng: random.Random, g: dict, convert, book):
+     move_timeout = float(g.get("move_timeout_s", 60))
+     rmpv = int(g.get("random_multi_pv", 0))
+     rmpv_diff = int(g.get("random_multi_pv_diff", 100))
++    filter_pv2 = bool(g.get("filter_pv2_noisy", False))
+     recs = []
+     ended_by_limit = False
+     result = None  # +1 white wins, 0 draw, -1 black wins
+@@ -282,7 +397,11 @@ def play_game(eng: UciEngine, rng: random.Random, g: dict, convert, book):
+             board.push(mv)
+             moves.append(mv.uci())
+             continue
+-        bm, sc = eng.search(pos_cmd, go_cmd, timeout=move_timeout)
++        if filter_pv2:
++            bm, sc, pv = _search_with_pv(eng, pos_cmd, go_cmd, timeout=move_timeout)
++        else:
++            bm, sc = eng.search(pos_cmd, go_cmd, timeout=move_timeout)
++            pv = ()
+         if sc is None or not bm or bm in ("(none)", "0000"):
+             # the position is named so that the case can be repeated by hand (seen twice in 45 million
+             # `go softnodes` searches on 2026-11-15: a move without any score line)
+@@ -303,7 +422,7 @@ def play_game(eng: UciEngine, rng: random.Random, g: dict, convert, book):
+             raise EngineError(f"unparsable bestmove {bm!r}")
+         if not board.is_legal(mv):
+             raise EngineError(f"illegal bestmove {bm} in {board.fen()}")
+-        if ply >= write_min_ply:
++        if ply >= write_min_ply and not (filter_pv2 and _is_pv2_noisy(board, pv, bestmove=bm)):
+             recs.append((board.fen(), bm, score, ply, white_to_move))
+         if ply >= dr_ply and abs(score) <= dr_score:
+             draw_run += 1
+@@ -361,6 +480,8 @@ def selfgame_ok(cfg: dict) -> str:
+     g, sc = cfg["datagen"], cfg["engine"].get("score", {})
+     if int(g.get("soft_nodes", 0) or 0) <= 0:
+         return "selfgame plays soft nodes only"
++    if bool(g.get("filter_pv2_noisy", False)):
++        return "filter_pv2_noisy is enabled"
+     if int(g.get("random_multi_pv", 0)) > 1:
+         return "random_multi_pv > 1"
+     if int(g["random_move_min_ply"]) != 0 or int(g["random_move_count"]) != int(g["random_move_max_ply"]) + 1:

@@ -1,0 +1,109 @@
+--- a/include/forge/clock_plan.hpp
++++ b/include/forge/clock_plan.hpp
+@@ -23,7 +23,32 @@
+ // after overhead, or when increment would place soft above hard.
+ // soft_divisor must be positive; the UCI spin starts at 5.
++// Stockfish timeAdvantage clock-deficit feedback (def601cc156f7d41f9ddea76d74515eddf232aaf,
++// timeman.cpp:151-156): damps soft_ms when behind on the clock, skipped at pct<=0,
++// moves_to_go == 1, or opp_time_ms <= 0. Clamped to [1, soft_ms].
++[[nodiscard]] inline std::int64_t apply_time_advantage(std::int64_t soft_ms, std::int64_t time_ms,
++                                                       std::int64_t opp_time_ms, std::int64_t moves_to_go,
++                                                       int time_advantage_percent) {
++    if (time_advantage_percent <= 0 || soft_ms <= 1 || time_ms <= 0 || opp_time_ms <= 0 ||
++        moves_to_go == 1 || time_ms >= opp_time_ms) {
++        return soft_ms;
++    }
++    const int pct = time_advantage_percent > 100 ? 100 : time_advantage_percent;
++    const double time_advantage =
++        (static_cast<double>(time_ms) - static_cast<double>(opp_time_ms)) /
++        (1.0 + static_cast<double>(time_ms) + static_cast<double>(opp_time_ms));
++    if (time_advantage >= 0.0) return soft_ms;
++    const double scale = 1.0 + (static_cast<double>(pct) / 100.0) * time_advantage;
++    if (scale <= 0.0) return 1;
++    const double product = static_cast<double>(soft_ms) * scale;
++    if (product <= 1.0) return 1;
++    if (product >= static_cast<double>(soft_ms)) return soft_ms;
++    const std::int64_t damped = static_cast<std::int64_t>(product);
++    return damped < 1 ? 1 : (damped > soft_ms ? soft_ms : damped);
++}
++
+ [[nodiscard]] inline ClockPlan plan_clock_budget(std::int64_t time_ms, std::int64_t increment_ms,
+                                                  std::int64_t moves_to_go, std::int64_t overhead_ms,
+                                                  int soft_divisor, int increment_percent, int hard_percent,
+-                                                 int hard_soft_multiple) {
++                                                 int hard_soft_multiple, std::int64_t opp_time_ms = -1,
++                                                 int time_advantage_percent = 0) {
+     const std::int64_t overhead = overhead_ms > 0 ? overhead_ms : 0;
+@@ -47,4 +72,5 @@
+     hard = std::max<std::int64_t>(1, std::min(hard, available));
+     if (soft > hard) soft = hard;
++    soft = apply_time_advantage(soft, time, opp_time_ms, moves_to_go, time_advantage_percent);
+     return ClockPlan{soft, hard, false};
+ }
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -37,5 +37,6 @@
+     // only non-negative values, including clocks that do not fit in 32 bits.
+     std::int64_t movetime_ms = -1;
+     std::int64_t time_ms = -1;
++    std::int64_t opp_time_ms = -1;
+     std::int64_t increment_ms = 0;
+     // 0 means the increment/sudden-death time control (no movestogo given).
+@@ -302,5 +303,6 @@
+ extern int TmEffortBase;          // x0.01: factor *= clamp(base - effort, 0.6, 1.4)
+ extern int TmFallingEvalPercent;  // extra percent of soft time per 100 cp of score drop since the previous iteration
+ extern int TmMinFactorPercent;    // lower bound of the combined soft-limit factor (x0.01)
++extern int TmTimeAdvantagePercent; // Stockfish timeAdvantage clock-deficit damping % when behind (0 = off)
+ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (0 = off)
+ extern int CaptureFutilityMultiplier;
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -143,5 +143,6 @@
+ int TmEffortBase = 155;
+ int TmFallingEvalPercent = 100;
+ int TmMinFactorPercent = 45;
++int TmTimeAdvantagePercent = 0;
+ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+@@ -224,5 +225,6 @@
+         {"TmStableFactor", &TmStableFactor, 20, 150},        {"TmSemiStableFactor", &TmSemiStableFactor, 20, 150},
+         {"TmUnstableFactor", &TmUnstableFactor, 50, 300},    {"TmEffortBase", &TmEffortBase, 100, 250},
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
++        {"TmTimeAdvantagePercent", &TmTimeAdvantagePercent, 0, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
+@@ -2698,5 +2700,6 @@
+ [[nodiscard]] ClockPlan clock_plan_for(const SearchLimits& limits) {
+     const std::int64_t overhead = std::max<std::int64_t>(0, limits.move_overhead_ms);
+     return plan_clock_budget(limits.time_ms, limits.increment_ms, limits.moves_to_go, overhead, tune::TmSoftDivisor,
+-                             tune::TmIncrementPercent, tune::TmHardPercent, tune::TmHardSoftMultiple);
++                             tune::TmIncrementPercent, tune::TmHardPercent, tune::TmHardSoftMultiple,
++                             limits.opp_time_ms, tune::TmTimeAdvantagePercent);
+ }
+@@ -3198,5 +3201,6 @@
+                 narrowed.nodes_specified = false;
+                 narrowed.movetime_ms = -1;
+                 narrowed.time_ms = -1;
++                narrowed.opp_time_ms = -1;
+                 narrowed.infinite = false;
+                 narrowed.ponder = false;
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -212,7 +212,8 @@
+             const bool mine = (token == "wtime") == (side == forge::White);
+             std::int64_t value = 0;
+             if (read_clock(value)) {
+                 if (mine) { limits.time_ms = value; limit_given = true; }
++                else { limits.opp_time_ms = value; }
+             } else if (mine) {
+                 limit_unusable = true;
+             }
+@@ -270,6 +271,6 @@
+         else if (token == "infinite") limits.infinite = true;
+         else if (token == "ponder") limits.ponder = true;
+-        else if (token == "wtime") { const std::int64_t value = read_clock(); if (side == forge::White) limits.time_ms = value; }
+-        else if (token == "btime") { const std::int64_t value = read_clock(); if (side == forge::Black) limits.time_ms = value; }
++        else if (token == "wtime") { const std::int64_t value = read_clock(); if (side == forge::White) limits.time_ms = value; else limits.opp_time_ms = value; }
++        else if (token == "btime") { const std::int64_t value = read_clock(); if (side == forge::Black) limits.time_ms = value; else limits.opp_time_ms = value; }
+         else if (token == "winc") { const std::int64_t value = read_clock(); if (side == forge::White) limits.increment_ms = value; }
+         else if (token == "binc") { const std::int64_t value = read_clock(); if (side == forge::Black) limits.increment_ms = value; }

@@ -1,0 +1,166 @@
+{
+  "written": "2026-11-29 02:26:00 UTC",
+  "experiment": "F_FIX_25R_v4",
+  "experiment_pair": "F_FIX_25R_v4_vs_R1_skip",
+  "request_ref": "OPUS-2811-OWNER-NEON-48H-MORE (Forge Wave 20 Stream B) & OPUS-2811-ANSWER-TO-1555 Point 4",
+  "status": "DECLARED_PRE_TRAINING (F_FIX_25R_v3 pending/untrained on disk; gpu_runs/F_FIX_25R_v3 absent)",
+  "exact_runner_module": "C:\\nnue-lab\\neon\\forge_fixes\\teamwork_wave20\\run_f_fix_v4_prod_p2.py",
+  "exact_predicates_module": "C:\\nnue-lab\\neon\\forge_fixes\\teamwork_wave19\\filter_v4_predicates.py",
+  "exact_predicates_sha256": "eda442812a1d0a5403349a2727908a18de111b3827baf7cd61dda9a85a61bf02",
+  "planted_fault_test": "C:\\nnue-lab\\neon\\forge_fixes\\teamwork_wave20\\test_f_fix_v4_prod_p2.py",
+  "upstream_modules": {
+    "run_f_fix_25r_v3.py": {
+      "path": "C:\\nnue-lab\\neon\\forge_fixes\\teamwork_wave16\\run_f_fix_25r_v3.py",
+      "sha256": "bdca5794257d76eb4c2544d26a0794b01e340deef1a43d84fb87940b131fec31"
+    },
+    "run_f_fix_v3_prod_p2.py": {
+      "path": "C:\\nnue-lab\\neon\\forge_fixes\\teamwork_wave18\\run_f_fix_v3_prod_p2.py",
+      "sha256": "d50937a7d64bcb06609cfeb9f082fe03eab7b3834fcb5d66a9e253e355d3f44f"
+    },
+    "F_FIX_25R_V3_DECLARATION.json": {
+      "path": "C:\\nnue-lab\\neon\\forge_fixes\\teamwork_wave16\\F_FIX_25R_V3_DECLARATION.json",
+      "sha256": "18a2957be2576fd96382d5ac8de28b0aa33d9911ba67f0f520f33b63851d060d",
+      "status": "pending/untrained on disk (gpu_runs/F_FIX_25R_v3 absent)"
+    }
+  },
+  "hypothesis": {
+    "label": "HYPOTHESIS",
+    "soft_tail_vs_hard_tail": "HYPOTHESIS: Replacing F_FIX_25R_v2's hard drop of |score| > 1200 (v2 f_fix_summary.json: drop_tail_1200=17,872,184 out of 281,241,466 rows) with soft_tail_weights_u8 (0.25x = weight_u8=32 on |score| > 1200, 1.0x = weight_u8=128 otherwise) in weighted MSE preserves winning/losing endgame signal (including won_endings_syzygy_20k.fqs.z where 7,000/20,000 rows have |score16| > 1200, kept at 1.0x=128) while damping extreme-score gradient dominance.",
+    "wld_and_zero_thinning": "HYPOTHESIS: Applying wld_filter_mask calibrated to Forge's eval_scale=400.0 (b_scale=1.5, per-round deterministic SplitMix64 seed = seed * 1000003 + round_idx) followed by thin_zero_runs_mask (max_consecutive_zeros=2 on WLD-surviving 1D rows) replaces rigid F-03/F-03b step thresholds and removes consecutive (score==0, res==0) draw runs.",
+    "d01_endgame_preservation": "HYPOTHESIS: Composing D-01 deterministic Zobrist+SplitMix64 within-game decorrelation on pieces >= 6 (50% default keep, optional cross-round Uint64DedupStore) while keeping 100% of WLD+zero-surviving pieces <= 5 endgame rows reduces late-middlegame/opening correlation (Neon's count: 101.32 quiet rows/game, lag1_score_corr_quiet=0.99697) without diluting OB0 endgame representation."
+  },
+  "ply_proxy_caveat": {
+    "status": "Wave 20 verified",
+    "detail": "pipeline/forge_parse.py:125-132 and pipeline/forge_train.py:93-95,124-131 discard ply from _parse_plain and .cache.npz. When 'ply' is absent in the input tensor dict, run_f_fix_v4_prod_p2.py uses the deterministic piece_proxy formula ((32 - pieces).clamp(0, 30) * 6).clamp(8, 240) where pieces = (codes != 0).sum(dim=1) (configurable via --ply-mode piece_proxy|constant and --default-ply 60). This is an approximation until .plain/.fqs loaders preserve true ply."
+  },
+  "filter_and_weighting_spec": {
+    "composition_order": [
+      "1. wld_filter_mask(score, res, ply_or_piece_proxy, seed=seed*1000003+round_idx, b_scale=1.5, eval_scale=400.0)",
+      "2. thin_zero_runs_mask(score_wld, res_wld, max_consecutive_zeros=2) on WLD-surviving 1D rows",
+      "3. D-01 Zobrist+SplitMix64 decorrelation on pieces >= 6 (1/2 default keep, optional cross-round dedup) with 100% keep on surviving pieces <= 5 rows",
+      "4. soft_tail_weights_u8(score_kept, tail_cp=1200, tail_weight_u8=32, normal_weight_u8=128) (no F-08 hard drop)"
+    ],
+    "weighted_mse_path": {
+      "env": {
+        "FORGE_COMPACT": "1",
+        "FORGE_STEP_V2": "0",
+        "FORGE_FUSED_STEP": "0",
+        "FORGE_PARSE_PROCS": "2"
+      },
+      "loss_formula": "(bw * (pred - target).pow(2)).sum() / bw.sum().clamp(min=1e-7) with bw = weight_u8[idx.long()].float(); val hold-out dict has no weight_u8 and remains unweighted",
+      "wrapped_entrypoints": [
+        "compact_record.load_compact (single-pass, iso_cache_dir=None, allocates uint8 weight_u8 with .cpu() read-back check)",
+        "compact_record.wide_rows (forwards weight_u8)",
+        "compact_record.loss_fused_c (weighted MSE matching self_check_c)",
+        "forge_train_v3.batch_loss_once (weighted MSE when teacher_p is not None)",
+        "forge_train.batch_loss (weighted MSE when teacher_p is None in self_check_c and sample_loss)"
+      ]
+    }
+  },
+  "hyperparameters_and_loader": {
+    "trainer": "C:\\nnue-lab\\pipeline\\forge_train_v3.py",
+    "hidden": 768,
+    "king_buckets": 8,
+    "window": "r0178..r0202 (25 rounds)",
+    "verified_quiet_sum": 281241466,
+    "skip_noisy": true,
+    "skip_check": true,
+    "epochs": 40,
+    "lr": 0.0005,
+    "batch_size": 8192,
+    "lr_cycles": "auto",
+    "w1_decay": 0.3,
+    "mix": 0.75,
+    "distill_net": "C:\\nnue-lab\\runs\\forge\\teachers\\b_full.pt",
+    "distill_net_sha256": "52be981d04cc92cadbabb12d84b82c19b0ac3299557a9179968dc7d872039430",
+    "distill_weight": 0.2,
+    "teacher_once": true,
+    "seed": 1,
+    "forge_parse_procs": 2,
+    "mem_room_gb": 16,
+    "hwinfo_age_max_s": 90.0,
+    "zero_disk_cache": true,
+    "runs_dir_policy": "STRICTLY READ-ONLY (zero .cache*.npz or temp .plain writes inside C:\\nnue-lab\\runs\\)"
+  },
+  "optional_3pc_anchor_shards": [
+    {
+      "name": "dead_draws_20k_s5disjoint.fqs.z",
+      "path": "C:\\nnue-lab\\neon\\forge_fixes\\anchors\\dead_draws_20k_s5disjoint.fqs.z",
+      "rows": 20000,
+      "sha256": "7653279511862abc7d5bd856f14e61a594932ba625be09107e168d43e9b775a5"
+    },
+    {
+      "name": "won_endings_syzygy_20k.fqs.z",
+      "path": "C:\\nnue-lab\\neon\\forge_fixes\\anchors\\won_endings_syzygy_20k.fqs.z",
+      "rows": 20000,
+      "sha256": "c2f51696b886c6cad78da2cca253352d79e6a188778c5ab35526b6321a4a96de",
+      "anchor_note": "Wave 20 verified: 7,000/20,000 rows have |score16| > 1200; load_3pc_anchor_v4 bypasses F-08 hard drop and assigns weight_u8=128 (1.0x)."
+    }
+  ],
+  "comparison_baselines": {
+    "primary": {
+      "name": "OPUS_R1_live768_skipnoisy (Seed 1)",
+      "net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_skipnoisy\\cand.fnn3",
+      "sha256": "4902fe653e575c0c73ab78aed18fb6d2a10c8f33c895160cb5b68b1bdb9b21ec",
+      "provenance_and_sprt_bias_disclosure": "Opus verified R1-skip vs R1-keep at 250k SPRT [0,10]: Seed 1 +15.49 [+6.12, +24.88] (1,526g, H1 at 250k), Seed 2 +12.57 [+4.28, +20.88] (2,019g raw PGN, H1 at 250k) — SPRT H1 early stopping introduces upward Elo bias. Fixed-horizon 1,000g @ 250k vs r0067 (737f1978...) is +30.65 [+18.59, +42.79] (Opus verified, zero SPRT bias); 2,000g @ 6+0.06 vs r0067 is +6.43 [-1.47, +14.33] (Opus verified, inconclusive, not negative)."
+    },
+    "secondary_v2": {
+      "name": "F_FIX_25R_v2 (Seed 1)",
+      "net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\F_FIX_25R_v2\\cand.fnn3",
+      "sha256": "31f5af1972532a9399643d1ffbe5a796164a787325bad0201603d8c020b60427",
+      "summary_path": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\F_FIX_25R_v2\\f_fix_summary.json",
+      "summary_sha256": "d1c2e576993a0d8cb7a1a0192c633bf3bfd421a20cb3e151c568dfd11a9dae39",
+      "declaration_path": "C:\\nnue-lab\\neon\\forge_fixes\\F_FIX_25R_V2_DECLARATION.json",
+      "declaration_sha256": "c7f8dba553a8e697417cae449d62b367ce4a1cfb5fb40952388b0b0092aca265",
+      "verified_summary_counts": {
+        "in_rows": 281241466,
+        "kept_rows": 261866722,
+        "drop_draw_conf": 1360997,
+        "drop_dec_conf": 157743,
+        "drop_tail_1200": 17872184,
+        "drop_union": 19374744,
+        "gate_rc": 0
+      }
+    },
+    "conditional_v3": {
+      "name": "F_FIX_25R_v3 (Seed 1)",
+      "status": "PENDING / UNTRAINED ON DISK (C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\F_FIX_25R_v3 absent at Wave 20 declaration time). If F_FIX_25R_v3 trains before F_FIX_25R_v4 finishes evaluation, record v3 net SHA-256 and compare v4 vs v3 separately without pooling seeds."
+    }
+  },
+  "offline_diagnostics_note": "master_gates_quick, net_sanity (S1/S2/S5), eval_full (ob0_ob1_cliff), and filtered row/weight counts are strictly offline diagnostics — never Elo claims.",
+  "match_tests_declared": {
+    "sprt_250k": {
+      "name": "F_FIX_25R_v4_vs_R1_skip_SPRT_0_10_250k",
+      "exe_both": "C:\\nnue-lab\\neon\\forge_fixes\\builds\\base_r15dsg.exe",
+      "exe_both_sha256": "5e6f333b95b7ceda01a599a713d6bad536633b235dc73b409e1f12c1bb809011",
+      "book": "C:/nnue-lab/tools/book/UHO_Lichess_4852_v1.epd",
+      "book_sha256": "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a",
+      "nodes": 250000,
+      "sprt": {
+        "elo0": 0,
+        "elo1": 10,
+        "alpha": 0.05,
+        "beta": 0.05,
+        "model": "normalized"
+      },
+      "cap_games": 2000,
+      "max_games": 2000,
+      "seed": 202612021,
+      "concurrency": 6
+    },
+    "clock_confirmation": {
+      "name": "F_FIX_25R_v4_vs_R1_skip_2000g_6p006",
+      "exe_both": "C:\\nnue-lab\\runs\\forge\\engines\\v3-r15dsg-sp-clang\\forge.exe",
+      "exe_both_sha256": "cef2f21589102392fdd7e3cbde74bfd01baa94f9677a2be33365f68e4bceb03d",
+      "book": "C:/nnue-lab/tools/book/UHO_Lichess_4852_v1.epd",
+      "book_sha256": "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a",
+      "tc": "6+0.06",
+      "games": 2000,
+      "seed": 202612022,
+      "concurrency": 7,
+      "isolation": "100% idle PC/GPU confirmation (100% idle GPU + 100% idle CPU, CLOCK_MATCH_RUNNING set, HWiNFO fresh)",
+      "rule": "Run only if H1 at 250k SPRT accepts (and independent Seed-2 replicate confirms). Fixed 2,000-game 95% pentanomial CI (zero pooling across seeds): clock result must be not negative."
+    }
+  },
+  "acceptance_and_refutation_rule": "H1 at 250k accepted => disclose SPRT early-stopping upward bias on H1 Elo, run independent Seed-2 replicate (never pooled across seeds), and run 100% idle PC/GPU 2,000g @ 6+0.06 clock confirmation (must not be negative); H0 accepted => hypothesis refuted (do not place); 2,000g cap without decision or negative clock result => inconclusive/refuted (report honestly, do not place)."
+}
