@@ -1,0 +1,132 @@
+{
+  "written": "2026-11-28 16:37:00 PC",
+  "experiment": "TM_SOFTCAP_ON_UNIFIED_2000g_6p006",
+  "status": "CONDITIONAL_PRE_MATCH_DECLARATION_BLOCKED_ON_PREREQUISITES",
+  "request_ref": "OPUS-2811-ANSWER-TO-WAVE15-1611 Points 3-4, OPUS-2811-ANSWER-TO-TM-LITERATURE-1625, OPUS-2811-ANSWER-TO-QUEUE-1629 & Wave 16 Stream B",
+  "prerequisites": {
+    "all_must_be_fulfilled_before_game_1": true,
+    "prereq_1_600k_diagnostic": {
+      "status": "NOT_YET_RUN",
+      "declaration": "C:\\nnue-lab\\neon\\forge_fixes\\R1_SKIP_VS_R0067_600K_DECLARATION.json",
+      "declaration_sha256": "4d4e4d30471e337ce16c7cdfecd0c640ff6b2efd9f8fb6bcf45fc4d55ff90df0",
+      "requirement": "OPUS_R1_skip_vs_r0067_1000g_600k must complete and confirm Hypothesis (a) (Time Manager is primary culprit, i.e., fixed-600k Elo stays near +30 rather than falling toward +6)."
+    },
+    "prereq_2_tm_literature_from_neon": {
+      "status": "NOT_YET_FULFILLED",
+      "checked_paths": [
+        "C:\\nnue-lab\\from_neon\\ (absent locally)",
+        "C:\\nnue-lab\\neon\\to_astra\\ (18 files staged for for-astra/fixes-and-filter-20261128 from_neon/; includes TM_OPEN_ENGINE_LITERATURE_REVIEW_2811.md written 2026-11-28 16:25 PC)"
+      ],
+      "staged_literature_note": "C:\\nnue-lab\\neon\\to_astra\\TM_OPEN_ENGINE_LITERATURE_REVIEW_2811.md",
+      "staged_literature_note_sha256": "2e7814b21e76e847676252dd8e4b95d1311de7a4ece92542e35f62fbd2756ae7",
+      "staged_citations_verified_in_note": [
+        "Stockfish (C:\\nnue-lab\\src\\Stockfish) commit def601cc156f7d41f9ddea76d74515eddf232aaf: src/timeman.cpp L1-168, src/search.cpp L345-420, L575-655, L2130-2170",
+        "Stockfish-tools (C:\\nnue-lab\\src\\Stockfish-tools) commit 9a4c7cf4e311f8d9526b79295b80c4d0464c07cf: src/timeman.cpp L1-105, src/search.cpp L464-507, L1827-1853",
+        "Forge (forge/r15dsg + survey/fo_read/fable_fb2.md): reviewed in OPUS-2811-ANSWER-TO-TM-LITERATURE-1625 (OPUS_TO_NEON.md:3575-3588)"
+      ],
+      "remaining_items": [
+        "Local C:\\nnue-lab\\from_neon\\ is absent; TM_OPEN_ENGINE_LITERATURE_REVIEW_2811.md must be pushed/reconciled into from_neon/.",
+        "Astra verification of from_neon/TM_OPEN_ENGINE_LITERATURE_REVIEW_2811.md is pending (per OPUS-2811-ANSWER-TO-TM-LITERATURE-1625 Point 4).",
+        "1-2 non-Stockfish open engines (per OPUS-2811-ANSWER-TO-WAVE15-1611 Point 3) are not yet added (current staged note cites Stockfish + Stockfish-tools + Forge only)."
+      ],
+      "requirement": "Per OPUS-2811-ANSWER-TO-WAVE15-1611 Point 3 and OPUS-2811-ANSWER-TO-TM-LITERATURE-1625 Point 4, complete non-Stockfish open-engine citations, push the citation note under from_neon/, and obtain Astra verification before finalizing/running this test."
+    },
+    "prereq_3_queue_order_and_idle_pc": {
+      "status": "PENDING",
+      "must_run_strictly_after": [
+        "UNIFIED_SEARCH_BUNDLE_250k_SPRT (+ clock confirmation if H1)",
+        "F_FIX_25R_v2 (GPU train + 250k SPRT + clock confirmation if H1)",
+        "OPUS_R1_skip_vs_r0067_1000g_600k diagnostic confirming TM is primary culprit",
+        "TM Test A (TmFinishIteration=true vs false on r0067, 2,000g @ 6+0.06, zero build)"
+      ],
+      "requirement": "100% idle PC (zero GPU jobs, zero concurrent CPU matches/subagents, CLOCK_MATCH_RUNNING set, HWiNFO age < 90s, CPU < 92 C, mem_room 2 GO). Never test TmSoftCapPercent inside a fixed-node match."
+    },
+    "prereq_4_clean_build_and_gates": {
+      "status": "PENDING",
+      "requirement": "Build single Clang ThinLTO+PGO exe from unified_search_tree/src_tree/ + TM_SOFTCAP_ON_UNIFIED.patch (FORGE_SRC via build_forge_v3r15dsg_sp_clang_pgo.sh); pass default-off (TmSoftCapPercent=0) gates (bench 11=312866, bench 13=862329, perft 5=4865609, perft_suite 12/12, v3_parity 0/200, same_search 0 diffs vs forge_unified.exe 7c2a4a46...) plus positive control proving TmSoftCapPercent=200 alters clock search at depth>=6 with 0 diffs at fixed nodes/movetime; populate exe_sha256 before Game 1."
+    },
+    "prereq_5_fixed_cap_before_games": {
+      "status": "LOCKED_PRE_GAME_1_HYPOTHESIS",
+      "declared_TmSoftCapPercent": 200,
+      "scaling_basis": "soft_deadline = soft_basis * factor (clamped <= hard_limit_ms_, depth >= 6)",
+      "rationale_without_game_tuning": "Per TM_OPEN_ENGINE_LITERATURE_REVIEW_2811.md:67-68 and OPUS-2811-ANSWER-TO-TM-LITERATURE-1625, TmSoftCapPercent=200 scales soft_deadline (= soft_basis * factor), clamped to <= hard_limit_ms_ (5.0x soft_basis, 1585ms at 6+0.06 where soft_basis=317ms) at depth>=6. Scaling soft_deadline rather than soft_basis ensures dynamic unstable/falling-eval/fail-low searches (e.g., factor=1.82x..2.366x) keep 2.0x headroom above soft_deadline instead of collapsing to 0ms slack, so normal 1.0x-1.9x iterations finish cleanly while extreme 5x-15x PV-flip blowups are capped at 2.0x soft_deadline. Wave 15 pre-literature drafts (135/150 scaling soft_basis) are superseded history; constant 200 is fixed strictly before any test game."
+    }
+  },
+  "risk_disclosure": {
+    "classification": "DECLARED_HYPOTHESIS_TEST_B_RUN_STRICTLY_AFTER_TEST_A",
+    "stockfish_reference": "Stockfish def601cc156f7d41f9ddea76d74515eddf232aaf (src/search.cpp:2155, SearchManager::check_time) and Stockfish-tools 9a4c7cf4e311f8d9526b79295b80c4d0464c07cf (src/search.cpp:1840)",
+    "opus_order_ref": "OPUS-2811-ANSWER-TO-TM-LITERATURE-1625 (OPUS_TO_NEON.md:3575-3588)",
+    "summary": "Stockfish (def601cc, src/search.cpp:2155) deliberately avoids mid-iteration soft aborts below tm.maximum() because cutting a running iteration at 2.0x can discard partial search work and lose a fail-low that was being resolved; instead Stockfish refuses to increase effective depth past 0.50 * totalTime (analogous to Test A / TmFinishIteration). Therefore this Test B remains a declared HYPOTHESIS run strictly after Test A (TmFinishIteration=true vs false)."
+  },
+  "artifacts": {
+    "base_unified_patch": "C:\\nnue-lab\\neon\\forge_fixes\\unified_search_tree\\UNIFIED_SEARCH_TREE.patch",
+    "base_unified_patch_sha256": "a7b59ec6c1f4c7e87539e2fbb34f0eae44dfbcd1abf08efb70919de0df4ec5ee",
+    "base_unified_exe": "C:\\nnue-lab\\neon\\forge_fixes\\unified_search_tree\\forge_unified.exe",
+    "base_unified_exe_sha256": "7c2a4a4605039df9c04d0580564dfeb4ad64c37a98923f327405223d2ac9d399",
+    "base_unified_gates_json": "C:\\nnue-lab\\neon\\forge_fixes\\unified_search_tree\\UNIFIED_SEARCH_TREE_GATES_AND_NPS.json",
+    "base_unified_gates_json_sha256": "e3feefa72b5c31bf42a1f2e8d26efcdd28726d44d52e87ce1e8a11de8be0908c",
+    "tm_delta_patch": "C:\\nnue-lab\\neon\\forge_fixes\\teamwork_wave16\\TM_SOFTCAP_ON_UNIFIED.patch",
+    "tm_delta_patch_sha256": "ef55eba677b070324a97b050145ea9d83c181159b33f0d347a6384fd705b3e87",
+    "tm_edge_case_tests": "C:\\nnue-lab\\neon\\forge_fixes\\teamwork_wave16\\test_tm_softcap_edge_cases.py",
+    "tm_edge_case_tests_sha256": "812c6d0a3fa514e80f049147e31b1abec2b98fd5a4f09d1e8899358f9f9b9319",
+    "tm_edge_case_tests_pytest_count": 18,
+    "tm_literature_review_doc": "C:\\nnue-lab\\neon\\to_astra\\TM_OPEN_ENGINE_LITERATURE_REVIEW_2811.md",
+    "tm_literature_review_sha256": "2e7814b21e76e847676252dd8e4b95d1311de7a4ece92542e35f62fbd2756ae7",
+    "wave15_draft_patch": "C:\\nnue-lab\\neon\\forge_fixes\\teamwork_wave15\\TM_SCALE_FIX_DRAFT.patch",
+    "wave15_draft_patch_sha256": "171b8cde8c171a925fef50791744c6570d0f60cbd319c98638c4266414f70268",
+    "wave15_root_cause_json": "C:\\nnue-lab\\neon\\forge_fixes\\teamwork_wave15\\TM_CLOCK_GAP_ROOT_CAUSE.json",
+    "wave15_root_cause_json_sha256": "cd97a6218870b9cb1fe178940005bbe1afe84dd442c45ba01982c5d9d780c47e",
+    "exe_both": "C:\\nnue-lab\\neon\\forge_fixes\\teamwork_wave16\\forge_unified_tmsoftcap.exe",
+    "exe_sha256": "<POPULATE_AFTER_CLEAN_BUILD_BEFORE_GAME_1>",
+    "net_both": "C:/nnue-lab/runs/forge/r0067/train/cand.fnn3",
+    "net_sha256": "737f197808fef489017cf46f4daf76663d805bb01761e2b1781fc46fa7c9fc28",
+    "stage2_followup_net_ref": "C:/nnue-lab/neon/forge_fixes/gpu_runs/OPUS_R1_live768_skipnoisy/cand.fnn3",
+    "stage2_followup_net_sha256": "4902fe653e575c0c73ab78aed18fb6d2a10c8f33c895160cb5b68b1bdb9b21ec"
+  },
+  "cand_options_diff": {
+    "TmSoftCapPercent": 200
+  },
+  "base_options_diff": {
+    "TmSoftCapPercent": 0
+  },
+  "shared_options_both_sides": "Exact live v3_uci_options (45 options, pipeline/config.forge.toml:214) + Threads=1, Hash=16, OwnBook=false, MateAlphaGuard=true, NNUEArch=true, NNUEArchFile=C:/nnue-lab/runs/forge/r0067/train/cand.fnn3, plus identical unified-tree optional flags on both sides (default all false if isolating against live r15dsg, or identical confirmed bundle flags if testing atop an accepted unified bundle; exact config locked before Game 1).",
+  "match_settings": {
+    "fastchess_bin": "C:\\nnue-lab\\tools\\fastchess\\fastchess-windows-x86-64\\fastchess.exe",
+    "fastchess_sha256": "a7aa6762058e1f699809e9f3d1a35b609e90dbb2c3dde32d99099d641780eb9b",
+    "book": "C:/nnue-lab/tools/book/UHO_Lichess_4852_v1.epd",
+    "book_sha256": "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a",
+    "book_format": "epd",
+    "order": "random",
+    "tc": "6+0.06",
+    "timemargin_ms": 1000,
+    "games": 2000,
+    "rounds": 1000,
+    "games_per_round": 2,
+    "repeat": true,
+    "recover": true,
+    "hash_mb": 16,
+    "threads": 1,
+    "concurrency": 7,
+    "seed": 202612011,
+    "adjudication": "none (resign_score=0, draw_movenumber=0, maxmoves=0)",
+    "pgn_comments": "nodes=true (min=false; retain per-move score/depth/time/nodes)",
+    "isolation": "100% idle GPU + 100% idle CPU, CLOCK_MATCH_RUNNING set, HWiNFO age < 90s, CPU < 92 C, mem_room 2 GO"
+  },
+  "decision_rule": "Stage 1 (r0067 first, fixed 2,000-game 95% pentanomial CI, zero SPRT early stopping, never pooled): (1) 95% CI lower bound > 0 => TmSoftCapPercent=200 confirmed stronger on r0067 at 6+0.06 (eligible for Fable second-read and separate Stage-2 R1-skip follow-up using seed 202612012); (2) 95% CI includes 0 => inconclusive (do not place as an Elo gain on this result alone); (3) 95% CI upper bound < 0 => weaker at 6+0.06 (reject / do not place).",
+  "evidence_and_provenance": {
+    "epistemic_note": "Offline timing probes and 40-position diagnostics NEVER establish Elo; only declared fastchess games decide playing strength.",
+    "opus_verified": [
+      "OPUS_R1_skip_vs_R1_keep Seed 1 (250k SPRT [0,10]): +15.49 [+6.12, +24.88] (1,526g, W 399 D 796 L 331, ptnml [9,154,368,224,8], H1; SPRT early-stopping upward bias disclosed, true effect estimated ~+10..+15).",
+      "OPUS_R1_skip_vs_R1_keep Seed 2 (250k SPRT [0,10]): +12.57 [+4.28, +20.88] (2,019g in PGN / 1,009 pairs + 1 unpaired draw, W 518 D 1056 L 445, ptnml [11,218,484,279,17], H1; SPRT early-stopping upward bias disclosed, two-seed estimate ~+8..+14).",
+      "OPUS_R1_skip_vs_r0067 (250k fixed 1,000g): +30.65 [+18.59, +42.79] (W 277 D 534 L 189, ptnml [4,90,237,152,17]).",
+      "OPUS_R1_skip_vs_r0067 (6+0.06 fixed 2,000g): +6.43 [-1.47, +14.33] (W 465 D 1107 L 428, ptnml [9,220,500,267,4], INCONCLUSIVE); clock gap 24.2 +/- 7.4 Elo (z ~ 3.3, Opus arithmetic).",
+      "Code mechanism: forge/r15dsg/src/search.cpp:1537-1561 (should_stop_with) stops a running iteration only at hard_limit_ms_, and go movetime 210 (-0.02%) isolates the time gap inside time_managed_.",
+      "Existing TM switch: TmFinishIteration exists in forge/r15dsg/src/search.cpp:175 (default false; used at 2962 and 3188-3219); Opus ordered Test A (TmFinishIteration) strictly before Test B (TmSoftCapPercent)."
+    ],
+    "neons_count": [
+      "UNIFIED_SEARCH_TREE_GATES_AND_NPS.json: default-off gates (bench 11=312866, bench 13=862329, perft 5=4865609, perft_suite 12/12, v3_parity 0/200, same_search 0 diffs) and 3x b13 NPS (Neon's count until Opus/Fable re-run).",
+      "TM_CLOCK_GAP_ROOT_CAUSE.json (40 UHO positions, go wtime 6000 winc 60, Neon's count): r0067 209.92 ms mean / 178.13 ms med vs R1-skip 269.99 ms mean / 207.55 ms med (+28.6% mean / +16.5% med); final_iter_jump_mean 85.2 ms (2/40 > 250 ms) vs 135.1 ms (7/40 > 250 ms); TmHardSoftMultiple=5 hard cap 1,585 ms.",
+      "R1_SKIP_250K_VS_CLOCK_DIAG.json (Neon's count): same_search 0/300 on both nets; PGN median plies 141.0 (250k) vs 146.0 (6+0.06); ~350k-660k vs ~200k nodes/move."
+    ]
+  }
+}

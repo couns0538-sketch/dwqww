@@ -1,0 +1,108 @@
+{
+  "written": "2026-11-28 16:36:08 PC",
+  "experiment": "F_FIX_25R_v3_vs_R1_skip",
+  "request_ref": "OPUS-2811-ANSWER-TO-1555 Point 4 (4 remaining filter faults) & Forge Wave 16 Stream A",
+  "status": "DECLARED_PRE_TRAINING (F_FIX_25R_v2 still in progress on GPU; primary baseline anchored on R1-skip Seed 1)",
+  "faults_addressed": [
+    "F-03: Drawn-game score conflicts (res == 0 and |score| >= 400; Neon's count: 64,679 quiet rows/round = 0.524% in r0202)",
+    "F-03b: Tightened decisive opposite-sign conflicts (res != 0 and score*res <= -300; Neon's count: 6,319 quiet rows/round = 0.051% in r0202)",
+    "F-08: Extreme dead-gradient tail (|score| > 1200; Neon's count: 844,346 quiet rows/round = 6.843% in r0202)",
+    "D-01 (Opus Point 4 #1): Within-game correlation (Neon's count: 101.32 quiet rows/game, 0% random skip, lag1_score_corr_quiet=0.99697). Deterministic Zobrist uint64 + SplitMix64 seeded subsample on pieces >= 6 (default 50% keep) while keeping 100% of pieces <= 5 endgame rows so OB0 is preserved/boosted; operates directly on codes in .cache.npz / _parse_plain (where ply is absent).",
+    "F-06 (Opus Point 4 #2): min_pieces=4 drops 3-piece endgames while SyzygyPath is OFF in search (Opus verified config.forge.toml:313-314,336; qc.json few_pieces=115,569/round Opus verified; KRvK 55,940, KvKR 36,450, KPvK 13,236, KvKP 9,499, KQvK 244, KvKQ 200 Neon's count). Addressed via --recover-f06-from-binpack (extracting 2 <= pieces < 4 quiet non-check rows passing F-03/F-03b/F-08 from raw_selfplay.binpack into isolated out_dir/_tmp_binpack with hce_dump.exe) and/or --merge-3pc-anchor.",
+    "rule50-decisive (Opus Point 4 #3): filterqc.py:111 drops r50 > 80 (qc.json rule50=206,406/round Opus verified; 33,537 = 16.25% decisive result!=0 Neon's count). Addressed via --recover-rule50-decisive alongside --recover-f06-from-binpack (recovering quiet non-check r50 > 80 & res != 0 rows passing F-03b/F-08).",
+    "ply-80+-duplicates (Opus Point 4 #4): filterqc.py:118 drops 526,611/round within-round (qc.json Opus verified; 469,107 = 89.1% at ply 80+ Neon's count) and 3.145% cross-round exact duplicates remain across r0178..r0202 (87.4% at ply >= 81 Neon's count). Addressed via pieces >= 6 decorrelation + --dedup-cross-round (64-bit Zobrist (codes, stm) hash dedup via Uint64DedupStore on pieces >= 6, keeping pieces <= 5 100%)."
+  ],
+  "exact_filter_module": "C:\\nnue-lab\\neon\\forge_fixes\\teamwork_wave16\\run_f_fix_25r_v3.py",
+  "runner_sha256": "bdca5794257d76eb4c2544d26a0794b01e340deef1a43d84fb87940b131fec31",
+  "planted_fault_test": "C:\\nnue-lab\\neon\\forge_fixes\\teamwork_wave16\\test_f_fix_25r_v3.py",
+  "planted_fault_test_sha256": "8b666d0cb0b9ea3d0814bbcf62b700c55f9d60c099e902b5c711601f187c089b",
+  "planted_fault_test_verification": "14/14 pytest PASSED (venv101 -I -B, -p no:cacheprovider, CPU-only) and --dry-run EXIT 0 PASS (FORGE_PARSE_PROCS=3, mem_room 12, HWiNFO age<90s)",
+  "related_monday_patch": {
+    "path": "C:\\nnue-lab\\neon\\forge_fixes\\teamwork_wave15\\filterqc_monday_fixes_DRAFT.patch",
+    "sha256": "da9c3c1620d2999c248f190827a484e1e78f6f9eb529e443266595bdae9da069",
+    "note": "Applies only F-06 (min_pieces=2), F-03 (400), F-03b (300), F-08 (1200) to filterqc.py/config.forge.toml for Monday loop rounds; decorrelation/cross-round dedup stay OFF in loop until F_FIX_25R_v3 wins both 250k SPRT and 6+0.06 clock confirmation."
+  },
+  "optional_3pc_anchor_shards": [
+    {
+      "name": "dead_draws_20k_s5disjoint.fqs.z",
+      "path": "C:\\nnue-lab\\neon\\forge_fixes\\anchors\\dead_draws_20k_s5disjoint.fqs.z",
+      "rows": 20000,
+      "sha256": "7653279511862abc7d5bd856f14e61a594932ba625be09107e168d43e9b775a5"
+    },
+    {
+      "name": "won_endings_syzygy_20k.fqs.z",
+      "path": "C:\\nnue-lab\\neon\\forge_fixes\\anchors\\won_endings_syzygy_20k.fqs.z",
+      "rows": 20000,
+      "sha256": "c2f51696b886c6cad78da2cca253352d79e6a188778c5ab35526b6321a4a96de"
+    }
+  ],
+  "hyperparameters_and_loader": {
+    "trainer": "C:\\nnue-lab\\pipeline\\forge_train_v3.py",
+    "hidden": 768,
+    "king_buckets": 8,
+    "window": "r0178..r0202 (25 rounds)",
+    "skip_noisy": true,
+    "skip_check": true,
+    "epochs": 40,
+    "lr": 0.0005,
+    "batch_size": 8192,
+    "lr_cycles": "auto",
+    "w1_decay": 0.3,
+    "mix": 0.75,
+    "distill_net": "C:\\nnue-lab\\runs\\forge\\teachers\\b_full.pt",
+    "distill_net_sha256": "52be981d04cc92cadbabb12d84b82c19b0ac3299557a9179968dc7d872039430",
+    "distill_weight": 0.2,
+    "teacher_once": true,
+    "seed": 1,
+    "forge_parse_procs": 3,
+    "mem_room_gb": 12,
+    "hwinfo_age_max_s": 90.0,
+    "runs_dir_policy": "STRICTLY READ-ONLY (zero .cache*.npz or temp .plain writes inside C:\\nnue-lab\\runs\\)"
+  },
+  "comparison_baseline": {
+    "name": "OPUS_R1_live768_skipnoisy (Seed 1)",
+    "net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_skipnoisy\\cand.fnn3",
+    "sha256": "4902fe653e575c0c73ab78aed18fb6d2a10c8f33c895160cb5b68b1bdb9b21ec",
+    "provenance_and_sprt_bias_disclosure": "Opus verified R1-skip vs R1-keep at 250k SPRT [0,10]: Seed 1 +15.49 [+6.12, +24.88] (1,526g, H1), Seed 2 +12.57 [+4.28, +20.88] (2,019g raw PGN, H1) — SPRT H1 early stopping introduces upward Elo bias. Fixed-horizon 1,000g @ 250k vs r0067 (737f1978...) is +30.65 [+18.59, +42.79] (Opus verified, zero SPRT bias); 2,000g @ 6+0.06 vs r0067 is +6.43 [-1.47, +14.33] (Opus verified, INCONCLUSIVE, not negative).",
+    "conditional_secondary_if_v2_wins": {
+      "name": "F_FIX_25R_v2 (Seed 1)",
+      "declaration": "C:\\nnue-lab\\neon\\forge_fixes\\F_FIX_25R_V2_DECLARATION.json",
+      "declaration_sha256": "c7f8dba553a8e697417cae449d62b367ce4a1cfb5fb40952388b0b0092aca265",
+      "status": "IN_PROGRESS on GPU (gpu_runs/F_FIX_25R_v2/f_fix_summary.json not yet written). If F_FIX_25R_v2 finishes and wins H1 before F_FIX_25R_v3 launches, record v2 net SHA-256 and run v3 vs v2 at 250k SPRT [0,10] as well."
+    }
+  },
+  "diff_vs_baseline": "Identical forge_train_v3.py recipe, window r0178..r0202, hyperparameters, teacher (b_full.pt), and seed=1; differs ONLY in post-parse filtering & recovery: (1) F-03, F-03b, F-08 predicates, (2) D-01 deterministic seeded Zobrist+SplitMix64 subsample on pieces >= 6 (50% default) with 100% keep on pieces <= 5, (3) optional --dedup-cross-round via Uint64DedupStore on pieces >= 6, and (4) optional --recover-f06-from-binpack / --recover-rule50-decisive (or --merge-3pc-anchor).",
+  "offline_diagnostics_note": "master_gates_quick, net_sanity (S1/S2/S5), eval_full (ob0_ob1_cliff), and filtered row/correlation counts are strictly diagnostic — never Elo claims.",
+  "match_test_declared": {
+    "name": "F_FIX_25R_v3_vs_R1_skip_SPRT_0_10_250k",
+    "exe_both": "C:\\nnue-lab\\neon\\forge_fixes\\builds\\base_r15dsg.exe",
+    "exe_both_sha256": "5e6f333b95b7ceda01a599a713d6bad536633b235dc73b409e1f12c1bb809011",
+    "book": "C:/nnue-lab/tools/book/UHO_Lichess_4852_v1.epd",
+    "book_sha256": "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a",
+    "nodes": 250000,
+    "sprt": {
+      "elo0": 0,
+      "elo1": 10,
+      "alpha": 0.05,
+      "beta": 0.05,
+      "model": "normalized"
+    },
+    "max_games": 2000,
+    "seed": 202611971,
+    "concurrency": 6
+  },
+  "clock_confirmation_declared": {
+    "name": "F_FIX_25R_v3_vs_R1_skip_2000g_6p006",
+    "exe_both": "C:\\nnue-lab\\runs\\forge\\engines\\v3-r15dsg-sp-clang\\forge.exe",
+    "exe_both_sha256": "cef2f21589102392fdd7e3cbde74bfd01baa94f9677a2be33365f68e4bceb03d",
+    "book": "C:/nnue-lab/tools/book/UHO_Lichess_4852_v1.epd",
+    "book_sha256": "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a",
+    "tc": "6+0.06",
+    "games": 2000,
+    "seed": 202611972,
+    "concurrency": 7,
+    "isolation": "100% idle GPU + 100% idle CPU, CLOCK_MATCH_RUNNING set, HWiNFO fresh",
+    "rule": "Run only if 250k SPRT accepts H1 (and independent Seed-2 replicate confirms). Fixed 2,000-game 95% pentanomial CI (zero pooling across seeds): clock result must be not negative (95% lower bound > 0 / not negative per OPUS-2811-ANSWER-TO-1555 Point 4)."
+  },
+  "acceptance_and_refutation_rule": "H1 accepted at 250k => disclose SPRT early-stopping upward bias on H1 Elo, run independent Seed-2 replicate (never pooled across seeds), and run clean idle 2,000g @ 6+0.06 clock confirmation (must not be negative, per OPUS-2811-ANSWER-TO-1555 Point 4); H0 accepted => filter hypothesis refuted (do not place); 2,000g cap without decision or negative clock result => inconclusive/refuted (report honestly, do not place)."
+}
