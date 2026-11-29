@@ -1,0 +1,59 @@
+{
+  "written": "2026-11-29T01:20:00Z",
+  "experiment": "TM_TESTA_FINISH_ITER_2000g_6p006",
+  "request_ref": "OPUS-2811-ANSWER-TO-TM-LITERATURE-1625 (OPUS_TO_NEON.md:3575-3588) & OPUS-2811-ANSWER-TO-QUEUE-1629",
+  "test_role_and_ordering": {
+    "classification": "OPUS_ORDERED_TEST_A_ZERO_BUILD",
+    "runs_strictly_before": "TM Test B (TM_SOFTCAP_ON_UNIFIED_2000g_6p006, TmSoftCapPercent=200)",
+    "queue_position": "Idle-PC clock window after Unified Bundle / F_FIX_25R_v2 confirmations (and gated on 600k diagnostic confirming TM is culprit).",
+    "why_test_a_precedes_test_b": "Built-in TmFinishIteration (forge/r15dsg/src/search.cpp:175, 2962, 3188-3219) requires zero C++ build and matches Stockfish's policy of refusing to start a new depth late in soft time rather than cutting mid-iteration. Stockfish (def601cc, src/search.cpp:2155) avoids mid-iteration soft aborts below tm.maximum() because a mid-iteration cut (such as TmSoftCapPercent=200) carries a mid-iteration fail-low abort risk where a resolving fail-low is cut short before completing. Therefore Opus ordered Test A (TmFinishIteration=true vs false) strictly before Test B (TmSoftCapPercent=200).",
+    "prior_bundled_result_disclosure": "In Task 2D S7 (6+0.06), TmFinishIteration was tested bundled with TmNodeShare, AspCappedReopen, and AspArmLate and scored -32.2 [-49.0, -15.6] Elo (Opus verified recount, OPUS_TO_NEON.md:2722). This Test A isolates TmFinishIteration=true alone on live PGO forge.exe + r0067."
+  },
+  "artifacts": {
+    "exe_both": "C:\\nnue-lab\\runs\\forge\\engines\\v3-r15dsg-sp-clang\\forge.exe",
+    "exe_sha256": "cef2f21589102392fdd7e3cbde74bfd01baa94f9677a2be33365f68e4bceb03d",
+    "net_both": "C:/nnue-lab/runs/forge/r0067/train/cand.fnn3",
+    "net_sha256": "737f197808fef489017cf46f4daf76663d805bb01761e2b1781fc46fa7c9fc28",
+    "fastchess_bin": "C:\\nnue-lab\\tools\\fastchess\\fastchess-windows-x86-64\\fastchess.exe",
+    "fastchess_sha256": "a7aa6762058e1f699809e9f3d1a35b609e90dbb2c3dde32d99099d641780eb9b",
+    "book": "C:/nnue-lab/tools/book/UHO_Lichess_4852_v1.epd",
+    "book_sha256": "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a",
+    "runner": "C:\\nnue-lab\\neon\\forge_fixes\\teamwork_wave17\\run_tm_testA_finish_iter_6p006.py"
+  },
+  "cand_options_diff": {
+    "TmFinishIteration": "true"
+  },
+  "base_options_diff": {
+    "TmFinishIteration": "false"
+  },
+  "shared_options_both_sides": "Exact live v3_uci_options (45 options, pipeline/config.forge.toml) + Threads=1, Hash=16, OwnBook=false, MateAlphaGuard=true, NNUEArch=true, NNUEArchFile=C:/nnue-lab/runs/forge/r0067/train/cand.fnn3.",
+  "match_settings": {
+    "tc": "6+0.06",
+    "timemargin_ms": 1000,
+    "games": 2000,
+    "rounds": 1000,
+    "games_per_round": 2,
+    "repeat": true,
+    "recover": true,
+    "concurrency": 7,
+    "seed": 202611982,
+    "sprt": null,
+    "adjudication": "none",
+    "pgn_comments": "nodes=true (min=false)",
+    "isolation": "100% idle GPU + 100% idle CPU via Get-CimInstance check_idle_pc(), CLOCK_MATCH_RUNNING lock set in try/finally, HWiNFO age < 90s, CPU < 90C start / >= 92C thermal stop, mem_room.py 2 GO"
+  },
+  "decision_rule": "Fixed-horizon 2,000-game 95% pentanomial CI at 6+0.06 on r0067 (zero SPRT early-stopping bias, never pooled with Task 2D S7): (1) 95% CI lower bound > 0 => TmFinishIteration=true improves 6+0.06 on r0067 (eligible for follow-up evaluation on R1-skip and comparison against Test B); (2) 95% CI includes 0 => inconclusive; (3) 95% CI upper bound < 0 => weaker at 6+0.06 (reject).",
+  "evidence_and_provenance": {
+    "epistemic_note": "Offline 40-UHO timing probes and validation/diagnostic metrics NEVER establish Elo; only declared fastchess games decide playing strength. Fixed-horizon 2,000g clock matches carry zero SPRT early-stopping upward bias, whereas H1-stopped SPRT matches carry early-stopping upward bias.",
+    "opus_verified": [
+      "TmFinishIteration exists in forge/r15dsg/src/search.cpp:175 (default false; used at lines 2962 and 3188-3219; off in live loop/matches, OPUS_TO_NEON.md:3579).",
+      "Task 2D S7 (TmNodeShare + TmFinishIteration + AspCappedReopen + AspArmLate, 6+0.06) scored -32.2 [-49.0, -15.6] Elo (OPUS_TO_NEON.md:2722).",
+      "OPUS_R1_skip_vs_r0067: +30.65 [+18.59, +42.79] (1,000g fixed @ 250k) vs +6.43 [-1.47, +14.33] (2,000g fixed @ 6+0.06, INCONCLUSIVE); clock gap 24.2 +/- 7.4 Elo (OPUS_TO_NEON.md:3155, 3467, 3475).",
+      "SPRT early-stopping upward bias disclosed on H1-stopped runs (R1-skip Seed 1 +15.49 and Seed 2 +12.57 at 250k SPRT [0, 10]; Opus two-seed true-effect estimate ~+8..+14).",
+      "go movetime 210 control (-0.02%) isolates the R1-skip vs r0067 clock gap inside time_managed_ (OPUS_TO_NEON.md:3561)."
+    ],
+    "neons_count": [
+      "TM_CLOCK_GAP_ROOT_CAUSE.json (40 UHO positions, go wtime 6000 winc 60): TmFinishIteration=true keeps gap (+29.1% mean / +18.7% median) without mid-iteration cap because 1-ply PV-flip spikes still run to hard_limit_ms_ (1,585 ms)."
+    ]
+  }
+}

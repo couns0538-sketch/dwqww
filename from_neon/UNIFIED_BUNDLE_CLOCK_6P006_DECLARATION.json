@@ -1,0 +1,77 @@
+{
+  "written": "2026-11-29T01:20:00Z",
+  "experiment": "UNIFIED_SEARCH_BUNDLE_2000g_6p006",
+  "request_ref": "OPUS-2811-OWNER-FIXES-FIRST, OPUS-2811-ANSWER-TO-STATE-TABLE-1509 Point 4 (Monday Bar 1 clock confirmation), & UNIFIED_SEARCH_BUNDLE_250K_DECLARATION.json decision_rule",
+  "prerequisite": {
+    "required_before_game_1": "UNIFIED_SEARCH_BUNDLE_250k_SPRT must complete and accept H1 under SPRT [0, 10] (if H0 is accepted, run run_unified_split_half_sprt.py --half 1|2 instead).",
+    "ref_declaration": "C:\\nnue-lab\\neon\\forge_fixes\\UNIFIED_SEARCH_BUNDLE_250K_DECLARATION.json",
+    "ref_declaration_sha256": "aa74aa81fd8beb66241ea12d3bed755fe352b7883241376bfe4228311532235e"
+  },
+  "artifacts": {
+    "exe_both": "C:\\nnue-lab\\neon\\forge_fixes\\unified_search_tree\\forge_unified.exe",
+    "exe_sha256": "7c2a4a4605039df9c04d0580564dfeb4ad64c37a98923f327405223d2ac9d399",
+    "patch_path": "C:\\nnue-lab\\neon\\forge_fixes\\unified_search_tree\\UNIFIED_SEARCH_TREE.patch",
+    "patch_sha256": "a7b59ec6c1f4c7e87539e2fbb34f0eae44dfbcd1abf08efb70919de0df4ec5ee",
+    "gates_json": "C:\\nnue-lab\\neon\\forge_fixes\\unified_search_tree\\UNIFIED_SEARCH_TREE_GATES_AND_NPS.json",
+    "gates_json_sha256": "e3feefa72b5c31bf42a1f2e8d26efcdd28726d44d52e87ce1e8a11de8be0908c",
+    "net_both": "C:/nnue-lab/runs/forge/r0067/train/cand.fnn3",
+    "net_sha256": "737f197808fef489017cf46f4daf76663d805bb01761e2b1781fc46fa7c9fc28",
+    "fastchess_bin": "C:\\nnue-lab\\tools\\fastchess\\fastchess-windows-x86-64\\fastchess.exe",
+    "fastchess_sha256": "a7aa6762058e1f699809e9f3d1a35b609e90dbb2c3dde32d99099d641780eb9b",
+    "book": "C:/nnue-lab/tools/book/UHO_Lichess_4852_v1.epd",
+    "book_sha256": "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a",
+    "runner": "C:\\nnue-lab\\neon\\forge_fixes\\teamwork_wave17\\run_unified_bundle_clock_6p006.py"
+  },
+  "cand_options_on": {
+    "LmrDeeperShallower": "true",
+    "MinorCorrHist": "true",
+    "AspScoreScale": "true",
+    "BadCapLmr": "true",
+    "LmrFracCapHist": "true",
+    "LmrTtPvCutExt": "true"
+  },
+  "base_options_on_diff": {
+    "LmrDeeperShallower": "false",
+    "MinorCorrHist": "false",
+    "AspScoreScale": "false",
+    "BadCapLmr": "false",
+    "LmrFracCapHist": "false",
+    "LmrTtPvCutExt": "false"
+  },
+  "options_explicitly_off_both_sides": {
+    "ContHist4PlyRead": "false",
+    "ContHist6PlyRead": "false",
+    "ForcedRootClockStop": "false",
+    "TmAspFailLowGuard": "false"
+  },
+  "shared_options_both_sides": "Exact live v3_uci_options (45 options, pipeline/config.forge.toml) + Threads=1, Hash=16, OwnBook=false, MateAlphaGuard=true, NNUEArch=true, NNUEArchFile=C:/nnue-lab/runs/forge/r0067/train/cand.fnn3.",
+  "match_settings": {
+    "tc": "6+0.06",
+    "timemargin_ms": 1000,
+    "games": 2000,
+    "rounds": 1000,
+    "games_per_round": 2,
+    "repeat": true,
+    "recover": true,
+    "concurrency": 7,
+    "seed": 202611974,
+    "sprt": null,
+    "adjudication": "none",
+    "pgn_comments": "nodes=true (min=false)",
+    "isolation": "100% idle GPU + 100% idle CPU via Get-CimInstance check_idle_pc(), CLOCK_MATCH_RUNNING lock set in try/finally, HWiNFO age < 90s, CPU < 90C start / >= 92C thermal stop, mem_room.py 2 GO"
+  },
+  "decision_rule": "Fixed-horizon 2,000-game 95% pentanomial CI at 6+0.06 (zero SPRT early-stopping bias, never pooled with 250k SPRT): Monday Bar 1 requires clock confirmation to be NOT negative (95% CI upper bound >= 0 and point estimate non-negative per OPUS-2811-ANSWER-TO-STATE-TABLE-1509 Point 4 / UNIFIED_SEARCH_BUNDLE_250K_DECLARATION.json). If 95% CI upper bound < 0 => clock regression, do not place bundle as-is.",
+  "evidence_and_provenance": {
+    "epistemic_note": "Offline NPS/node probes and 40-position timing checks are strictly diagnostic and NEVER establish Elo; only declared fastchess games decide playing strength. Fixed-horizon 2,000g clock matches carry zero SPRT early-stopping upward bias, whereas H1-stopped SPRT matches carry early-stopping upward bias.",
+    "opus_verified": [
+      "UNIFIED_SEARCH_BUNDLE_250K_DECLARATION.json (aa74aa81...) verified sound by Opus (OPUS_TO_NEON.md:3526-3530).",
+      "LmrDeeperShallower positive control on live forge.exe (140,528 -> 120,828 nodes at d15, OPUS_TO_NEON.md:3308).",
+      "SF13 excluded (H0 rejected at -7.28 [-15.62, +1.04], 1,908g @ 250k, OPUS_TO_NEON.md:3239); OWNER_BUNDLE Arm A (-7.47 [-15.49, +0.54] @ 6+0.06) and Arm B (+3.82 [-3.94, +11.59] @ 6+0.06) recounted (OPUS_TO_NEON.md:3072, 3082).",
+      "SPRT early-stopping upward bias disclosed on prior H1-stopped runs (e.g., R1-skip Seed 1 +15.49 and Seed 2 +12.57 at 250k SPRT [0, 10]; Opus two-seed true-effect estimate ~+8..+14)."
+    ],
+    "neons_count": [
+      "UNIFIED_SEARCH_TREE_GATES_AND_NPS.json (e3feefa7...): default-off gates (bench 11=312866, bench 13=862329, perft 5=4865609, perft_suite 12/12, v3_parity 0/200, same_search 0/10 d12 & 0/50 d9 vs loop PGO forge.exe) and 3x bench 13 NPS measurements.",
+      "ContHist4PlyRead vs ContHist6PlyRead independence check and positive controls for all 10 options."
+    ]
+  }
+}
