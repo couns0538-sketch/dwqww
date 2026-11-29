@@ -1,0 +1,136 @@
+{
+  "written": "2026-11-28 16:00:00 PC",
+  "experiment": "R2_live768_skipnoisy_anchored",
+  "request_ref": "OPUS-2811-ANSWER-TO-STATE-TABLE-1509 Point 5 (GPU Priority #2 after F_FIX_25R_v2)",
+  "seed": 1,
+  "runner": "C:\\nnue-lab\\neon\\forge_fixes\\teamwork_wave15\\run_r2_anchored_skipnoisy.py",
+  "trainer_base": "C:\\nnue-lab\\neon\\forge_fixes\\train_v3p.py (patched only in isolated copy with teamwork_wave13/train_v3p_skipplain_DRAFT.patch)",
+  "hyperparameters": {
+    "hidden": 768,
+    "king_buckets": 8,
+    "pairwise": false,
+    "psqt": false,
+    "export_format": "FORGENN3 v3 standard (9,463,528 bytes, 1.0000x NPS, zero C++ changes)",
+    "window": "r0178..r0202 (25 rounds, skip_noisy=True, skip_check=True => 281,241,466 quiet rows)",
+    "epochs": 40,
+    "batch_size": 8192,
+    "lr": 0.0005,
+    "min_lr_frac": 0.05,
+    "warmup_steps": 500,
+    "lr_cycles": "auto",
+    "w1_decay": 0.3,
+    "ob_smooth": 1e-4,
+    "mix": 0.75,
+    "loss_pow": 2.0,
+    "distill_net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_skipnoisy\\cand.pt (standalone v3, w=0.2)"
+  },
+  "anchors": {
+    "repeat": 20,
+    "total_anchor_rows_per_epoch": 808420,
+    "total_rows_per_epoch": 282049886,
+    "anchor_share_pct": 0.2866,
+    "overlap_proof_json": "C:\\nnue-lab\\neon\\forge_fixes\\teamwork_wave15\\R2_ANCHOR_OVERLAP_PROOF.json",
+    "overlap_verified": {
+      "heldout_syzygy_4k": "0 exact / 0 sym across all 3 shards",
+      "s5_s7_net_sanity": "0 exact / 0 sym across all 3 shards",
+      "val_plain_107084": "0 dead_draws, 0 opening_ply012, 20 exact / 60 sym in won_endings_syzygy_20k (0.019% of val.plain)",
+      "uho_epd_2632036": "0 dead_draws, 0 won_endings, 5 exact / 6 sym in opening_ply012_anchors (0.00019% of UHO)"
+    },
+    "shards": [
+      {
+        "name": "dead_draws_20k_s5disjoint.fqs.z",
+        "path": "C:\\nnue-lab\\neon\\forge_fixes\\anchors\\dead_draws_20k_s5disjoint.fqs.z",
+        "rows": 20000,
+        "sha256": "7653279511862abc7d5bd856f14e61a594932ba625be09107e168d43e9b775a5"
+      },
+      {
+        "name": "won_endings_syzygy_20k.fqs.z",
+        "path": "C:\\nnue-lab\\neon\\forge_fixes\\anchors\\won_endings_syzygy_20k.fqs.z",
+        "rows": 20000,
+        "sha256": "c2f51696b886c6cad78da2cca253352d79e6a188778c5ab35526b6321a4a96de"
+      },
+      {
+        "name": "opening_ply012_anchors.fqs.z",
+        "path": "C:\\nnue-lab\\neon\\forge_fixes\\anchors\\opening_ply012_anchors.fqs.z",
+        "rows": 421,
+        "sha256": "6703857609240a6cbdf07d85e95d1747d939ccb307b685eb0c6c76675e4540d0"
+      }
+    ]
+  },
+  "pre_game_diagnostic_protocol": {
+    "note": "Strictly diagnostic pre-game verification declared BEFORE any game. Offline diagnostics NEVER establish Elo.",
+    "required_before_any_game": true,
+    "s5_dead_draws_measurement": {
+      "script": "C:\\nnue-lab\\tmp\\opus_scratch\\netcheck\\net_sanity.py",
+      "command": "C:\\nnue-lab\\venv101\\Scripts\\python.exe -I -B C:\\nnue-lab\\tmp\\opus_scratch\\netcheck\\net_sanity.py --gate --exe-cmd '[\"C:/nnue-lab/runs/forge/engines/v3-r15dsg-sp-clang/forge.exe\"]' <cand.fnn3>",
+      "positions": {
+        "S5_K-K": "8/8/8/4k3/8/8/4K3/8 w - - 0 1",
+        "S5_KN-K": "8/8/8/4k3/8/8/3NK3/8 w - - 0 1",
+        "S5_KB-K": "8/8/8/4k3/8/8/3BK3/8 w - - 0 1",
+        "S5_KNN-K": "8/8/8/4k3/8/8/2NNK3/8 w - - 0 1"
+      },
+      "normalization_unit": "u = (Q + R + B + N) / 20 from S6 startpos-minus-piece raw evals; cp = 100 * raw / u",
+      "threshold": "max(|cp(K-K)|, |cp(KN-K)|, |cp(KB-K)|, |cp(KNN-K)|) <= 50 cp (and 0 S5_dead_draws flag)",
+      "baseline_r1_skip": {
+        "seed1_knn_k_cp": 60,
+        "seed2_knn_k_cp": 68,
+        "target_r2": "<= 50 cp"
+      }
+    },
+    "ob0_ob1_cliff_measurement": {
+      "script": "C:\\nnue-lab\\neon\\forge_fixes\\eval_net_full.py",
+      "command": "C:\\nnue-lab\\venv101\\Scripts\\python.exe -I -B C:\\nnue-lab\\neon\\forge_fixes\\eval_net_full.py <cand.fnn3> --exe C:\\nnue-lab\\runs\\forge\\engines\\v3-r15dsg-sp-clang\\forge.exe --out <eval_full.json>",
+      "pair_construction": "Deterministic sample (seed=20261127) across 20 M4 SF19 TSV chunks (C:\\nnue-lab\\tmp\\opus_scratch\\sf19_m4\\out); first 100 positions with exactly 6 pieces containing >= 1 pawn, paired with the identical position minus 1 pawn (5 pieces: ob1=6pcs vs ob0=5pcs).",
+      "metric": "ob0_ob1_cliff_median_jump_cp = median(|nnue_cp(6pcs) - nnue_cp(5pcs)|) over n=100 pairs",
+      "threshold": "ob0_ob1_cliff_n == 100 and record raw & unit-normalized ob0_ob1_cliff_median_jump_cp (diagnostic target: <= 102.8 cp, below R1-skip's 108.5-116.5 cp)",
+      "baseline_r1_skip": {
+        "seed1_median_jump_cp": 108.5,
+        "seed2_median_jump_cp": 116.5,
+        "r0067_reference_cp": 102.8
+      }
+    },
+    "master_gates_quick": {
+      "script": "C:\\nnue-lab\\neon\\forge_fixes\\teamwork_wave2\\streamC_gates\\run_master_gates.py",
+      "command": "C:\\nnue-lab\\venv101\\Scripts\\python.exe -I -B C:\\nnue-lab\\neon\\forge_fixes\\teamwork_wave2\\streamC_gates\\run_master_gates.py --exe C:\\nnue-lab\\neon\\forge_fixes\\builds\\base_r15dsg.exe --net <cand.fnn3> --quick --json-out <master_gates_quick.json>",
+      "hard_gate": "hard_pass == true, 0 cp max parity diff across 120/120 FENs and 8/8 OB, perft 5 == 4865609, 13/13 loader safety pass, net_bytes == 9463528"
+    },
+    "heldout_syzygy_integrity": {
+      "script": "C:\\nnue-lab\\neon\\forge_fixes\\eval_heldout_syzygy.py",
+      "command": "C:\\nnue-lab\\venv101\\Scripts\\python.exe -I -B C:\\nnue-lab\\neon\\forge_fixes\\eval_heldout_syzygy.py <cand.fnn3> --exe C:\\nnue-lab\\runs\\forge\\engines\\v3-r15dsg-sp-clang\\forge.exe --out <heldout_eval.json>",
+      "note": "0 overlap with anchor shards verified in R2_ANCHOR_OVERLAP_PROOF.json; strictly diagnostic."
+    }
+  },
+  "nets_training": {
+    "r2_anchored": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\R2_live768_anchored_skipnoisy\\cand.fnn3",
+    "r2_ctrl": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\R2_ctrl_live768_skipnoisy\\cand.fnn3",
+    "r1_skip_base": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_skipnoisy\\cand.fnn3"
+  },
+  "matches_declared": [
+    {
+      "name": "R2_anchored_vs_R1_skip_SPRT_0_10_250k",
+      "exe_both": "C:\\nnue-lab\\neon\\forge_fixes\\builds\\base_r15dsg.exe",
+      "cand_net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\R2_live768_anchored_skipnoisy\\cand.fnn3",
+      "base_net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_skipnoisy\\cand.fnn3",
+      "book": "C:/nnue-lab/tools/book/UHO_Lichess_4852_v1.epd",
+      "nodes": 250000,
+      "concurrency": 8,
+      "seed": 202612001,
+      "sprt": {"elo0": 0, "elo1": 10, "alpha": 0.05, "beta": 0.05, "model": "normalized"},
+      "max_games": 2000,
+      "decision_rule": "H1 accepted => advance to 6+0.06 clock confirmation (and disclose SPRT early-stopping upward bias on H1 Elo); H0 accepted => stop (do not place); 2,000g cap without decision => inconclusive (do not place). If H1 accepted, also run R2_anchored_vs_R2_ctrl_SPRT_0_10_250k (max 2,000g) or Seed-2 replicate if isolating anchor effect vs train_v3p.py."
+    },
+    {
+      "name": "R2_anchored_vs_R1_skip_2000g_6p006",
+      "exe_both": "C:\\nnue-lab\\runs\\forge\\engines\\v3-r15dsg-sp-clang\\forge.exe",
+      "cand_net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\R2_live768_anchored_skipnoisy\\cand.fnn3",
+      "base_net": "C:\\nnue-lab\\neon\\forge_fixes\\gpu_runs\\OPUS_R1_live768_skipnoisy\\cand.fnn3",
+      "book": "C:/nnue-lab/tools/book/UHO_Lichess_4852_v1.epd",
+      "tc": "6+0.06",
+      "concurrency": 7,
+      "games": 2000,
+      "seed": 202612002,
+      "isolation": "100% idle GPU + 100% idle CPU, CLOCK_MATCH_RUNNING set, HWiNFO fresh",
+      "decision_rule": "Fixed 2,000-game 95% pentanomial CI (zero pooling across seeds): (1) 95% lower bound > 0 => R2 confirmed stronger on clock (may proceed to Seed-2 / lab-place-a-change); (2) 95% CI includes 0 => inconclusive (do not place); (3) 95% upper bound < 0 => weaker on clock (do not place)."
+    }
+  ]
+}

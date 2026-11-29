@@ -1,0 +1,50 @@
+--- a/pipeline/nnloop/filterqc.py
++++ b/pipeline/nnloop/filterqc.py
+@@ -58,11 +58,12 @@
+     max_ply = int(f.get("max_ply", 10**9))
+     dedup = bool(f.get("dedup", True))
+     conflict = int(f.get("conflict_score", 0))
++    draw_conflict = int(f.get("draw_conflict_score", 0))
+     max_r50 = int(f.get("max_halfmove_clock", 1000))
+     min_pieces = int(f.get("min_pieces", 0))
+ 
+     seen: set[int] = set()
+     n = kept = 0
+-    why = {"score_limit": 0, "ply": 0, "duplicate": 0, "score_result_conflict": 0, "rule50": 0,
+-           "few_pieces": 0, "already_none": 0}
++    why = {"score_limit": 0, "ply": 0, "duplicate": 0, "score_result_conflict": 0,
++           "draw_score_conflict": 0, "rule50": 0, "few_pieces": 0, "already_none": 0}
+     res_kept = {-1: 0, 0: 0, 1: 0}
+@@ -108,5 +109,7 @@
+                             reason = "ply"
+                         elif conflict and result != 0 and abs(score) >= conflict and (score > 0) != (result > 0):
+                             reason = "score_result_conflict"
++                        elif draw_conflict and result == 0 and abs(score) >= draw_conflict:
++                            reason = "draw_score_conflict"
+                         elif len(parts) > 4 and parts[4].isdigit() and int(parts[4]) > max_r50:
+                             reason = "rule50"
+@@ -202,4 +205,5 @@
+         "raw_archive": raw_archive, "seconds": round(time.time() - t0, 1),
+-        "rules": {"max_abs_score": max_abs, "min_ply": min_ply, "max_ply": max_ply, "dedup": dedup,
+-                  "conflict_score": conflict, "max_halfmove_clock": max_r50, "min_pieces": min_pieces},
++        "rules": {"max_abs_score": max_abs, "min_ply": min_ply, "max_ply": max_ply, "dedup": dedup,
++                  "conflict_score": conflict, "draw_conflict_score": draw_conflict,
++                  "max_halfmove_clock": max_r50, "min_pieces": min_pieces},
+     }
+--- a/pipeline/config.forge.toml
++++ b/pipeline/config.forge.toml
+@@ -328,10 +328,11 @@
+ [filter]
+ output = "plain"                 # the Forge trainer reads the text file directly
+-max_abs_score  = 2000
++max_abs_score  = 1200
+ min_ply        = 0
+ max_ply        = 400
+ dedup          = true
+-conflict_score = 600
++conflict_score = 300
++draw_conflict_score = 400
+ max_halfmove_clock = 80
+-min_pieces     = 4
++min_pieces     = 2
+ 

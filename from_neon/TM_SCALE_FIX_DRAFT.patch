@@ -1,0 +1,58 @@
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -300,3 +300,4 @@
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
++extern int TmSoftCapPercent;         // >0: mid-iteration soft cap at depth>=6 (% of soft_basis, 0 = off)
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+@@ -528,3 +529,4 @@
+     std::int64_t soft_limit_ms_ = 0;
+     std::int64_t hard_limit_ms_ = 0;
++    std::int64_t mid_iter_soft_cap_ms_ = 0;
+     bool time_managed_ = false;
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -144,3 +144,4 @@
+ int TmFallingEvalPercent = 100;
+ int TmMinFactorPercent = 45;
++int TmSoftCapPercent = 0;
+ int CaptureFutilityBase = 0;
+@@ -217,3 +218,4 @@
+         {"TmUnstableFactor", &TmUnstableFactor, 50, 300},    {"TmEffortBase", &TmEffortBase, 100, 250},
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
++        {"TmSoftCapPercent", &TmSoftCapPercent, 0, 500},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+@@ -1557,6 +1559,9 @@
+     if (hard_limit_ms_ > 0) {
+         if (pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0) return false;
+         if (elapsed_ms() >= hard_limit_ms_) return true;
++        if (mid_iter_soft_cap_ms_ > 0 && time_managed_ && elapsed_ms() >= mid_iter_soft_cap_ms_) {
++            return true;
++        }
+     }
+     return false;
+ }
+@@ -2670,3 +2675,4 @@
+     const std::int64_t overhead = std::max<std::int64_t>(0, limits.move_overhead_ms);
+     soft_limit_ms_ = hard_limit_ms_ = 0;
++    mid_iter_soft_cap_ms_ = 0;
+     time_managed_ = false;
+@@ -3210,7 +3216,15 @@
+             }
+-            if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_basis) * factor)) break;
++            const auto soft_deadline = static_cast<std::int64_t>(static_cast<double>(soft_basis) * factor);
++            if (elapsed_ms() >= soft_deadline) break;
++            if (tune::TmSoftCapPercent > 0 && depth >= 6) {
++                const std::int64_t pct_cap = soft_basis * tune::TmSoftCapPercent / 100;
++                std::int64_t cap = std::max<std::int64_t>(1, std::max(soft_deadline, pct_cap));
++                if (hard_limit_ms_ > 0 && cap > hard_limit_ms_) cap = hard_limit_ms_;
++                mid_iter_soft_cap_ms_ = cap;
++            } else {
++                mid_iter_soft_cap_ms_ = 0;
++            }
+             if (finish_sampling) {
+                 const std::int64_t used_ms = elapsed_ms();
+-                const auto deadline = static_cast<std::int64_t>(static_cast<double>(soft_basis) * factor);
+-                const std::int64_t left_ms = deadline - used_ms;
++                const std::int64_t left_ms = soft_deadline - used_ms;
+                 if (iteration_will_not_finish(finish_prev_ms, finish_last_ms, left_ms)) {

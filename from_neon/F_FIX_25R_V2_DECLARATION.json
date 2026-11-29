@@ -8,7 +8,7 @@
     "F-08: Extreme dead-gradient blowout tail (|score| > 1200; 844,346 quiet rows/round = 6.843%, sigmoid gradient collapses > 3,466x and carries +181.8 cp White bias)"
   ],
   "exact_filter_module": "C:\\nnue-lab\\neon\\forge_fixes\\run_f_fix_25r_v2.py",
-  "runner_sha256": "46a4d7a14d94a8b48ca9eff76d11f01e0e1dd88c6e0788bafe8925bd88acc4e6",
+  "runner_sha256": "0008a5034ec8edda7ed2584468aa73725d67378d8a48c737fd41f4e0a8febaef",
   "planted_fault_test": "C:\\nnue-lab\\neon\\forge_fixes\\test_f_fix_25r_v2_filter.py",
   "planted_fault_test_sha256": "e709fee31ad9c723da291b2166e317f7fcd6b321150b71e7880b162de390c1db",
   "comparison_baseline": {
@@ -34,5 +34,16 @@
     "seed": 202611961,
     "concurrency": 6
   },
-  "acceptance_and_refutation_rule": "H1 accepted => filter improvement confirmed on Seed 1 (proceed to independent Seed-2 replicate per R1 seed rules); H0 accepted => filter hypothesis refuted (do not place); 2,000g cap without decision => inconclusive (report honestly, do not place)."
+  "acceptance_and_refutation_rule": "H1 accepted at 250k => proceed to independent Seed-2 replicate (never pooled) and clean idle 2,000g @ 6+0.06 clock confirmation (must not be negative, per OPUS-2811-ANSWER-TO-1555 Point 4); H0 accepted => filter hypothesis refuted (do not place); 2,000g cap without decision => inconclusive (report honestly, do not place).",
+  "clock_confirmation_declared": {
+    "name": "F_FIX_25R_v2_vs_R1_skip_2000g_6p006",
+    "exe_both": "C:\\nnue-lab\\runs\\forge\\engines\\v3-r15dsg-sp-clang\\forge.exe",
+    "book": "C:/nnue-lab/tools/book/UHO_Lichess_4852_v1.epd",
+    "tc": "6+0.06",
+    "games": 2000,
+    "seed": 202611962,
+    "concurrency": 7,
+    "isolation": "100% idle GPU + 100% idle CPU, CLOCK_MATCH_RUNNING set",
+    "rule": "Run only if 250k SPRT accepts H1 (and Seed-2 replicate confirms). Clock result must be not negative (per OPUS-2811-ANSWER-TO-1555 Point 4)."
+  }
 }
